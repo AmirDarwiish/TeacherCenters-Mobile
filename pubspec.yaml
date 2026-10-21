@@ -1,0 +1,32 @@
+name: teacher_centers_mobile
+description: TeacherCenters mobile client for teachers and students.
+publish_to: none
+version: 1.0.0+1
+environment:
+  sdk: '>=3.8.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  dio: ^5.8.0+1
+  flutter_secure_storage: ^9.2.4
+  intl: any
+  qr_flutter: ^4.1.0
+  video_player: ^2.9.5
+  url_launcher: ^6.3.1
+  file_picker: ^10.1.9
+  signalr_netcore: ^1.4.3
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: Tajawal
+      fonts:
+        - asset: assets/fonts/Tajawal-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Tajawal-Bold.ttf
+          weight: 700

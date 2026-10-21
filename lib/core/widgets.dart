@@ -1,0 +1,367 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import 'api.dart';
+
+String when(dynamic value) {
+  final date = DateTime.tryParse('$value');
+  return date == null
+      ? '—'
+      : DateFormat('EEE d MMM · h:mm a', 'ar').format(date.toLocal());
+}
+
+void open(BuildContext context, Widget child) =>
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => child));
+void toast(BuildContext context, Object text) => ScaffoldMessenger.of(
+  context,
+).showSnackBar(SnackBar(content: Text('$text')));
+Future<void> action(
+  BuildContext context,
+  Future<void> Function() work, {
+  String? success,
+}) async {
+  try {
+    await work();
+    if (context.mounted && success != null) toast(context, success);
+  } catch (e) {
+    if (context.mounted) toast(context, e);
+  }
+}
+
+Future<bool> confirm(BuildContext context, String title) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(title),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('رجوع'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('تأكيد'),
+          ),
+        ],
+      ),
+    ) ??
+    false;
+
+class AsyncPanel extends StatefulWidget {
+  const AsyncPanel({
+    super.key,
+    required this.load,
+    this.changes,
+    required this.builder,
+  });
+  final Stream<String>? changes;
+  final Future<dynamic> Function() load;
+  final Widget Function(dynamic data, VoidCallback refresh) builder;
+  @override
+  State<AsyncPanel> createState() => _AsyncPanelState();
+}
+
+class _AsyncPanelState extends State<AsyncPanel> {
+  late Future<dynamic> data;
+  StreamSubscription<String>? subscription;
+  @override
+  void initState() {
+    super.initState();
+    subscription = widget.changes?.listen((_) {
+      if (mounted) setState(reload);
+    });
+    reload();
+  }
+
+  @override
+  void dispose() {
+    subscription?.cancel();
+    super.dispose();
+  }
+
+  void reload() {
+    data = widget.load();
+  }
+
+  @override
+  void didUpdateWidget(covariant AsyncPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.key != widget.key) reload();
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<dynamic>(
+    future: data,
+    builder: (context, s) {
+      void refresh() => setState(reload);
+      if (s.connectionState != ConnectionState.done) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (s.hasError) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.cloud_off_rounded, size: 48),
+                const SizedBox(height: 16),
+                Text('${s.error}', textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton.tonal(
+                  onPressed: refresh,
+                  child: const Text('إعادة المحاولة'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      return RefreshIndicator(
+        onRefresh: () async {
+          refresh();
+          await data;
+        },
+        child: widget.builder(s.data, refresh),
+      );
+    },
+  );
+}
+
+class Empty extends StatelessWidget {
+  const Empty({super.key, this.text = 'لا توجد بيانات لعرضها حالياً'});
+  final String text;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(36),
+    child: Column(
+      children: [
+        const Icon(Icons.inbox_outlined, size: 48),
+        const SizedBox(height: 12),
+        Text(text, textAlign: TextAlign.center),
+      ],
+    ),
+  );
+}
+
+class Metric extends StatelessWidget {
+  const Metric(this.title, this.value, this.icon, {super.key});
+  final String title, value;
+  final IconData icon;
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(height: 12),
+          Text(value, style: Theme.of(context).textTheme.headlineSmall),
+          Text(title),
+        ],
+      ),
+    ),
+  );
+}
+
+class PageViewList extends StatelessWidget {
+  const PageViewList({
+    super.key,
+    required this.api,
+    required this.path,
+    required this.title,
+    required this.item,
+    this.query = const {},
+  });
+  final Api api;
+  final String path, title;
+  final Json query;
+  final Widget Function(Json) item;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: PagedList(api: api, path: path, query: query, item: item),
+  );
+}
+
+class PagedList extends StatefulWidget {
+  const PagedList({
+    super.key,
+    required this.api,
+    required this.path,
+    required this.item,
+    this.query = const {},
+  });
+  final Api api;
+  final String path;
+  final Json query;
+  final Widget Function(Json) item;
+  @override
+  State<PagedList> createState() => _PagedListState();
+}
+
+class _PagedListState extends State<PagedList> {
+  final List<Json> items = [];
+  int page = 1;
+  bool busy = false, more = true;
+  Object? error;
+  int epoch = 0;
+  StreamSubscription<String>? subscription;
+  @override
+  void initState() {
+    super.initState();
+    subscription = widget.api.live.events.listen((event) {
+      final path = widget.path;
+      if (event == 'Reconnected' ||
+          event == 'ThreadChanged' && path.contains('threads') ||
+          event == 'NotificationsChanged' && path.contains('notifications')) {
+        fetch(reset: true);
+      }
+    });
+    fetch(reset: true);
+  }
+
+  @override
+  void dispose() {
+    subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant PagedList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.path != widget.path ||
+        oldWidget.query.toString() != widget.query.toString()) {
+      fetch(reset: true);
+    }
+  }
+
+  Future<void> fetch({bool reset = false}) async {
+    if (busy && !reset) return;
+    if (reset) {
+      epoch++;
+      items.clear();
+      page = 1;
+      more = true;
+    }
+    final request = epoch;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      final data = await widget.api.get(
+        widget.path,
+        query: {...widget.query, 'page': page, 'pageSize': 20},
+      );
+      if (!mounted || request != epoch) return;
+      final next = rows(data);
+      setState(() {
+        items.addAll(next);
+        final total = obj(data)['totalCount'];
+        more =
+            data is! List &&
+            next.isNotEmpty &&
+            (total is num ? items.length < total : next.length == 20);
+        page++;
+      });
+    } catch (e) {
+      if (mounted && request == epoch) setState(() => error = e);
+    } finally {
+      if (mounted && request == epoch) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => RefreshIndicator(
+    onRefresh: () => fetch(reset: true),
+    child: ListView(
+      padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        ...items.map(widget.item),
+        if (!busy && items.isEmpty && error == null) const Empty(),
+        if (error != null)
+          Padding(padding: const EdgeInsets.all(16), child: Text('$error')),
+        if (busy)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+        if (!busy && (more || error != null))
+          TextButton(
+            onPressed: fetch,
+            child: Text(error != null ? 'إعادة المحاولة' : 'عرض المزيد'),
+          ),
+      ],
+    ),
+  );
+}
+
+class DetailFields extends StatelessWidget {
+  const DetailFields(this.data, {super.key});
+  final Json data;
+  @override
+  Widget build(BuildContext context) => Column(
+    children: data.entries
+        .where(
+          (e) =>
+              e.value != null &&
+              e.value is! Map &&
+              e.value is! List &&
+              ![
+                'rowVersion',
+                'id',
+                'studentId',
+                'teacherId',
+                'qrToken',
+              ].contains(e.key),
+        )
+        .map(
+          (e) => ListTile(
+            title: Text(fieldNames[e.key] ?? e.key),
+            subtitle: Text('${e.value}'),
+          ),
+        )
+        .toList(),
+  );
+}
+
+const fieldNames = {
+  'status': 'الحالة',
+  'score': 'الدرجة',
+  'maxScore': 'الدرجة النهائية',
+  'percent': 'النسبة',
+  'passed': 'ناجح',
+  'title': 'العنوان',
+  'fullName': 'الاسم',
+  'code': 'الكود',
+  'grade': 'الصف',
+  'phone': 'الموبايل',
+  'email': 'البريد',
+  'name': 'الاسم',
+  'role': 'الدور',
+  'amount': 'المبلغ',
+  'remaining': 'المتبقي',
+  'paid': 'المدفوع',
+  'period': 'الفترة',
+  'totalDue': 'إجمالي المستحق',
+  'receiptNumber': 'رقم الإيصال',
+  'method': 'طريقة الدفع',
+  'failureReason': 'سبب التعثر',
+  'kioskReference': 'كود الدفع',
+  'progressPercent': 'التقدم',
+  'requiredPercent': 'النسبة المطلوبة',
+  'eligible': 'مستحق للشهادة',
+  'quizzesPassed': 'اجتاز الامتحانات',
+  'marks': 'درجة السؤال',
+  'marksAwarded': 'الدرجة المكتسبة',
+  'teacherComment': 'تعليق المدرس',
+  'explanation': 'التفسير',
+  'attendancePercent': 'نسبة الحضور',
+  'averageScore': 'متوسط الدرجات',
+};
