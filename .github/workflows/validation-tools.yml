@@ -5,20 +5,29 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   prepare:
     runs-on: ubuntu-latest
-    env:
-      DOTNET_INSTALL_DIR: /tmp/sentrak-validation-tools/dotnet
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-      - run: dotnet restore .github/tooling/validation-dependencies.csproj --packages '/tmp/sentrak-validation-tools/packages'
-      - run: tar -czf validation-tools.tar.gz -C '/tmp/sentrak-validation-tools' dotnet packages
-      - uses: actions/upload-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: offline-validation-tools
-          path: validation-tools.tar.gz
+          run-id: 39733301034
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: split -b 250M -d validation-tools.tar.gz tooling.part.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validation-tools-00
+          path: tooling.part.00
+          retention-days: 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validation-tools-01
+          path: tooling.part.01
+          retention-days: 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validation-tools-02
+          path: tooling.part.02
           retention-days: 2

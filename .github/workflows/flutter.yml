@@ -22,6 +22,7 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - run: dart format lib test
       - run: dart fix --apply --code=curly_braces_in_flow_control_structures
       - run: dart format lib test
       - run: dart format --output=none --set-exit-if-changed lib test
