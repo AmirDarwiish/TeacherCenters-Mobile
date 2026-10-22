@@ -100,6 +100,7 @@ class _OtpCodeFieldState extends State<OtpCodeField> {
                               FilteringTextInputFormatter.digitsOnly,
                               LengthLimitingTextInputFormatter(6),
                             ],
+                            autofocus: true,
                             showCursor: false,
                             enableInteractiveSelection: true,
                             style: const TextStyle(

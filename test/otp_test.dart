@@ -6,7 +6,8 @@ import 'package:teacher_centers_mobile/core/otp_field.dart';
 import 'package:teacher_centers_mobile/features/login.dart';
 import 'package:teacher_centers_mobile/features/shell.dart';
 import 'api_test.dart' show MemoryStore, FakeAdapter, response, session;
-import 'course_experience_test.dart' show host, screenshot, course, loadTestFonts;
+import 'course_experience_test.dart'
+    show host, screenshot, course, loadTestFonts;
 
 Future<Api> loginApi(List<RequestOptions> requests) async {
   final client = Dio(BaseOptions(baseUrl: 'https://example.test'));
