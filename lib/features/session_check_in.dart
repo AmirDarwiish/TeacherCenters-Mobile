@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http_parser/http_parser.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:camera/camera.dart';
 
 import '../core/api.dart';
 import '../core/widgets.dart';
@@ -25,12 +25,58 @@ class AttendanceLocation {
 }
 
 abstract class AttendanceDevice {
+  Future<void> openCamera() async {}
+  Future<void> closeCamera() async {}
+  Widget cameraPreview() =>
+      const Center(child: Icon(Icons.camera_alt_outlined));
   Future<AttendanceLocation> locate();
   Future<Uint8List?> photograph();
 }
 
-class NativeAttendanceDevice implements AttendanceDevice {
-  const NativeAttendanceDevice();
+class NativeAttendanceDevice extends AttendanceDevice {
+  CameraController? _camera;
+
+  @override
+  Future<void> openCamera() async {
+    await closeCamera();
+    final cameras = await availableCameras();
+    final rear = cameras.where(
+      (c) => c.lensDirection == CameraLensDirection.back,
+    );
+    if (rear.isEmpty) {
+      throw ApiFailure('الكاميرا الخلفية غير متاحة على هذا الجهاز.');
+    }
+    final controller = CameraController(
+      rear.first,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+    _camera = controller;
+    try {
+      await controller.initialize();
+      await controller.setFlashMode(FlashMode.off);
+    } catch (_) {
+      if (identical(_camera, controller)) await closeCamera();
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> closeCamera() async {
+    final camera = _camera;
+    _camera = null;
+    await camera?.dispose();
+  }
+
+  @override
+  Widget cameraPreview() {
+    final camera = _camera;
+    if (camera == null || !camera.value.isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Center(child: CameraPreview(camera));
+  }
+
   @override
   Future<AttendanceLocation> locate() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
@@ -65,15 +111,12 @@ class NativeAttendanceDevice implements AttendanceDevice {
 
   @override
   Future<Uint8List?> photograph() async {
-    final photo = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.rear,
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 75,
-      requestFullMetadata: false,
-    );
-    return photo?.readAsBytes();
+    final camera = _camera;
+    if (camera == null || !camera.value.isInitialized) {
+      throw ApiFailure('افتح الكاميرا داخل التطبيق ثم التقط الصورة.');
+    }
+    final photo = await camera.takePicture();
+    return photo.readAsBytes();
   }
 }
 
@@ -105,16 +148,88 @@ class SessionCheckInPage extends StatefulWidget {
     required this.api,
     required this.studentId,
     required this.sessionId,
-    this.device = const NativeAttendanceDevice(),
+    this.device,
   });
   final Api api;
   final String studentId, sessionId;
-  final AttendanceDevice device;
+  final AttendanceDevice? device;
   @override
   State<SessionCheckInPage> createState() => _SessionCheckInPageState();
 }
 
-class _SessionCheckInPageState extends State<SessionCheckInPage> {
+class _SessionCheckInPageState extends State<SessionCheckInPage>
+    with WidgetsBindingObserver {
+  late final AttendanceDevice device =
+      widget.device ?? NativeAttendanceDevice();
+  bool cameraOpen = false;
+  bool cameraBusy = false;
+  bool foreground = true;
+  int cameraEpoch = 0;
+  Future<void> cameraTask = Future.value();
+
+  Future<void> stopCamera() {
+    cameraTask = cameraTask.then(
+      (_) => device.closeCamera(),
+      onError: (Object _, StackTrace _) => device.closeCamera(),
+    );
+    return cameraTask;
+  }
+
+  Future<void> openCamera() async {
+    if (working || cameraBusy || !ready) return;
+    final epoch = cameraEpoch;
+    setState(() {
+      cameraBusy = true;
+      error = null;
+    });
+    try {
+      await ensureChallenge();
+      cameraTask = cameraTask.then((_) => device.openCamera());
+      await cameraTask;
+      if (!mounted || !foreground || epoch != cameraEpoch) {
+        await stopCamera();
+        return;
+      }
+      setState(() {
+        cameraOpen = true;
+        photo = null;
+        photoAt = null;
+      });
+    } catch (e) {
+      // Keep the operation queue usable after a denied permission or device error.
+      cameraTask = Future.value();
+      if (mounted) {
+        setState(
+          () => error = e is CameraException
+              ? ApiFailure(
+                  'تعذر تشغيل الكاميرا. اسمح باستخدامها من إعدادات التطبيق ثم أعد المحاولة.',
+                )
+              : e,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => cameraBusy = false);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    foreground = state == AppLifecycleState.resumed;
+    if (!foreground) {
+      cameraEpoch++;
+      setState(() => cameraOpen = false);
+      stopCamera();
+    }
+  }
+
+  @override
+  void dispose() {
+    cameraEpoch++;
+    WidgetsBinding.instance.removeObserver(this);
+    stopCamera();
+    super.dispose();
+  }
+
   Json? policy, challenge;
   AttendanceLocation? location;
   Uint8List? photo;
@@ -163,10 +278,15 @@ class _SessionCheckInPageState extends State<SessionCheckInPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     load();
   }
 
   Future<void> load() async {
+    cameraEpoch++;
+    cameraOpen = false;
+    await stopCamera();
+    if (!mounted) return;
     setState(() {
       loading = true;
       error = null;
@@ -211,15 +331,16 @@ class _SessionCheckInPageState extends State<SessionCheckInPage> {
   }
 
   Future<void> capture(bool gps) async {
-    if (working || !ready) return;
+    if (working || cameraBusy || !ready) return;
     setState(() {
       working = true;
       error = null;
     });
     try {
+      final epoch = cameraEpoch;
       await ensureChallenge();
       if (gps) {
-        final next = await widget.device.locate();
+        final next = await device.locate();
         if (mounted) {
           setState(() {
             location = next;
@@ -227,7 +348,9 @@ class _SessionCheckInPageState extends State<SessionCheckInPage> {
           });
         }
       } else {
-        final bytes = await widget.device.photograph();
+        if (!cameraOpen || !foreground) return;
+        final bytes = await device.photograph();
+        if (!mounted || !foreground || epoch != cameraEpoch) return;
         if (bytes != null) {
           if (bytes.length > 5 * 1024 * 1024 ||
               attendancePhotoMime(bytes) == null) {
@@ -240,7 +363,9 @@ class _SessionCheckInPageState extends State<SessionCheckInPage> {
               photo = bytes;
               photoAt = DateTime.now().toUtc();
               key = newKey();
+              cameraOpen = false;
             });
+            await stopCamera();
           }
         }
       }
@@ -252,7 +377,9 @@ class _SessionCheckInPageState extends State<SessionCheckInPage> {
   }
 
   Future<void> submit() async {
-    if (working || !ready || !locationValid || photo == null) return;
+    if (working || cameraBusy || !ready || !locationValid || photo == null) {
+      return;
+    }
     setState(() {
       working = true;
       error = null;
@@ -325,7 +452,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage> {
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: !working,
+    canPop: !working && !cameraBusy,
     child: Scaffold(
       appBar: AppBar(title: const Text('تسجيل حضوري')),
       body: loading
@@ -413,34 +540,79 @@ class _SessionCheckInPageState extends State<SessionCheckInPage> {
                       ),
                     ),
                   const SizedBox(height: 14),
+                  Text(
+                    '٢. صورة من داخل السنتر',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${policy?['landmarkPrompt'] ?? 'وجّه الكاميرا للافتة القاعة أو علامة مميزة في السنتر.'}',
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: ColoredBox(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        child: photo != null
+                            ? Image.memory(photo!, fit: BoxFit.contain)
+                            : cameraOpen
+                            ? device.cameraPreview()
+                            : Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.camera_alt_outlined,
+                                      size: 42,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      cameraBusy
+                                          ? 'جارٍ فتح الكاميرا…'
+                                          : 'الكاميرا المباشرة داخل التطبيق',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'التقاط جديد فقط • لا يمكن رفع صورة',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: !ready || working ? null : () => capture(false),
-                    icon: const Icon(Icons.camera_alt_outlined),
+                    onPressed: !ready || working || cameraBusy
+                        ? null
+                        : cameraOpen
+                        ? () => capture(false)
+                        : openCamera,
+                    icon: Icon(
+                      cameraOpen ? Icons.camera : Icons.camera_alt_outlined,
+                    ),
                     label: Text(
-                      photo == null
+                      cameraOpen
+                          ? 'التقاط الصورة الآن'
+                          : photo == null
                           ? '٢. تصوير علامة مميزة بالكاميرا'
                           : 'إعادة التقاط الصورة',
                     ),
                   ),
-                  if (policy?['landmarkPrompt'] != null)
-                    Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Text('${policy?['landmarkPrompt']}'),
-                    ),
-                  if (photo != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: Image.memory(
-                        photo!,
-                        height: 220,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
                     onPressed:
-                        !ready || working || !locationValid || photo == null
+                        !ready ||
+                            working ||
+                            cameraBusy ||
+                            !locationValid ||
+                            photo == null
                         ? null
                         : submit,
                     icon: const Icon(Icons.send_outlined),
@@ -462,7 +634,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage> {
                     ),
                   ),
                 TextButton.icon(
-                  onPressed: working ? null : load,
+                  onPressed: working || cameraBusy ? null : load,
                   icon: const Icon(Icons.refresh),
                   label: const Text('تحديث حالة الطلب'),
                 ),
