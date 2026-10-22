@@ -73,7 +73,7 @@ class NativeAttendanceDevice implements AttendanceDevice {
       imageQuality: 75,
       requestFullMetadata: false,
     );
-    return photo == null ? null : photo.readAsBytes();
+    return photo?.readAsBytes();
   }
 }
 
