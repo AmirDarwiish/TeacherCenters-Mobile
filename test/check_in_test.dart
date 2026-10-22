@@ -30,7 +30,7 @@ class TestAttendanceDevice implements AttendanceDevice {
   Future<Uint8List?> photograph() async {
     photos++;
     return base64Decode(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1EAAAAASUVORK5CYII=',
+      'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGOUjf7AgA0wYRUdtBIAHLQBeFXty+UAAAAASUVORK5CYII=',
     );
   }
 }
