@@ -170,7 +170,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
   Future<void> stopCamera() {
     cameraTask = cameraTask.then(
       (_) => device.closeCamera(),
-      onError: (Object _, StackTrace __) => device.closeCamera(),
+      onError: (Object _, StackTrace _) => device.closeCamera(),
     );
     return cameraTask;
   }
@@ -198,7 +198,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
     } catch (e) {
       // Keep the operation queue usable after a denied permission or device error.
       cameraTask = Future.value();
-      if (mounted)
+      if (mounted) {
         setState(
           () => error = e is CameraException
               ? ApiFailure(
@@ -206,6 +206,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                 )
               : e,
         );
+      }
     } finally {
       if (mounted) setState(() => cameraBusy = false);
     }
@@ -376,8 +377,9 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
   }
 
   Future<void> submit() async {
-    if (working || cameraBusy || !ready || !locationValid || photo == null)
+    if (working || cameraBusy || !ready || !locationValid || photo == null) {
       return;
+    }
     setState(() {
       working = true;
       error = null;

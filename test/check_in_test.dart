@@ -111,9 +111,11 @@ void main() {
         expect(device.locations, 0);
         expect(device.photos, 0);
         await tester.ensureVisible(find.text('١. تحديد موقعي الحالي'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('١. تحديد موقعي الحالي'));
         await tester.pumpAndSettle();
         await tester.ensureVisible(find.text('٢. تصوير علامة مميزة بالكاميرا'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('٢. تصوير علامة مميزة بالكاميرا'));
         await tester.pumpAndSettle();
         expect(device.photos, 0);
@@ -132,9 +134,11 @@ void main() {
         );
         await tester.pumpAndSettle();
         await tester.ensureVisible(find.text('٢. تصوير علامة مميزة بالكاميرا'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('٢. تصوير علامة مميزة بالكاميرا'));
         await tester.pumpAndSettle();
         await tester.ensureVisible(find.text('التقاط الصورة الآن'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('التقاط الصورة الآن'));
         await tester.pumpAndSettle();
         expect(device.photos, 1);
@@ -146,6 +150,7 @@ void main() {
         if (allowed) {
           await screenshot(tester, 'attendance-location-photo');
           await tester.ensureVisible(button);
+          await tester.pumpAndSettle();
           await tester.tap(button);
           await tester.pumpAndSettle();
           final sent = requests.singleWhere(
