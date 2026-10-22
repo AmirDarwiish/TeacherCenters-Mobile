@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/widgets.dart';
 import 'shell.dart' show StudentCard;
+import 'session_check_in.dart';
 
 String sessionStatus(dynamic value) =>
     const {
@@ -195,6 +196,26 @@ class StudentSessionPage extends StatelessWidget {
                 ),
               ),
             ),
+            if (api.role == 'Student' &&
+                !cancelled &&
+                !['Present', 'Late', 'Excused'].contains(s['attendance']))
+              FilledButton.icon(
+                onPressed: () async {
+                  await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SessionCheckInPage(
+                        api: api,
+                        studentId: studentId,
+                        sessionId: '${s['id']}',
+                      ),
+                    ),
+                  );
+                  if (context.mounted) refresh();
+                },
+                icon: const Icon(Icons.pin_drop_outlined),
+                label: const Text('تسجيل حضوري بالموقع والصورة'),
+              ),
             if (!api.guardian && !cancelled && s['attendance'] == null)
               OutlinedButton.icon(
                 onPressed: () => open(context, StudentCard(api: api)),

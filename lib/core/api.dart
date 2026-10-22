@@ -208,7 +208,7 @@ class Api extends ChangeNotifier {
         return call(
           method,
           path,
-          data: data,
+          data: data is FormData ? data.clone() : data,
           query: query,
           auth: auth,
           retry: false,
