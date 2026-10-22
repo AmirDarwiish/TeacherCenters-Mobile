@@ -51,20 +51,11 @@ class _LoginPageState extends State<LoginPage> {
     });
     try {
       final api = widget.api;
-      if (student && challenge == null && studentId == null) {
-        try {
-          globalFlow =
-              obj(
-                await api.call('GET', '/mobile/auth/config', auth: false),
-              )['globalOtp'] ==
-              true;
-        } on ApiFailure catch (e) {
-          if (e.status != 404 && e.status != 501) rethrow;
-          globalFlow = false;
-        }
-      }
-      if (!globalFlow || !student) {
-        if (!student) api.slug = center.text.trim();
+      // Portal accounts always discover their centers after phone verification.
+      // Never silently bind a guardian to the build-time demo center.
+      globalFlow = student;
+      if (!student) {
+        api.slug = center.text.trim();
         if (api.slug.isEmpty) {
           throw ApiFailure(
             'تعذر تحديد جهة التعلم. الخدمة تحتاج تحديثًا لتفعيل اختيار السنترات.',
@@ -157,7 +148,9 @@ class _LoginPageState extends State<LoginPage> {
         }
       }
     } catch (e) {
-      error = '$e';
+      error = student && e is ApiFailure && e.status == 404
+          ? 'خدمة الدخول الجديدة لم تُنشر على السيرفر بعد. حاول مرة أخرى بعد تحديث الخدمة.'
+          : '$e';
       if (e is ApiFailure && e.status == 429) {
         resendAt = DateTime.now().add(Duration(seconds: e.retryAfter ?? 60));
       }
@@ -207,17 +200,17 @@ class _LoginPageState extends State<LoginPage> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xff153f37),
+                      color: const Color(0xff1648c4),
                       borderRadius: BorderRadius.circular(28),
                     ),
                     child: const Row(
                       children: [
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor: Color(0xffd4efbf),
+                          backgroundColor: Color(0xffdce8ff),
                           child: Icon(
                             Icons.auto_stories_rounded,
-                            color: Color(0xff153f37),
+                            color: Color(0xff1648c4),
                             size: 30,
                           ),
                         ),

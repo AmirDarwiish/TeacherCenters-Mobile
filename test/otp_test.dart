@@ -5,6 +5,7 @@ import 'package:teacher_centers_mobile/core/api.dart';
 import 'package:teacher_centers_mobile/core/otp_field.dart';
 import 'package:teacher_centers_mobile/features/login.dart';
 import 'package:teacher_centers_mobile/features/shell.dart';
+
 import 'api_test.dart' show MemoryStore, FakeAdapter, response, session;
 import 'course_experience_test.dart'
     show host, screenshot, course, loadTestFonts;
@@ -16,6 +17,7 @@ Future<Api> loginApi(List<RequestOptions> requests) async {
     if (o.path.endsWith('/otp/request')) {
       return response(202, {
         'challengeId': 'challenge-a',
+        'loginTicket': 'guardian-ticket',
         'resendAfterSeconds': 60,
       });
     }
@@ -101,7 +103,9 @@ void main() {
       await tester.tap(find.text('إرسال رمز التحقق'));
       await tester.pumpAndSettle();
       expect(requests.last.data['purpose'], 'guardian-login');
-      expect(requests.last.path, '/t/center-a/auth/otp/request');
+      expect(requests.last.path, '/mobile/auth/otp/request');
+      expect(requests.any((r) => r.path.startsWith('/t/')), false);
+      expect(requests.last.data.containsKey('tenantSlug'), false);
       expect(find.text('—'), findsNWidgets(6));
       await tester.enterText(find.byKey(const ValueKey('otp-input')), '١٢٣٤٥٦');
       await tester.pumpAndSettle();
@@ -109,6 +113,8 @@ void main() {
       await tester.ensureVisible(find.text('تأكيد ودخول'));
       await tester.tap(find.text('تأكيد ودخول'));
       await tester.pumpAndSettle();
+      expect(requests.last.path, '/mobile/auth/otp/verify');
+      expect(requests.last.data['loginTicket'], 'guardian-ticket');
       expect(requests.last.data['code'], '123456');
       expect(requests.last.data['purpose'], 'guardian-login');
       expect(api.guardian, true);

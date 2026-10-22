@@ -5,14 +5,16 @@ import 'package:teacher_centers_mobile/core/api.dart';
 import 'package:teacher_centers_mobile/features/login.dart';
 import 'package:teacher_centers_mobile/features/payments.dart';
 import 'package:teacher_centers_mobile/features/session_detail.dart';
+
 import 'api_test.dart' show MemoryStore, FakeAdapter, response, session;
 import 'course_experience_test.dart' show host, screenshot, loadTestFonts;
 
 void main() {
   setUpAll(loadTestFonts);
-  testWidgets(
-    'verified phone chooses actual center before receiving a session',
-    (tester) async {
+  for (final portalRole in ['Student', 'Guardian']) {
+    testWidgets('verified $portalRole phone chooses center before session', (
+      tester,
+    ) async {
       await tester.binding.setSurfaceSize(const Size(412, 915));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final requests = <RequestOptions>[];
@@ -54,6 +56,7 @@ void main() {
           });
         }
         final tokens = session('token', 'refresh');
+        tokens['profile'] = {'id': 'subject-b', 'role': portalRole};
         tokens['tenant'] = {'slug': 'second', 'name': 'سنتر النجاح'};
         return response(200, tokens);
       });
@@ -64,6 +67,11 @@ void main() {
       expect(find.text('طالب / ولي أمر'), findsNothing);
       expect(find.text('أكاديمية آفاق'), findsNothing);
       await screenshot(tester, 'sentrak-login');
+      if (portalRole == 'Guardian') {
+        await tester.tap(find.text('ولي أمر'));
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('رابط السنتر أو اسمه في الرابط'), findsNothing);
       await tester.enterText(find.byType(TextFormField), '01012345678');
       await tester.ensureVisible(find.text('إرسال رمز التحقق'));
       await tester.tap(find.text('إرسال رمز التحقق'));
@@ -79,11 +87,59 @@ void main() {
       await tester.tap(find.text('حساب سنتر النجاح'));
       await tester.pumpAndSettle();
       expect(api.slug, 'second');
+      expect(api.role, portalRole);
+      expect(requests.any((r) => r.path.startsWith('/t/')), false);
+      expect(
+        requests
+            .firstWhere((r) => r.path.endsWith('/otp/request'))
+            .data['purpose'],
+        portalRole == 'Guardian' ? 'guardian-login' : 'student-login',
+      );
       expect(requests.last.data['tenantId'], 'center-2');
       expect(requests.last.headers.containsKey('Authorization'), false);
       await tester.pumpWidget(const SizedBox());
-    },
-  );
+    });
+  }
+  for (final objectMethods in [true, false]) {
+    testWidgets('checkout reads enabled methods (objects: $objectMethods)', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(412, 915));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final client = Dio(BaseOptions(baseUrl: 'https://example.test'));
+      client.httpClientAdapter = FakeAdapter((o) async {
+        if (o.path.endsWith('/config')) {
+          return response(200, {
+            'enabled': true,
+            'methods': objectMethods
+                ? [
+                    {'key': 'Card', 'label': 'بطاقة بنكية'},
+                    {'key': 'Wallet', 'label': 'محفظة'},
+                  ]
+                : ['Card', 'Wallet'],
+          });
+        }
+        return response(200, {
+          'balance': {
+            'charges': [
+              {'id': 'a', 'title': 'اشتراك الفيزياء', 'remaining': 350},
+            ],
+          },
+        });
+      });
+      final api = Api(client: client, storage: MemoryStore());
+      await api.accept(session('token', 'refresh'));
+      await tester.pumpWidget(
+        host(CheckoutPage(api: api, studentId: 'student-1')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('وسيلة الدفع'), findsOneWidget);
+      expect(find.textContaining('الدفع الإلكتروني مش متاح'), findsNothing);
+      expect(find.byIcon(Icons.credit_card), findsOneWidget);
+      if (objectMethods) await screenshot(tester, 'checkout-blue');
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets(
     'dues render paid and remaining amounts and allow selected charges only',
     (tester) async {

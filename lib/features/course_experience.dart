@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../core/api.dart';
 import '../core/widgets.dart';
 import '../core/course_model.dart';
@@ -28,7 +30,7 @@ class CourseCover extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [Color(0xff123d3a), Color(0xff27766b)],
+          colors: [Color(0xff1648c4), Color(0xff1d5bf0)],
         ),
       ),
       child: Stack(
@@ -51,7 +53,7 @@ class CourseCover extends StatelessWidget {
             child: Icon(
               Icons.auto_stories_rounded,
               size: 70,
-              color: Color(0xffd4efbf),
+              color: Color(0xffdce8ff),
             ),
           ),
           Positioned(

@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 ThemeData appTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final colors = ColorScheme.fromSeed(
-    seedColor: const Color(0xff21685b),
+    seedColor: const Color(0xff1d5bf0),
     brightness: brightness,
-    primary: dark ? const Color(0xff9ed9bd) : const Color(0xff185c4e),
-    surface: dark ? const Color(0xff18201f) : Colors.white,
+    primary: dark ? const Color(0xff9abaff) : const Color(0xff1d5bf0),
+    surface: dark ? const Color(0xff102438) : Colors.white,
   );
   final base = ThemeData(
     useMaterial3: true,
@@ -17,14 +17,14 @@ ThemeData appTheme(Brightness brightness) {
   );
   return base.copyWith(
     scaffoldBackgroundColor: dark
-        ? const Color(0xff101716)
-        : const Color(0xfff5f6f2),
+        ? const Color(0xff081827)
+        : const Color(0xfff4f7fc),
     textTheme: base.textTheme.apply(
-      bodyColor: dark ? const Color(0xffe7eee9) : const Color(0xff203932),
-      displayColor: dark ? const Color(0xffe7eee9) : const Color(0xff203932),
+      bodyColor: dark ? const Color(0xffe6eef7) : const Color(0xff0b2540),
+      displayColor: dark ? const Color(0xffe6eef7) : const Color(0xff0b2540),
     ),
     appBarTheme: AppBarTheme(
-      backgroundColor: dark ? const Color(0xff101716) : const Color(0xfff5f6f2),
+      backgroundColor: dark ? const Color(0xff081827) : const Color(0xfff4f7fc),
       centerTitle: false,
       scrolledUnderElevation: 0,
       titleTextStyle: TextStyle(

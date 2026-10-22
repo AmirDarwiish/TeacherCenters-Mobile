@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+
 import '../core/api.dart';
 import '../core/widgets.dart';
 import 'courses.dart';
@@ -431,8 +433,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
               detail = obj(root['detail']),
               charges = rows(root['charges']);
           final methods = (config['methods'] as List? ?? [])
-              .map((m) => '$m')
+              .map((m) => m is Map ? '${m['key'] ?? ''}' : '$m')
               .where((m) => ['Card', 'Wallet', 'Kiosk'].contains(m))
+              .toSet()
               .toList();
           final amount = widget.courseId == null
               ? charges.fold<num>(
@@ -491,10 +494,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ),
                 ),
               ),
-              if (config['enabled'] != true || methods.isEmpty)
+              if (config['enabled'] != true)
                 const Empty(
                   text:
                       'الدفع الإلكتروني مش متاح في السنتر حالياً. تواصل مع السنتر لطرق السداد المتاحة.',
+                )
+              else if (methods.isEmpty)
+                const Empty(
+                  text:
+                      'لا توجد وسيلة دفع متاحة لهذا الطلب. حدّث الصفحة أو تواصل مع السنتر.',
                 )
               else if (amount <= 0)
                 const Empty(text: 'لا توجد مبالغ متبقية للدفع.')

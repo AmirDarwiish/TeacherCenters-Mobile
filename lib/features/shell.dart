@@ -215,7 +215,7 @@ class HomePage extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [Color(0xff123e35), Color(0xff216b58)],
+                colors: [Color(0xff1648c4), Color(0xff1d5bf0)],
               ),
             ),
             child: Column(
@@ -226,12 +226,12 @@ class HomePage extends StatelessWidget {
                     Icon(
                       Icons.auto_awesome_outlined,
                       size: 18,
-                      color: Color(0xffd4efbf),
+                      color: Color(0xffdce8ff),
                     ),
                     SizedBox(width: 7),
                     Text(
                       'كل خطوة بتفرق',
-                      style: TextStyle(color: Color(0xffd4efbf)),
+                      style: TextStyle(color: Color(0xffdce8ff)),
                     ),
                   ],
                 ),
@@ -261,8 +261,8 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: 18),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xffd4efbf),
-                    foregroundColor: const Color(0xff153f37),
+                    backgroundColor: const Color(0xffdce8ff),
+                    foregroundColor: const Color(0xff1648c4),
                   ),
                   onPressed: () => courses(context),
                   icon: const Icon(Icons.arrow_back_rounded, size: 18),
