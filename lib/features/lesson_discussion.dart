@@ -196,11 +196,12 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
                                 );
                                 if (sheet.mounted) Navigator.pop(sheet, true);
                               } catch (e) {
-                                if (sheet.mounted)
+                                if (sheet.mounted) {
                                   update(() {
                                     saving = false;
                                     failure = '$e';
                                   });
+                                }
                               }
                             },
                       icon: const Icon(Icons.save_outlined),
@@ -330,8 +331,9 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
                             return;
                           }
                           if (!await confirm(context, 'حذف الملاحظة؟') ||
-                              !context.mounted)
+                              !context.mounted) {
                             return;
+                          }
                           await action(context, () async {
                             await widget.api.call(
                               'DELETE',

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
-import '../core/widgets.dart';
 import '../core/otp_field.dart';
 
 class LoginPage extends StatefulWidget {
@@ -55,8 +54,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> submit() async {
     if (busy ||
         student && challenge == null && remaining > 0 ||
-        !form.currentState!.validate())
+        !form.currentState!.validate()) {
       return;
+    }
     setState(() {
       busy = true;
       error = null;

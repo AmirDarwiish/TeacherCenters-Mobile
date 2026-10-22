@@ -55,8 +55,9 @@ class _LessonPageState extends State<LessonPage> {
   }
 
   void trackPosition(Duration value) {
-    if (mounted && currentPosition.value.inSeconds != value.inSeconds)
+    if (mounted && currentPosition.value.inSeconds != value.inSeconds) {
       currentPosition.value = value;
+    }
   }
 
   void seek(int seconds) {
@@ -353,8 +354,9 @@ class _LessonPlayerState extends State<LessonPlayer>
   }
 
   void positionChanged() {
-    if (mounted && controller.value.isInitialized)
+    if (mounted && controller.value.isInitialized) {
       widget.onPosition?.call(controller.value.position);
+    }
   }
 
   Future<void> save() async {

@@ -20,17 +20,20 @@ void main() {
     final client = Dio(BaseOptions(baseUrl: 'https://example.test'));
     client.httpClientAdapter = FakeAdapter((request) async {
       requests.add(request);
-      if (request.path.endsWith('/config'))
+      if (request.path.endsWith('/config')) {
         return response(200, {
           'enabled': true,
           'methods': [
             {'key': 'Card'},
           ],
         });
-      if (request.path.endsWith('/checkout'))
+      }
+      if (request.path.endsWith('/checkout')) {
         return response(200, {'paymentId': 'payment-1'});
-      if (request.path.endsWith('/payments/payment-1'))
+      }
+      if (request.path.endsWith('/payments/payment-1')) {
         return response(200, {'status': 'Paid', 'amount': 100});
+      }
       return response(200, {
         'balance': {
           'totalDue': 100,
@@ -80,11 +83,12 @@ void main() {
       final client = Dio(BaseOptions(baseUrl: 'https://example.test'));
       client.httpClientAdapter = FakeAdapter((request) async {
         requests.add(request);
-        if (request.path.endsWith('/otp/request'))
+        if (request.path.endsWith('/otp/request')) {
           return response(202, {
             'challengeId': 'challenge',
             'loginTicket': 'ticket',
           });
+        }
         if (request.path.endsWith('/verify') ||
             request.path.endsWith('/staff/login')) {
           return response(200, {
@@ -118,8 +122,9 @@ void main() {
       }
       expect(find.text('رابط السنتر أو اسمه في الرابط'), findsNothing);
       await tester.enterText(find.byType(TextFormField).first, '01012345678');
-      if (teacher)
+      if (teacher) {
         await tester.enterText(find.byType(TextFormField).last, 'password');
+      }
       await tester.ensureVisible(
         find.text(teacher ? 'دخول المدرس' : 'إرسال رمز التحقق'),
       );
