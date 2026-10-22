@@ -24,10 +24,16 @@ jobs:
       - run: flutter pub get
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
-      - run: flutter test
-      - run: flutter build apk --debug --dart-define=TENANT_SLUG=teachercenter-demo
+      - run: flutter test --dart-define=SCREENSHOTS=true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: interface-review
+          path: docs/screenshots/*.png
+          retention-days: 14
+      - run: flutter build apk --release --dart-define=TENANT_SLUG=teachercenter-demo
       - uses: actions/upload-artifact@v4
         with:
-          name: teachercenters-demo-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: teachercenters-preview-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14

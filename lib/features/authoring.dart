@@ -4,101 +4,246 @@ import '../core/widgets.dart';
 import 'courses.dart';
 
 class NewCoursePage extends StatefulWidget {
-  const NewCoursePage({super.key, required this.api});
+  const NewCoursePage({super.key, required this.api, this.existing});
   final Api api;
+  final Json? existing;
   @override
   State<NewCoursePage> createState() => _NewCoursePageState();
 }
 
 class _NewCoursePageState extends State<NewCoursePage> {
-  final title = TextEditingController(),
-      description = TextEditingController(),
-      price = TextEditingController(text: '0');
+  final form = GlobalKey<FormState>();
+  late final fields = <String, TextEditingController>{
+    for (final key in [
+      'title',
+      'subtitle',
+      'description',
+      'price',
+      'outcomes',
+      'requirements',
+      'targetAudience',
+    ])
+      key: TextEditingController(
+        text: widget.existing?[key] is List
+            ? (widget.existing![key] as List).join('\n')
+            : key == 'price'
+            ? '${(widget.existing?[key] as num? ?? 0).toInt()}'
+            : '${widget.existing?[key] ?? ''}',
+      ),
+  };
+  late String access = '${widget.existing?['accessDuration'] ?? 'Month'}';
+  late String level = '${widget.existing?['level'] ?? 'All'}';
+  late String kind = '${widget.existing?['kind'] ?? 'Course'}';
   bool busy = false;
   @override
   void dispose() {
-    title.dispose();
-    description.dispose();
-    price.dispose();
+    for (final controller in fields.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('كورس جديد')),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
+  Widget heading(String number, String title, String note) => Padding(
+    padding: const EdgeInsets.only(top: 12, bottom: 20),
+    child: Row(
       children: [
-        const Text(
-          'الكورس بيتحفظ كمسودة، وتقدر تضيف الأقسام والدروس قبل النشر.',
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: title,
-          maxLength: 150,
-          decoration: const InputDecoration(labelText: 'اسم الكورس'),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: description,
-          minLines: 3,
-          maxLines: 6,
-          decoration: const InputDecoration(labelText: 'وصف الكورس'),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: price,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'السعر بالجنيه'),
-        ),
-        const SizedBox(height: 20),
-        FilledButton(
-          onPressed: busy
-              ? null
-              : () async {
-                  final amount = int.tryParse(price.text);
-                  if (title.text.trim().isEmpty ||
-                      amount == null ||
-                      amount < 0) {
-                    toast(context, 'اكتب اسم الكورس وسعراً صحيحاً');
-                    return;
-                  }
-                  setState(() => busy = true);
-                  await action(context, () async {
-                    final result = obj(
-                      await widget.api.call(
-                        'POST',
-                        '/courses',
-                        data: {
-                          'title': title.text.trim(),
-                          'description': description.text.trim(),
-                          'teacherId': widget.api.actorId,
-                          'audience': 'Open',
-                          'kind': 'Course',
-                          'price': amount,
-                          'accessDuration': 'Month',
-                        },
-                      ),
-                    );
-                    if (context.mounted) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) => CoursePage(
-                            api: widget.api,
-                            id: '${result['id']}',
-                          ),
-                        ),
-                      );
-                    }
-                  });
-                  if (mounted) setState(() => busy = false);
-                },
-          child: const Text('إنشاء المسودة'),
+        CircleAvatar(radius: 20, child: Text(number)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              Text(note, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
         ),
       ],
     ),
   );
+  Widget field(
+    String key,
+    String title, {
+    String? hint,
+    int lines = 1,
+    int max = 1000,
+    bool required = false,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 18),
+    child: TextFormField(
+      controller: fields[key],
+      minLines: lines,
+      maxLines: lines == 1 ? 1 : lines + 3,
+      maxLength: max,
+      keyboardType: key == 'price' ? TextInputType.number : null,
+      decoration: InputDecoration(
+        labelText: title,
+        hintText: hint,
+        alignLabelWithHint: true,
+      ),
+      validator: (v) {
+        if (required && (v == null || v.trim().isEmpty)) {
+          return 'هذا الحقل مطلوب';
+        }
+        if (key == 'price' &&
+            (int.tryParse(v ?? '') == null || int.parse(v!) < 0)) {
+          return 'اكتب سعراً صحيحاً بالجنيه';
+        }
+        return null;
+      },
+    ),
+  );
+  Widget select(
+    String title,
+    String value,
+    Map<String, String> items,
+    ValueChanged<String> changed,
+  ) => Padding(
+    padding: const EdgeInsets.only(bottom: 18),
+    child: DropdownButtonFormField<String>(
+      initialValue: value,
+      isExpanded: true,
+      decoration: InputDecoration(labelText: title),
+      items: items.entries
+          .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+          .toList(),
+      onChanged: busy ? null : (v) => changed(v!),
+    ),
+  );
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: Text(widget.existing == null ? 'صمّم كورسك' : 'إعدادات الكورس'),
+    ),
+    body: Form(
+      key: form,
+      child: ListView(
+        padding: const EdgeInsets.all(22),
+        children: [
+          heading('١', 'أول انطباع يفرق', 'عرّف الطالب بالكورس وما سيحققه منه'),
+          field('title', 'اسم الكورس', max: 150, required: true),
+          field('subtitle', 'وصف مختصر', max: 300),
+          field('description', 'عن الكورس بالتفصيل', lines: 4, max: 10000),
+          heading('٢', 'قيمة واضحة للطالب', 'اكتب كل نقطة في سطر مستقل'),
+          field(
+            'outcomes',
+            'ماذا سيتعلم الطالب؟',
+            lines: 3,
+            hint: 'مثال: حل مسائل الحركة بثقة',
+            max: 10000,
+          ),
+          field('requirements', 'المتطلبات قبل البدء', lines: 2, max: 10000),
+          field('targetAudience', 'لمن هذا الكورس؟', lines: 2, max: 10000),
+          heading('٣', 'خطة الوصول', 'حدد النوع والمستوى والسعر بوضوح'),
+          select('نوع المحتوى', kind, {
+            'Course': 'كورس كامل',
+            'FinalReview': 'مراجعة نهائية',
+            'Revision': 'مراجعة',
+          }, (v) => setState(() => kind = v)),
+          select('المستوى', level, {
+            'All': 'كل المستويات',
+            'Beginner': 'مبتدئ',
+            'Intermediate': 'متوسط',
+            'Advanced': 'متقدم',
+          }, (v) => setState(() => level = v)),
+          select('مدة الوصول', access, {
+            'Month': 'شهر من بدء الاشتراك',
+            'ThreeMonths': 'ثلاثة شهور',
+            'UntilTermEnd': 'حتى نهاية الترم الحالي',
+            'Lifetime': 'بدون حد زمني',
+          }, (v) => setState(() => access = v)),
+          field(
+            'price',
+            'السعر بالجنيه — صفر للكورس المجاني',
+            max: 9,
+            required: true,
+          ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Text(
+                widget.existing == null
+                    ? 'سيُحفظ الكورس كمسودة في كتالوج الكورسات. أضف المنهج والغلاف وراجع المحتوى قبل النشر.'
+                    : 'التعديل يحافظ على جمهور الكورس وارتباطاته الحالية. نشر المحتوى يُدار من مساحة الكورس.',
+              ),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: busy ? null : save,
+            icon: const Icon(Icons.check_rounded),
+            label: Text(
+              busy
+                  ? 'جارٍ الحفظ…'
+                  : widget.existing == null
+                  ? 'إنشاء المسودة'
+                  : 'حفظ التعديلات',
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+  Future<void> save() async {
+    if (!form.currentState!.validate()) return;
+    List<String> points(String key) => fields[key]!.text
+        .split('\n')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    for (final key in ['outcomes', 'requirements', 'targetAudience']) {
+      if (points(key).length > 100 || points(key).any((s) => s.length > 1000)) {
+        toast(context, 'كل قائمة حتى 100 نقطة، وكل نقطة حتى 1000 حرف.');
+        return;
+      }
+    }
+    setState(() => busy = true);
+    await action(context, () async {
+      final old = widget.existing;
+      final result = obj(
+        await widget.api.call(
+          old == null ? 'POST' : 'PUT',
+          old == null ? '/courses' : '/courses/${old['id']}',
+          headers: old == null ? {} : versionHeader(old),
+          data: {
+            'title': fields['title']!.text.trim(),
+            'subtitle': fields['subtitle']!.text.trim(),
+            'description': fields['description']!.text.trim(),
+            'teacherId': old?['teacherId'] ?? widget.api.actorId,
+            'audience': old?['audience'] ?? 'Open',
+            if (old?['groupIds'] != null) 'groupIds': old!['groupIds'],
+            if (old?['subjectId'] != null) 'subjectId': old!['subjectId'],
+            if (old?['gradeLevelId'] != null)
+              'gradeLevelId': old!['gradeLevelId'],
+            if (old?['certificate'] != null) 'certificate': old!['certificate'],
+            'kind': kind,
+            'level': level,
+            'price': int.parse(fields['price']!.text),
+            'accessDuration': access,
+            'outcomes': points('outcomes'),
+            'requirements': points('requirements'),
+            'targetAudience': points('targetAudience'),
+          },
+        ),
+      );
+      if (!mounted) return;
+      if (old != null) {
+        Navigator.pop(context);
+        return;
+      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => CoursePage(api: widget.api, id: '${result['id']}'),
+        ),
+      );
+    });
+    if (mounted) setState(() => busy = false);
+  }
 }
 
 class NewQuizPage extends StatefulWidget {

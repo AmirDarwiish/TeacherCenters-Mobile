@@ -69,7 +69,9 @@ class Api extends ChangeNotifier {
   bool get signedIn => session != null;
   Json get profile => obj(session?['profile']);
   String get role => '${profile['role'] ?? ''}';
-  bool get student => role == 'Student';
+  bool get guardian => role == 'Guardian';
+  bool get student => role == 'Student' || guardian;
+  String? portalStudentId;
   bool can(String module, String operation) =>
       role == 'Owner' ||
       (profile['permissions'] as List? ?? []).contains('$module.$operation');
@@ -102,8 +104,8 @@ class Api extends ChangeNotifier {
   Future<void> accept(Json data) async {
     final p = obj(data['profile']);
     if (data['accessToken'] == null ||
-        !['Student', 'Teacher', 'Owner'].contains(p['role'])) {
-      throw ApiFailure('هذا التطبيق مخصص لحساب المدرس والطالب.');
+        !['Student', 'Guardian', 'Teacher', 'Owner'].contains(p['role'])) {
+      throw ApiFailure('نوع الحساب غير مدعوم.');
     }
     await store.write(jsonEncode({'slug': slug, 'session': data}));
     session = data;
@@ -114,6 +116,7 @@ class Api extends ChangeNotifier {
     _generation++;
     await live.stop(clear: true);
     session = null;
+    portalStudentId = null;
     notifyListeners();
     await store.clear();
   }
@@ -159,8 +162,15 @@ class Api extends ChangeNotifier {
     });
   }
 
-  Future<dynamic> get(String path, {Json? query}) =>
-      call('GET', path, query: query);
+  Future<dynamic> get(String path, {Json? query}) => call(
+    'GET',
+    path,
+    query: {
+      if (guardian && portalStudentId != null && path.startsWith('/portal/'))
+        'studentId': portalStudentId,
+      ...?query,
+    },
+  );
   Future<dynamic> call(
     String method,
     String path, {

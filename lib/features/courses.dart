@@ -6,11 +6,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api.dart';
 import '../core/widgets.dart';
+import '../core/course_model.dart';
+export 'course_experience.dart';
 import 'quiz.dart';
-import 'teaching.dart';
-import 'payments.dart';
 import 'uploads.dart';
-import 'authoring.dart';
 
 Future<void> launchResource(Api api, String value) async {
   final uri = api.resolveUrl(value);
@@ -23,266 +22,10 @@ Future<void> launchResource(Api api, String value) async {
   }
 }
 
-class CoursesPage extends StatelessWidget {
-  const CoursesPage({super.key, required this.api, this.catalog = false});
-  final Api api;
-  final bool catalog;
-  @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      if (!api.student)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: FilledButton.icon(
-            onPressed: () => open(context, NewCoursePage(api: api)),
-            icon: const Icon(Icons.add),
-            label: const Text('كورس جديد'),
-          ),
-        ),
-      Expanded(
-        child: PagedList(
-          api: api,
-          path: api.student
-              ? (catalog ? '/portal/catalog' : '/portal/courses')
-              : '/courses',
-          item: (c) => Card(
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: () =>
-                  open(context, CoursePage(api: api, id: '${c['id']}')),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (c['coverUrl'] != null)
-                    Image.network(
-                      api.resolveUrl('${c['coverUrl']}').toString(),
-                      height: 160,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      cacheWidth: 800,
-                      errorBuilder: (_, e, s) => const SizedBox(
-                        height: 80,
-                        child: Center(
-                          child: Icon(Icons.auto_stories, size: 40),
-                        ),
-                      ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label(c),
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${c['teacherName'] ?? ''} · ${c['lessonsCount'] ?? 0} درس',
-                        ),
-                        const SizedBox(height: 12),
-                        if (api.student && !catalog) ...[
-                          LinearProgressIndicator(
-                            value: ((c['progressPercent'] as num? ?? 0) / 100)
-                                .clamp(0, 1),
-                          ),
-                          const SizedBox(height: 6),
-                          Text('أنجزت ${c['progressPercent'] ?? 0}%'),
-                        ] else
-                          Text(
-                            '${c['status'] ?? ''} · ${c['price'] ?? 0} جنيه',
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
-class CoursePage extends StatelessWidget {
-  const CoursePage({super.key, required this.api, required this.id});
-  final Api api;
-  final String id;
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('تفاصيل الكورس')),
-    body: AsyncPanel(
-      load: () => api.get('${api.student ? '/portal' : ''}/courses/$id'),
-      builder: (data, refresh) {
-        final c = obj(data), sections = rows(obj(data)['sections']);
-        return ListView(
-          padding: const EdgeInsets.all(20),
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            Text(label(c), style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text('${c['description'] ?? c['subtitle'] ?? ''}'),
-            const SizedBox(height: 16),
-            if (api.student) ...[
-              FilledButton.tonalIcon(
-                onPressed: () =>
-                    open(context, CertificatePage(api: api, courseId: id)),
-                icon: const Icon(Icons.workspace_premium_outlined),
-                label: const Text('الشهادة والتقدم'),
-              ),
-              if (c['audience'] == 'Open')
-                TextButton(
-                  onPressed: () =>
-                      open(context, CheckoutPage(api: api, courseId: id)),
-                  child: const Text('الاشتراك في الكورس'),
-                ),
-              if (c['teacherId'] != null)
-                TextButton(
-                  onPressed: () => action(context, () async {
-                    final subject = await askText(context, 'عنوان المحادثة');
-                    if (subject == null || subject.isEmpty) return;
-                    final me = obj(await api.get('/portal/me'));
-                    final students = rows(me['students']);
-                    if (students.isEmpty) throw ApiFailure('لا يوجد طالب نشط');
-                    await api.call(
-                      'POST',
-                      '/portal/threads',
-                      data: {
-                        'studentId': students.first['id'],
-                        'teacherId': c['teacherId'],
-                        'subject': subject,
-                      },
-                    );
-                    if (context.mounted) {
-                      toast(context, 'تم فتح المحادثة. تقدر تكمل من الرسائل.');
-                    }
-                  }),
-                  child: const Text('تواصل مع المدرس'),
-                ),
-            ] else ...[
-              FilledButton.tonal(
-                onPressed: () => open(
-                  context,
-                  PageViewList(
-                    api: api,
-                    path: '/courses/$id/students',
-                    title: 'تقدم الطلاب',
-                    item: (s) => Card(
-                      child: ListTile(
-                        title: Text(label(s)),
-                        subtitle: Text(
-                          'التقدم ${s['progressPercent'] ?? 0}% · متوسط الامتحانات ${s['quizAverage'] ?? '—'}',
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                child: const Text('متابعة الطلاب'),
-              ),
-              OutlinedButton(
-                onPressed: () => action(context, () async {
-                  final title = await askText(context, 'عنوان القسم');
-                  if (title == null || title.isEmpty) return;
-                  await api.call(
-                    'POST',
-                    '/courses/$id/sections',
-                    data: {'title': title},
-                    headers: versionHeader(c),
-                  );
-                  refresh();
-                }),
-                child: const Text('إضافة قسم'),
-              ),
-              if (c['status'] == 'Draft')
-                OutlinedButton(
-                  onPressed: () => action(context, () async {
-                    if (!await confirm(context, 'نشر الكورس للطلاب؟')) return;
-                    await api.call(
-                      'POST',
-                      '/courses/$id/publish',
-                      headers: versionHeader(c),
-                    );
-                    refresh();
-                  }),
-                  child: const Text('نشر الكورس'),
-                ),
-            ],
-            const SizedBox(height: 20),
-            Text('محتوى الكورس', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
-            if (sections.isEmpty) const Empty(text: 'لم تتم إضافة محتوى بعد'),
-            ...sections.map(
-              (section) => Card(
-                child: ExpansionTile(
-                  initiallyExpanded: true,
-                  title: Text(label(section)),
-                  children: [
-                    ...rows(section['lessons']).map(
-                      (l) => ListTile(
-                        leading: Icon(
-                          l['status'] == 'Locked'
-                              ? Icons.lock_outline
-                              : l['type'] == 'Video'
-                              ? Icons.play_circle_outline
-                              : l['type'] == 'Quiz'
-                              ? Icons.quiz_outlined
-                              : Icons.description_outlined,
-                        ),
-                        title: Text(label(l)),
-                        subtitle: Text('${l['type']} · ${l['status'] ?? ''}'),
-                        onTap: l['status'] == 'Locked'
-                            ? () => toast(
-                                context,
-                                'الدرس مقفول. راجع صلاحية اشتراكك.',
-                              )
-                            : () => open(
-                                context,
-                                api.student
-                                    ? LessonPage(
-                                        api: api,
-                                        id: '${l['id']}',
-                                        position:
-                                            (l['positionSeconds'] as num? ?? 0)
-                                                .toInt(),
-                                      )
-                                    : TeacherLessonPage(api: api, lesson: l),
-                              ),
-                      ),
-                    ),
-                    if (!api.student)
-                      TextButton.icon(
-                        onPressed: () => open(
-                          context,
-                          NewQuizPage(api: api, section: section),
-                        ),
-                        icon: const Icon(Icons.quiz_outlined),
-                        label: const Text('إضافة امتحان'),
-                      ),
-                    if (!api.student)
-                      TextButton.icon(
-                        onPressed: () => open(
-                          context,
-                          NewLessonPage(api: api, section: section),
-                        ),
-                        icon: const Icon(Icons.add),
-                        label: const Text('إضافة درس'),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-}
-
 Json versionHeader(Json d) =>
     d['rowVersion'] == null ? {} : {'If-Match': '"${d['rowVersion']}"'};
 
-class LessonPage extends StatelessWidget {
+class LessonPage extends StatefulWidget {
   const LessonPage({
     super.key,
     required this.api,
@@ -293,10 +36,16 @@ class LessonPage extends StatelessWidget {
   final String id;
   final int position;
   @override
+  State<LessonPage> createState() => _LessonPageState();
+}
+
+class _LessonPageState extends State<LessonPage> {
+  bool completing = false, completed = false;
+  @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('الدرس')),
+    appBar: AppBar(title: const Text('مساحة التعلم')),
     body: AsyncPanel(
-      load: () => api.get('/portal/lessons/$id'),
+      load: () => widget.api.get('/portal/lessons/${widget.id}'),
       builder: (data, refresh) {
         final l = obj(data),
             v = obj(obj(data)['video']),
@@ -305,75 +54,204 @@ class LessonPage extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            Text(label(l), style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 20),
             if (v.isNotEmpty && !['youtube', 'vimeo'].contains(v['kind']))
-              LessonPlayer(
-                key: ValueKey(v['url']),
-                api: api,
-                id: id,
-                video: v,
-                position: position,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: LessonPlayer(
+                  key: ValueKey(v['url']),
+                  api: widget.api,
+                  id: widget.id,
+                  video: v,
+                  position: widget.position,
+                  onRetry: refresh,
+                ),
               )
             else if (v['url'] != null)
-              FilledButton.icon(
-                onPressed: () =>
-                    action(context, () => launchResource(api, '${v['url']}')),
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('فتح الفيديو'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.smart_display_outlined, size: 54),
+                      const SizedBox(height: 16),
+                      const Text('شاهد الشرح على منصة الفيديو'),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: () => action(
+                          context,
+                          () => launchResource(widget.api, '${v['url']}'),
+                        ),
+                        icon: const Icon(Icons.open_in_new),
+                        label: const Text('فتح الفيديو'),
+                      ),
+                    ],
+                  ),
+                ),
               ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Chip(label: Text(CourseInfo.typeName(l['type']))),
+                const SizedBox(width: 8),
+                if (l['durationSeconds'] != null)
+                  Text(CourseInfo.duration(l['durationSeconds'])),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label(l),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 22),
             if (l['body'] != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: SelectableText('${l['body']}'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: SelectableText(
+                    '${l['body']}',
+                    style: const TextStyle(fontSize: 17, height: 1.9),
+                  ),
+                ),
               ),
             if (l['fileUrl'] != null)
-              FilledButton.tonalIcon(
-                onPressed: () => action(
-                  context,
-                  () => launchResource(api, '${l['fileUrl']}'),
-                ),
-                icon: const Icon(Icons.description),
-                label: const Text('عرض الملف'),
-              ),
-            if (q['quizId'] != null) ...[
-              Text('المحاولات المتبقية: ${q['attemptsLeft'] ?? 'غير محدودة'}'),
-              FilledButton(
-                onPressed: () =>
-                    open(context, QuizPage(api: api, quizId: '${q['quizId']}')),
-                child: const Text('بدء أو استكمال الاختبار'),
-              ),
-              if (q['lastAttemptId'] != null)
-                TextButton(
-                  onPressed: () => open(
+              Card(
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(18),
+                  leading: const Icon(Icons.picture_as_pdf_outlined, size: 34),
+                  title: const Text('المادة العلمية للدرس'),
+                  subtitle: const Text('افتح الملف للمذاكرة والمراجعة'),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () => action(
                     context,
-                    ResultPage(api: api, attemptId: '${q['lastAttemptId']}'),
-                  ),
-                  child: const Text('نتيجة آخر محاولة'),
-                ),
-            ],
-            if (['Text', 'File'].contains(l['type']))
-              FilledButton(
-                onPressed: () => action(context, () async {
-                  await api.call('POST', '/portal/lessons/$id/complete');
-                  refresh();
-                }, success: 'تم حفظ إكمال الدرس'),
-                child: const Text('أنهيت الدرس'),
-              ),
-            if (l['nextLessonId'] != null)
-              TextButton(
-                onPressed: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        LessonPage(api: api, id: '${l['nextLessonId']}'),
+                    () => launchResource(widget.api, '${l['fileUrl']}'),
                   ),
                 ),
-                child: const Text('الدرس التالي'),
               ),
+            if (q['quizId'] != null)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.quiz_outlined, size: 34),
+                      const SizedBox(height: 12),
+                      Text(
+                        '${q['title'] ?? 'اختبر فهمك'}',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: [
+                          Text('${q['questionsCount'] ?? 0} سؤال'),
+                          if (q['timeLimitMinutes'] != null)
+                            Text('${q['timeLimitMinutes']} دقيقة'),
+                          Text(
+                            '${q['attemptsLeft'] ?? 'غير محدودة'} محاولة متبقية',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'جهّز وقتك واتصالك قبل البدء. المؤقت يبدأ مع فتح المحاولة.',
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed:
+                              widget.api.guardian ||
+                                  (q['attemptsLeft'] as num?) == 0
+                              ? null
+                              : () => open(
+                                  context,
+                                  QuizPage(
+                                    api: widget.api,
+                                    quizId: '${q['quizId']}',
+                                  ),
+                                ),
+                          icon: const Icon(Icons.arrow_back),
+                          label: const Text('ابدأ أو استكمل الاختبار'),
+                        ),
+                      ),
+                      if (q['lastAttemptId'] != null)
+                        TextButton(
+                          onPressed: () => open(
+                            context,
+                            ResultPage(
+                              api: widget.api,
+                              attemptId: '${q['lastAttemptId']}',
+                            ),
+                          ),
+                          child: const Text('راجع نتيجة آخر محاولة'),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            if (!widget.api.guardian && ['Text', 'File'].contains(l['type']))
+              FilledButton.icon(
+                onPressed: completing || completed
+                    ? null
+                    : () async {
+                        setState(() => completing = true);
+                        await action(context, () async {
+                          await widget.api.call(
+                            'POST',
+                            '/portal/lessons/${widget.id}/complete',
+                          );
+                          if (mounted) setState(() => completed = true);
+                        }, success: 'خطوة جديدة! تم حفظ إكمال الدرس');
+                        if (mounted) setState(() => completing = false);
+                      },
+                icon: Icon(completed ? Icons.check_circle : Icons.task_alt),
+                label: Text(
+                  completing
+                      ? 'جارٍ حفظ تقدمك…'
+                      : completed
+                      ? 'تم إكمال الدرس'
+                      : 'أنهيت الدرس',
+                ),
+              ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (l['prevLessonId'] != null)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => navigate('${l['prevLessonId']}'),
+                      icon: const Icon(Icons.arrow_forward),
+                      label: const Text('السابق'),
+                    ),
+                  ),
+                if (l['prevLessonId'] != null && l['nextLessonId'] != null)
+                  const SizedBox(width: 12),
+                if (l['nextLessonId'] != null)
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => navigate('${l['nextLessonId']}'),
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('الدرس التالي'),
+                    ),
+                  ),
+              ],
+            ),
           ],
         );
       },
+    ),
+  );
+  void navigate(String id) => Navigator.pushReplacement(
+    context,
+    MaterialPageRoute<void>(
+      builder: (_) => LessonPage(api: widget.api, id: id),
     ),
   );
 }
@@ -385,7 +263,9 @@ class LessonPlayer extends StatefulWidget {
     required this.id,
     required this.video,
     this.position = 0,
+    this.onRetry,
   });
+  final VoidCallback? onRetry;
   final Api api;
   final String id;
   final Json video;
@@ -422,7 +302,9 @@ class _LessonPlayerState extends State<LessonPlayer>
   }
 
   Future<void> save() async {
-    if (sending || !controller.value.isInitialized) return;
+    if (widget.api.guardian || sending || !controller.value.isInitialized) {
+      return;
+    }
     sending = true;
     try {
       await widget.api.call(
@@ -430,6 +312,7 @@ class _LessonPlayerState extends State<LessonPlayer>
         '/portal/lessons/${widget.id}/progress',
         data: {'positionSeconds': controller.value.position.inSeconds},
       );
+      if (mounted && error != null) setState(() => error = null);
     } catch (e) {
       if (mounted) {
         setState(
@@ -461,7 +344,24 @@ class _LessonPlayerState extends State<LessonPlayer>
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      if (error != null) Text('$error'),
+      if (error != null)
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Text(
+                controller.value.isInitialized
+                    ? '$error'
+                    : 'تعذر تشغيل الفيديو. أعد المحاولة لتحديث رابط المشاهدة.',
+              ),
+              TextButton.icon(
+                onPressed: widget.onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
       if (controller.value.isInitialized) ...[
         Stack(
           alignment: Alignment.topRight,
@@ -492,6 +392,17 @@ class _LessonPlayerState extends State<LessonPlayer>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
+                tooltip: 'ملء الشاشة',
+                onPressed: () => open(
+                  context,
+                  FullscreenVideo(
+                    controller: controller,
+                    watermark: widget.video['watermarkText'],
+                  ),
+                ),
+                icon: const Icon(Icons.fullscreen),
+              ),
+              IconButton(
                 tooltip: 'رجوع 10 ثواني',
                 onPressed: () => controller.seekTo(
                   value.position - const Duration(seconds: 10),
@@ -516,6 +427,24 @@ class _LessonPlayerState extends State<LessonPlayer>
                 icon: const Icon(Icons.forward_10),
               ),
             ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Wrap(
+            spacing: 8,
+            children: [.75, 1.0, 1.25, 1.5, 2.0]
+                .map(
+                  (speed) => ChoiceChip(
+                    label: Text('${speed}x'),
+                    selected: controller.value.playbackSpeed == speed,
+                    onSelected: (_) async {
+                      await controller.setPlaybackSpeed(speed);
+                      if (mounted) setState(() {});
+                    },
+                  ),
+                )
+                .toList(),
           ),
         ),
       ] else if (error == null)
@@ -543,7 +472,9 @@ class CertificatePage extends StatelessWidget {
           children: [
             const Icon(Icons.workspace_premium, size: 80),
             DetailFields(d),
-            if (d['eligible'] == true && d['certificate'] == null)
+            if (!api.guardian &&
+                d['eligible'] == true &&
+                d['certificate'] == null)
               FilledButton(
                 onPressed: () => action(context, () async {
                   await api.call(
@@ -572,6 +503,19 @@ class TeacherLessonPage extends StatelessWidget {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        if (lesson['type'] != 'Quiz')
+          OutlinedButton.icon(
+            onPressed: () => open(
+              context,
+              NewLessonPage(
+                api: api,
+                section: {'id': lesson['sectionId']},
+                existing: lesson,
+              ),
+            ),
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('تعديل محتوى الدرس وإعداداته'),
+          ),
         Text('${lesson['body'] ?? ''}'),
         if (lesson['fileUrl'] != null)
           TextButton(
@@ -634,9 +578,15 @@ class TeacherLessonPage extends StatelessWidget {
 }
 
 class NewLessonPage extends StatefulWidget {
-  const NewLessonPage({super.key, required this.api, required this.section});
+  const NewLessonPage({
+    super.key,
+    required this.api,
+    required this.section,
+    this.existing,
+  });
   final Api api;
   final Json section;
+  final Json? existing;
   @override
   State<NewLessonPage> createState() => _NewLessonPageState();
 }
@@ -646,46 +596,87 @@ class _NewLessonPageState extends State<NewLessonPage> {
       body = TextEditingController(),
       url = TextEditingController();
   String type = 'Text';
+  final duration = TextEditingController();
+  bool preview = false;
   bool busy = false;
+  @override
+  void initState() {
+    super.initState();
+    final l = widget.existing;
+    if (l == null) return;
+    title.text = label(l);
+    body.text = '${l['body'] ?? ''}';
+    url.text = '${obj(l['video'])['url'] ?? ''}';
+    type = '${l['type']}';
+    preview = l['isPreview'] == true;
+    duration.text = '${l['durationSeconds'] ?? 0}';
+  }
+
   @override
   void dispose() {
     title.dispose();
     body.dispose();
     url.dispose();
+    duration.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('إضافة درس')),
+    appBar: AppBar(
+      title: Text(widget.existing == null ? 'إضافة درس' : 'تعديل الدرس'),
+    ),
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
         TextField(
+          maxLength: 150,
           controller: title,
           decoration: const InputDecoration(labelText: 'العنوان'),
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
           initialValue: type,
-          items: [
-            'Text',
-            'File',
-            'Video',
-          ].map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
-          onChanged: (v) => setState(() => type = v!),
+          items: ['Text', 'File', 'Video']
+              .map(
+                (x) => DropdownMenuItem(
+                  value: x,
+                  child: Text(CourseInfo.typeName(x)),
+                ),
+              )
+              .toList(),
+          onChanged: widget.existing != null
+              ? null
+              : (v) => setState(() => type = v!),
         ),
         const SizedBox(height: 16),
-        TextField(
-          controller: body,
-          minLines: 3,
-          maxLines: 8,
-          decoration: const InputDecoration(labelText: 'المحتوى والوصف'),
-        ),
+        if (type == 'Text')
+          TextField(
+            controller: body,
+            minLines: 3,
+            maxLines: 8,
+            decoration: const InputDecoration(labelText: 'المحتوى والوصف'),
+          ),
         if (type == 'Video')
           TextField(
             controller: url,
             decoration: const InputDecoration(labelText: 'رابط MP4 أو HLS'),
+          ),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('معاينة مجانية'),
+          subtitle: const Text('تسمح للطالب بتجربة الدرس قبل الاشتراك'),
+          value: preview,
+          onChanged: (v) => setState(() => preview = v),
+        ),
+        if (type == 'Video')
+          TextField(
+            controller: duration,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'مدة الفيديو بالثواني',
+              helperText: 'تُستخدم لحساب إكمال الدرس بدقة',
+            ),
           ),
         const SizedBox(height: 20),
         FilledButton(
@@ -696,32 +687,67 @@ class _NewLessonPageState extends State<NewLessonPage> {
                     toast(context, 'اكتب عنوان الدرس');
                     return;
                   }
-                  if (type == 'Video' && !url.text.startsWith('https://')) {
-                    toast(context, 'اكتب رابط فيديو HTTPS');
+                  if (type == 'Text' && body.text.trim().isEmpty) {
+                    toast(context, 'اكتب شرح الدرس');
+                    return;
+                  }
+                  final uploaded =
+                      widget.existing != null &&
+                      obj(widget.existing!['video'])['source'] == 'Upload';
+                  if (type == 'Video' &&
+                      !uploaded &&
+                      (!url.text.startsWith('https://') ||
+                          (int.tryParse(duration.text) ?? 0) <= 0)) {
+                    toast(context, 'اكتب رابط فيديو HTTPS ومدة صحيحة بالثواني');
                     return;
                   }
                   setState(() => busy = true);
                   await action(context, () async {
                     final lesson = obj(
                       await widget.api.call(
-                        'POST',
-                        '/sections/${widget.section['id']}/lessons',
+                        widget.existing == null ? 'POST' : 'PUT',
+                        widget.existing == null
+                            ? '/sections/${widget.section['id']}/lessons'
+                            : '/lessons/${widget.existing!['id']}',
                         data: {
                           'title': title.text.trim(),
                           'type': type,
+                          'isPreview': preview,
+                          'durationSeconds': int.tryParse(duration.text) ?? 0,
+                          if (widget.existing?['maxViewsPerStudent'] != null)
+                            'maxViewsPerStudent':
+                                widget.existing!['maxViewsPerStudent'],
+                          if (type == 'File' &&
+                              widget.existing?['fileUrl'] != null)
+                            'fileUrl': widget.existing!['fileUrl'],
                           if (type == 'Text') 'body': body.text.trim(),
                           if (type == 'Video')
-                            'video': {
-                              'source': 'Link',
-                              'provider': 'Other',
-                              'url': url.text.trim(),
-                            },
+                            'video': uploaded
+                                ? obj(widget.existing!['video'])
+                                : {
+                                    'source': 'Link',
+                                    'provider':
+                                        Uri.tryParse(
+                                              url.text.trim(),
+                                            )?.host.contains('youtu') ==
+                                            true
+                                        ? 'YouTube'
+                                        : Uri.tryParse(
+                                                url.text.trim(),
+                                              )?.host.contains('vimeo.com') ==
+                                              true
+                                        ? 'Vimeo'
+                                        : 'Other',
+                                    'url': url.text.trim(),
+                                  },
                         },
-                        headers: versionHeader(widget.section),
+                        headers: versionHeader(
+                          widget.existing ?? widget.section,
+                        ),
                       ),
                     );
                     if (!context.mounted) return;
-                    if (type == 'File') {
+                    if (type == 'File' && widget.existing == null) {
                       open(
                         context,
                         UploadPage(
@@ -736,9 +762,73 @@ class _NewLessonPageState extends State<NewLessonPage> {
                   }, success: 'تم إنشاء الدرس');
                   if (mounted) setState(() => busy = false);
                 },
-          child: const Text('حفظ الدرس'),
+          child: Text(busy ? 'جارٍ الحفظ…' : 'حفظ الدرس'),
         ),
       ],
+    ),
+  );
+}
+
+class FullscreenVideo extends StatelessWidget {
+  const FullscreenVideo({super.key, required this.controller, this.watermark});
+  final VideoPlayerController controller;
+  final dynamic watermark;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.black,
+    appBar: AppBar(
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+      title: const Text('المشاهدة'),
+    ),
+    body: SafeArea(
+      child: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  AspectRatio(
+                    aspectRatio: controller.value.aspectRatio,
+                    child: VideoPlayer(controller),
+                  ),
+                  if (watermark != null)
+                    Container(
+                      color: Colors.black54,
+                      padding: const EdgeInsets.all(8),
+                      child: Text(
+                        '$watermark',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: VideoProgressIndicator(controller, allowScrubbing: true),
+          ),
+          ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: controller,
+            builder: (_, value, child) => IconButton(
+              tooltip: 'تشغيل أو إيقاف',
+              color: Colors.white,
+              iconSize: 52,
+              onPressed: () =>
+                  value.isPlaying ? controller.pause() : controller.play(),
+              icon: Icon(
+                value.isPlaying ? Icons.pause_circle : Icons.play_circle,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
     ),
   );
 }

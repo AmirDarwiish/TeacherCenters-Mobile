@@ -153,7 +153,7 @@ class _SessionsPageState extends State<SessionsPage> {
       final me = obj(await widget.api.get('/portal/me'));
       final list = rows(me['students']);
       if (list.isEmpty) throw ApiFailure('لا يوجد طالب نشط مرتبط بالحساب.');
-      studentId = '${list.first['id']}';
+      studentId = widget.api.portalStudentId ?? '${list.first['id']}';
     }
     return studentId;
   }

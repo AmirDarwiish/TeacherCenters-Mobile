@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api.dart';
 import '../core/widgets.dart';
+import '../core/otp_field.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.api});
@@ -18,7 +19,7 @@ class _LoginPageState extends State<LoginPage> {
       code = TextEditingController();
   late final center = TextEditingController(text: widget.api.slug);
   final form = GlobalKey<FormState>();
-  bool student = true, busy = false;
+  bool student = true, guardian = false, busy = false;
   String? challenge, error, centerName;
   Json? selection;
   DateTime? resendAt;
@@ -48,7 +49,12 @@ class _LoginPageState extends State<LoginPage> {
     });
     try {
       final api = widget.api;
-      api.slug = center.text.trim();
+      if (!student) api.slug = center.text.trim();
+      if (api.slug.isEmpty) {
+        throw ApiFailure(
+          'تعذر تحديد جهة التعلم. افتح التطبيق من رابط السنتر أو استخدم نسخته المخصصة.',
+        );
+      }
       if (centerName == null) {
         final tenant = obj(
           await api.call(
@@ -90,7 +96,10 @@ class _LoginPageState extends State<LoginPage> {
             'POST',
             '${api.authPath}/otp/request',
             auth: false,
-            data: {'phone': phone.text.trim(), 'purpose': 'student-login'},
+            data: {
+              'phone': phone.text.trim(),
+              'purpose': guardian ? 'guardian-login' : 'student-login',
+            },
           ),
         );
         challenge = '${data['challengeId']}';
@@ -110,7 +119,7 @@ class _LoginPageState extends State<LoginPage> {
             data: {
               'challengeId': challenge,
               'phone': phone.text.trim(),
-              'purpose': 'student-login',
+              'purpose': guardian ? 'guardian-login' : 'student-login',
               'code': code.text.trim(),
             },
           ),
@@ -144,10 +153,45 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.school_rounded,
-                    size: 64,
-                    color: Color(0xff635bda),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff153f37),
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: const Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Color(0xffd4efbf),
+                          child: Icon(
+                            Icons.auto_stories_rounded,
+                            color: Color(0xff153f37),
+                            size: 30,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'TeacherCenters',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'مساحة واحدة. فرص أكبر.',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 18),
                   Text(
@@ -167,7 +211,7 @@ class _LoginPageState extends State<LoginPage> {
                     segments: const [
                       ButtonSegment(
                         value: true,
-                        label: Text('أنا طالب'),
+                        label: Text('طالب / ولي أمر'),
                         icon: Icon(Icons.school_outlined),
                       ),
                       ButtonSegment(
@@ -185,21 +229,39 @@ class _LoginPageState extends State<LoginPage> {
                           }),
                   ),
                   const SizedBox(height: 24),
-                  TextFormField(
-                    controller: center,
-                    enabled: !busy && challenge == null,
-                    decoration: const InputDecoration(
-                      labelText: 'رابط السنتر أو اسمه في الرابط',
-                      hintText: 'teachercenter-demo',
-                      prefixIcon: Icon(Icons.apartment),
+                  if (student && challenge == null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 18),
+                      child: SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(value: false, label: Text('طالب')),
+                          ButtonSegment(value: true, label: Text('ولي أمر')),
+                        ],
+                        selected: {guardian},
+                        onSelectionChanged: busy
+                            ? null
+                            : (v) => setState(() {
+                                guardian = v.first;
+                                error = null;
+                              }),
+                      ),
                     ),
-                    textDirection: TextDirection.ltr,
-                    onChanged: (_) => centerName = null,
-                    validator: (v) =>
-                        RegExp(r'^[a-zA-Z0-9-]+$').hasMatch(v?.trim() ?? '')
-                        ? null
-                        : 'اكتب اسم السنتر الموجود في الرابط',
-                  ),
+                  if (!student)
+                    TextFormField(
+                      controller: center,
+                      enabled: !busy && challenge == null,
+                      decoration: const InputDecoration(
+                        labelText: 'رابط السنتر أو اسمه في الرابط',
+                        hintText: 'teachercenter-demo',
+                        prefixIcon: Icon(Icons.apartment),
+                      ),
+                      textDirection: TextDirection.ltr,
+                      onChanged: (_) => centerName = null,
+                      validator: (v) =>
+                          RegExp(r'^[a-zA-Z0-9-]+$').hasMatch(v?.trim() ?? '')
+                          ? null
+                          : 'اكتب اسم السنتر الموجود في الرابط',
+                    ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: phone,
@@ -232,18 +294,12 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                   if (challenge != null && selection == null) ...[
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: code,
-                      keyboardType: TextInputType.number,
-                      autofillHints: const [AutofillHints.oneTimeCode],
-                      maxLength: 6,
-                      decoration: const InputDecoration(
-                        labelText: 'رمز التحقق',
-                      ),
-                      validator: (v) => RegExp(r'^\d{6}$').hasMatch(v ?? '')
-                          ? null
-                          : 'اكتب الرمز المكون من 6 أرقام',
+                    Text(
+                      'أدخل الرمز المرسل إلى ${phone.text}',
+                      textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: 14),
+                    OtpCodeField(controller: code, enabled: !busy),
                   ],
                   if (selection != null) ...[
                     const SizedBox(height: 16),

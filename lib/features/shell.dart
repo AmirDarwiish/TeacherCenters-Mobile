@@ -46,13 +46,23 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final api = widget.api;
     final pages = [
-      HomePage(api: api),
+      HomePage(
+        api: api,
+        onCourses: () => setState(() => index = 1),
+        onSessions: () => setState(() => index = 2),
+      ),
       CoursesPage(api: api),
       SessionsPage(api: api),
-      ThreadsPage(api: api),
+      if (!api.guardian) ThreadsPage(api: api),
       AccountPage(api: api, onTheme: widget.onTheme),
     ];
-    final titles = ['الرئيسية', 'الكورسات', 'الحصص', 'الرسائل', 'حسابي'];
+    final titles = [
+      'الرئيسية',
+      'الكورسات',
+      'الحصص',
+      if (!api.guardian) 'الرسائل',
+      'حسابي',
+    ];
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[index]),
@@ -68,7 +78,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) => setState(() => index = i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.grid_view_rounded),
             label: 'الرئيسية',
@@ -81,10 +91,11 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
             icon: Icon(Icons.calendar_month_outlined),
             label: 'الحصص',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline_rounded),
-            label: 'الرسائل',
-          ),
+          if (!api.guardian)
+            NavigationDestination(
+              icon: Icon(Icons.chat_bubble_outline_rounded),
+              label: 'الرسائل',
+            ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             label: 'حسابي',
@@ -96,8 +107,23 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
 }
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.api});
+  const HomePage({
+    super.key,
+    required this.api,
+    this.onCourses,
+    this.onSessions,
+  });
   final Api api;
+  final VoidCallback? onCourses, onSessions;
+  void courses(BuildContext context) => onCourses != null
+      ? onCourses!()
+      : open(
+          context,
+          Scaffold(
+            appBar: AppBar(title: const Text('الكورسات')),
+            body: CoursesPage(api: api),
+          ),
+        );
   @override
   Widget build(BuildContext context) => AsyncPanel(
     load: () async {
@@ -107,180 +133,416 @@ class HomePage extends StatelessWidget {
       if (students.isEmpty) {
         throw ApiFailure('الحساب غير مرتبط بطالب نشط. تواصل مع السنتر.');
       }
-      return api.get('/portal/students/${students.first['id']}/overview');
+      final student =
+          students
+              .where((s) => '${s['id']}' == api.portalStudentId)
+              .firstOrNull ??
+          students.first;
+      return api.get('/portal/students/${student['id']}/overview');
     },
     builder: (data, refresh) {
-      final d = obj(data);
-      final next = obj(d['nextSession']);
+      final d = obj(data), next = obj(d['nextSession']);
+      final colors = Theme.of(context).colorScheme;
+      final name =
+          '${api.profile['name'] ?? api.profile['fullName'] ?? (api.student ? 'صديقنا' : 'أستاذنا')}';
       return ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'أهلاً بعودتك 👋',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      name,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: colors.primaryContainer,
+                child: Text(
+                  name.trim().isEmpty ? 'ت' : name.trim()[0],
+                  style: TextStyle(
+                    color: colors.onPrimaryContainer,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(26),
               gradient: const LinearGradient(
-                colors: [Color(0xff635bda), Color(0xff363083)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [Color(0xff123e35), Color(0xff216b58)],
               ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'أهلاً، ${api.profile['name'] ?? api.profile['fullName'] ?? (api.student ? 'يا بطل' : 'أستاذنا')}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_outlined,
+                      size: 18,
+                      color: Color(0xffd4efbf),
+                    ),
+                    SizedBox(width: 7),
+                    Text(
+                      'كل خطوة بتفرق',
+                      style: TextStyle(color: Color(0xffd4efbf)),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
                 Text(
-                  api.student
-                      ? 'خطوة جديدة نحو نجاحك'
-                      : 'كل تفاصيل يومك الدراسي',
+                  api.guardian
+                      ? 'معاه في كل خطوة'
+                      : api.student
+                      ? 'فهم أعمق.\nوثقة في اللي جاي.'
+                      : 'وقت أكتر للتدريس.\nوتفاصيل تحت السيطرة.',
                   style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 27,
                     color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'TeacherCenters',
-                  style: TextStyle(color: Colors.white70),
+                const SizedBox(height: 12),
+                Text(
+                  api.guardian
+                      ? 'تابع التعلم والحضور والنتائج من مكان واحد.'
+                      : api.student
+                      ? 'شرحك وتدريبك ومواعيدك، مترتبين على راحتك.'
+                      : 'تابع طلابك، جهّز محتواك، ونظّم يومك.',
+                  style: const TextStyle(color: Colors.white70, height: 1.5),
+                ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xffd4efbf),
+                    foregroundColor: const Color(0xff153f37),
+                  ),
+                  onPressed: () => courses(context),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                  label: Text(
+                    api.guardian
+                        ? 'متابعة الكورسات'
+                        : api.student
+                        ? 'مساحة التعلم'
+                        : 'إدارة الكورسات',
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 22),
-          Text('نظرة سريعة', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 14),
-          if (api.student)
-            Row(
-              children: [
-                Expanded(
-                  child: Metric(
-                    'نسبة الحضور',
-                    '${d['attendancePercent'] ?? '—'}%',
-                    Icons.how_to_reg,
-                  ),
+          if (api.student) ContinueLearning(api: api),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  api.student ? 'موعدك الجاي' : 'الجدول والحصص',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                Expanded(
-                  child: Metric(
-                    'متوسط الدرجات',
-                    '${d['averageScore'] ?? '—'}',
-                    Icons.insights,
-                  ),
-                ),
-              ],
-            )
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: Metric(
-                    'الطلاب النشطون',
-                    '${d['activeStudents'] ?? 0}',
-                    Icons.groups_outlined,
-                  ),
-                ),
-                Expanded(
-                  child: Metric(
-                    'حصص اليوم',
-                    '${obj(d['sessionsToday'])['total'] ?? 0}',
-                    Icons.calendar_today_outlined,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              TextButton(
+                onPressed:
+                    onSessions ??
+                    () => open(
+                      context,
+                      Scaffold(
+                        appBar: AppBar(title: const Text('الحصص')),
+                        body: SessionsPage(api: api),
+                      ),
+                    ),
+                child: const Text('الجدول'),
+              ),
+            ],
+          ),
           if (next.isNotEmpty)
             Card(
-              child: ListTile(
-                leading: const Icon(Icons.schedule),
-                title: Text('${next['topic'] ?? 'حصتك القادمة'}'),
-                subtitle: Text(when(next['startsAtUtc'])),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: colors.secondaryContainer,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        Icons.calendar_month_outlined,
+                        color: colors.onSecondaryContainer,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${next['topic'] ?? next['groupName'] ?? 'الحصة القادمة'}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          Text(when(next['startsAtUtc'])),
+                          if (next['groupName'] != null)
+                            Text(
+                              '${next['groupName']}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    const Icon(Icons.event_available_outlined, size: 28),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        api.student
+                            ? 'مفيش حصص قادمة ظاهرة حالياً. تقدر تراجع الجدول.'
+                            : 'راجع الجدول لمواعيد الحصص وتسجيل الحضور.',
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          if (api.student)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.account_balance_wallet_outlined),
-                title: const Text('المستحقات'),
-                subtitle: Text('${obj(d['balance'])['totalDue'] ?? 0} جنيه'),
-                onTap: () => open(context, PaymentsPage(api: api)),
+          const SizedBox(height: 8),
+          Text(
+            api.guardian ? 'متابعة المستوى' : 'نظرة على تقدمك',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Metric(
+                  api.student ? 'نسبة الحضور' : 'الطلاب النشطون',
+                  api.student
+                      ? '${d['attendancePercent'] ?? '—'}٪'
+                      : '${d['activeStudents'] ?? 0}',
+                  api.student
+                      ? Icons.how_to_reg_outlined
+                      : Icons.groups_outlined,
+                ),
               ),
-            ),
-          Text('وصول سريع', style: Theme.of(context).textTheme.titleLarge),
-          if (api.student)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.quiz_outlined),
-                title: const Text('امتحانات المجموعات'),
-                onTap: () => open(
-                  context,
-                  PageViewList(
-                    api: api,
-                    path: '/portal/exams',
-                    title: 'الامتحانات',
-                    item: (e) => Card(
-                      child: ListTile(
-                        title: Text(label(e)),
-                        subtitle: Text('الإغلاق: ${when(e['closesAtUtc'])}'),
-                        onTap: () => open(
-                          context,
-                          QuizPage(
-                            api: api,
-                            quizId: '${e['id']}',
-                            legacy: true,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Metric(
+                  api.student ? 'متوسط الدرجات' : 'حصص اليوم',
+                  api.student
+                      ? '${d['averageScore'] ?? '—'}'
+                      : '${obj(d['sessionsToday'])['total'] ?? 0}',
+                  api.student
+                      ? Icons.insights_outlined
+                      : Icons.calendar_today_outlined,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'كل اللي تحتاجه',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tiles = <Widget>[
+                _HomeAction(
+                  title: api.student ? 'كورساتي' : 'محتواي',
+                  subtitle: 'تعلم بخطة واضحة',
+                  icon: Icons.auto_stories_outlined,
+                  onTap: () => courses(context),
+                ),
+                _HomeAction(
+                  title: 'الحصص',
+                  subtitle: api.student
+                      ? 'مواعيدك وحضورك'
+                      : 'الجدول وتسجيل الحضور',
+                  icon: Icons.calendar_month_outlined,
+                  onTap:
+                      onSessions ??
+                      () => open(
+                        context,
+                        Scaffold(
+                          appBar: AppBar(title: const Text('الحصص')),
+                          body: SessionsPage(api: api),
+                        ),
+                      ),
+                ),
+                if (!api.guardian)
+                  _HomeAction(
+                    title: 'الواجبات',
+                    subtitle: api.student
+                        ? 'سلّم وراجع ملاحظاتك'
+                        : 'التسليمات والتصحيح',
+                    icon: Icons.assignment_outlined,
+                    onTap: () => open(context, AssignmentsPage(api: api)),
+                  ),
+                if (api.student && !api.guardian)
+                  _HomeAction(
+                    title: 'الاختبارات',
+                    subtitle: 'اختبر فهمك وتابع نتيجتك',
+                    icon: Icons.quiz_outlined,
+                    onTap: () => open(
+                      context,
+                      PageViewList(
+                        api: api,
+                        path: '/portal/exams',
+                        title: 'الاختبارات',
+                        item: (e) => Card(
+                          child: ListTile(
+                            title: Text(label(e)),
+                            subtitle: Text(
+                              'الإغلاق: ${when(e['closesAtUtc'])}',
+                            ),
+                            trailing: const Icon(Icons.chevron_left),
+                            onTap: () => open(
+                              context,
+                              QuizPage(
+                                api: api,
+                                quizId: '${e['id']}',
+                                legacy: true,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            ),
-          const SizedBox(height: 12),
-          if (!api.student)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.groups_outlined),
-                title: const Text('مجموعاتي والطلاب'),
-                trailing: const Icon(Icons.chevron_left),
-                onTap: () => open(context, GroupsPage(api: api)),
-              ),
-            ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.assignment_outlined),
-              title: const Text('الواجبات والتسليمات'),
-              trailing: const Icon(Icons.chevron_left),
-              onTap: () => open(context, AssignmentsPage(api: api)),
-            ),
+                if (!api.student)
+                  _HomeAction(
+                    title: 'مجموعاتي',
+                    subtitle: 'طلابك ومتابعة مستواهم',
+                    icon: Icons.groups_outlined,
+                    onTap: () => open(context, GroupsPage(api: api)),
+                  ),
+              ];
+              return Wrap(
+                spacing: 12,
+                runSpacing: 0,
+                children: tiles
+                    .map(
+                      (tile) => SizedBox(
+                        width: (constraints.maxWidth - 12) / 2,
+                        child: tile,
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
           if (api.student)
             Card(
               child: ListTile(
-                leading: const Icon(Icons.qr_code),
-                title: const Text('بطاقة الطالب'),
-                onTap: () => open(context, StudentCard(api: api)),
-              ),
-            ),
-          if (api.student)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.storefront),
-                title: const Text('استكشف الكورسات'),
-                onTap: () => open(
-                  context,
-                  Scaffold(
-                    appBar: AppBar(title: const Text('استكشف')),
-                    body: CoursesPage(api: api, catalog: true),
-                  ),
-                ),
+                contentPadding: const EdgeInsets.all(18),
+                leading: const Icon(Icons.account_balance_wallet_outlined),
+                title: const Text('المستحقات الحالية'),
+                subtitle: Text('${obj(d['balance'])['totalDue'] ?? 0} ج.م'),
+                trailing: api.guardian ? null : const Icon(Icons.chevron_left),
+                onTap: api.guardian
+                    ? null
+                    : () => open(context, PaymentsPage(api: api)),
               ),
             ),
         ],
       );
     },
+  );
+}
+
+class _HomeAction extends StatelessWidget {
+  const _HomeAction({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+  final String title, subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Card(
+    child: InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primaryContainer.withValues(alpha: .5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: Theme.of(context).colorScheme.primary,
+                size: 25,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 }
 
@@ -303,7 +565,15 @@ class AccountPage extends StatelessWidget {
           style: Theme.of(context).textTheme.titleLarge,
         ),
       ),
-      Center(child: Text(api.student ? 'طالب' : 'مدرس')),
+      Center(
+        child: Text(
+          api.guardian
+              ? 'ولي أمر'
+              : api.student
+              ? 'طالب'
+              : 'مدرس',
+        ),
+      ),
       const SizedBox(height: 24),
       ListTile(
         leading: const Icon(Icons.apartment),
@@ -315,13 +585,13 @@ class AccountPage extends StatelessWidget {
         title: const Text('تغيير المظهر'),
         onTap: onTheme,
       ),
-      if (api.student)
+      if (api.student && !api.guardian)
         ListTile(
           leading: const Icon(Icons.payments_outlined),
           title: const Text('المدفوعات والمستحقات'),
           onTap: () => open(context, PaymentsPage(api: api)),
         ),
-      if (api.student)
+      if (api.student && !api.guardian)
         ListTile(
           leading: const Icon(Icons.qr_code),
           title: const Text('بطاقتي'),
@@ -382,5 +652,89 @@ class StudentCard extends StatelessWidget {
         );
       },
     ),
+  );
+}
+
+class ContinueLearning extends StatefulWidget {
+  const ContinueLearning({super.key, required this.api});
+  final Api api;
+  @override
+  State<ContinueLearning> createState() => _ContinueLearningState();
+}
+
+class _ContinueLearningState extends State<ContinueLearning> {
+  late final Future<dynamic> courses = widget.api.get('/portal/courses');
+  @override
+  Widget build(BuildContext context) => FutureBuilder<dynamic>(
+    future: courses,
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) return const SizedBox.shrink();
+      final active = rows(snapshot.data)
+          .where(
+            (c) =>
+                (c['progressPercent'] as num? ?? 0) < 100 &&
+                c['resumeLessonId'] != null,
+          )
+          .toList();
+      active.sort(
+        (a, b) => '${b['lastActivityAt'] ?? ''}'.compareTo(
+          '${a['lastActivityAt'] ?? ''}',
+        ),
+      );
+      if (active.isEmpty) return const SizedBox.shrink();
+      final course = active.first;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Text(
+            widget.api.guardian ? 'رحلة التعلم' : 'كمّل رحلتك',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 14),
+          Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(22),
+              onTap: () => open(
+                context,
+                CoursePage(api: widget.api, id: '${course['id']}'),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 26,
+                      child: Icon(Icons.play_arrow_rounded, size: 32),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label(course),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'أنجزت ${course['progressPercent'] ?? 0}٪ • استكمل من آخر درس',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_left_rounded),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
   );
 }

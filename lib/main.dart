@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/api.dart';
+import 'core/design.dart';
 import 'features/login.dart';
 import 'features/shell.dart';
+import 'features/guardian.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,46 +56,6 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
     super.dispose();
   }
 
-  ThemeData theme(Brightness brightness) {
-    final colors = ColorScheme.fromSeed(
-      seedColor: const Color(0xff635bda),
-      brightness: brightness,
-    );
-    return ThemeData(
-      useMaterial3: true,
-      fontFamily: 'Tajawal',
-      colorScheme: colors,
-      brightness: brightness,
-      scaffoldBackgroundColor: brightness == Brightness.light
-          ? const Color(0xfff6f7fb)
-          : const Color(0xff11121b),
-      appBarTheme: const AppBarTheme(
-        centerTitle: false,
-        scrolledUnderElevation: 0,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-      ),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        margin: const EdgeInsets.only(bottom: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(48, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
@@ -101,8 +63,8 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
     locale: const Locale('ar'),
     supportedLocales: const [Locale('ar'), Locale('en')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    theme: theme(Brightness.light),
-    darkTheme: theme(Brightness.dark),
+    theme: appTheme(Brightness.light),
+    darkTheme: appTheme(Brightness.dark),
     themeMode: mode,
     // Replacing the keyed Navigator removes all private detail routes on logout.
     key: ValueKey(sessionEpoch),
@@ -131,14 +93,23 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
             ),
           )
         : widget.api.signedIn
-        ? Shell(
-            api: widget.api,
-            onTheme: () => setState(
-              () => mode = mode == ThemeMode.dark
-                  ? ThemeMode.light
-                  : ThemeMode.dark,
-            ),
-          )
+        ? widget.api.guardian
+              ? GuardianPortal(
+                  api: widget.api,
+                  onTheme: () => setState(
+                    () => mode = mode == ThemeMode.dark
+                        ? ThemeMode.light
+                        : ThemeMode.dark,
+                  ),
+                )
+              : Shell(
+                  api: widget.api,
+                  onTheme: () => setState(
+                    () => mode = mode == ThemeMode.dark
+                        ? ThemeMode.light
+                        : ThemeMode.dark,
+                  ),
+                )
         : LoginPage(api: widget.api),
   );
 }

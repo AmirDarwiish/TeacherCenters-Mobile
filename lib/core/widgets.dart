@@ -310,6 +310,7 @@ class DetailFields extends StatelessWidget {
     children: data.entries
         .where(
           (e) =>
+              fieldNames.containsKey(e.key) &&
               e.value != null &&
               e.value is! Map &&
               e.value is! List &&
@@ -324,7 +325,26 @@ class DetailFields extends StatelessWidget {
         .map(
           (e) => ListTile(
             title: Text(fieldNames[e.key] ?? e.key),
-            subtitle: Text('${e.value}'),
+            subtitle: Text(
+              e.value is bool
+                  ? (e.value == true ? 'نعم' : 'لا')
+                  : e.key == 'status'
+                  ? (const {
+                          'Published': 'منشور',
+                          'Draft': 'مسودة',
+                          'Pending': 'قيد الانتظار',
+                          'Submitted': 'تم التسليم',
+                          'Graded': 'تم التصحيح',
+                          'Completed': 'مكتمل',
+                          'Active': 'نشط',
+                          'Closed': 'مغلق',
+                          'Present': 'حاضر',
+                          'Absent': 'غائب',
+                          'Late': 'متأخر',
+                        }[e.value] ??
+                        '${e.value}')
+                  : '${e.value}',
+            ),
           ),
         )
         .toList(),
@@ -364,4 +384,20 @@ const fieldNames = {
   'explanation': 'التفسير',
   'attendancePercent': 'نسبة الحضور',
   'averageScore': 'متوسط الدرجات',
+  'startsAtUtc': 'موعد البداية',
+  'endsAtUtc': 'موعد النهاية',
+  'topic': 'موضوع الحصة',
+  'studentName': 'الطالب',
+  'groupName': 'المجموعة',
+  'subjectName': 'المادة',
+  'gradeName': 'الصف الدراسي',
+  'durationMinutes': 'المدة بالدقائق',
+  'total': 'الإجمالي',
+  'comment': 'تعليق',
+  'reason': 'السبب',
+  'issuedAt': 'تاريخ الإصدار',
+  'certificateNumber': 'رقم الشهادة',
+  'serialNumber': 'الرقم المسلسل',
+  'courseTitle': 'الكورس',
+  'studentFullName': 'الطالب',
 };
