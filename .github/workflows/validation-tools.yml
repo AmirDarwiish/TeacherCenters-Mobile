@@ -1,0 +1,24 @@
+name: Prepare offline validation tools
+on:
+  push:
+    paths: ['.github/workflows/validation-tools.yml', '.github/tooling/validation-dependencies.csproj']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_INSTALL_DIR: ${{ runner.temp }}/validation-tools/dotnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet restore .github/tooling/validation-dependencies.csproj --packages '${{ runner.temp }}/validation-tools/packages'
+      - run: tar -czf validation-tools.tar.gz -C '${{ runner.temp }}/validation-tools' dotnet packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: offline-validation-tools
+          path: validation-tools.tar.gz
+          retention-days: 2
