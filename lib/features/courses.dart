@@ -77,6 +77,7 @@ class _LessonPageState extends State<LessonPage> {
     body: AsyncPanel(
       load: () => widget.api.get('/portal/lessons/${widget.id}'),
       builder: (data, refresh) {
+        final rtl = Directionality.of(context) == TextDirection.rtl;
         final l = obj(data),
             v = obj(obj(data)['video']),
             q = obj(obj(data)['quiz']);
@@ -270,7 +271,12 @@ class _LessonPageState extends State<LessonPage> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => navigate('${l['prevLessonId']}'),
-                      icon: const Icon(Icons.arrow_forward),
+                      icon: Icon(
+                        rtl
+                            ? Icons.arrow_forward_rounded
+                            : Icons.arrow_back_rounded,
+                        textDirection: TextDirection.ltr,
+                      ),
                       label: const Text('السابق'),
                     ),
                   ),
@@ -280,7 +286,13 @@ class _LessonPageState extends State<LessonPage> {
                   Expanded(
                     child: FilledButton.tonalIcon(
                       onPressed: () => navigate('${l['nextLessonId']}'),
-                      icon: const Icon(Icons.arrow_back),
+                      iconAlignment: IconAlignment.end,
+                      icon: Icon(
+                        rtl
+                            ? Icons.arrow_back_rounded
+                            : Icons.arrow_forward_rounded,
+                        textDirection: TextDirection.ltr,
+                      ),
                       label: const Text('الدرس التالي'),
                     ),
                   ),

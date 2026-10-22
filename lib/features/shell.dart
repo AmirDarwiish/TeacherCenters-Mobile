@@ -8,6 +8,7 @@ import 'teaching.dart';
 import 'community.dart';
 import 'payments.dart';
 import 'quiz.dart';
+import 'reels.dart';
 
 class Shell extends StatefulWidget {
   const Shell({super.key, required this.api, required this.onTheme});
@@ -18,6 +19,10 @@ class Shell extends StatefulWidget {
 }
 
 class _ShellState extends State<Shell> with WidgetsBindingObserver {
+  int index = 0;
+  bool overlay = false;
+  final Map<int, Widget> visited = {};
+
   @override
   void initState() {
     super.initState();
@@ -41,41 +46,73 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  int index = 0;
-  final Map<int, Widget> visited = {};
+  Future<void> openOverlay(Widget page) async {
+    setState(() => overlay = true);
+    try {
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute(builder: (_) => page),
+      );
+    } finally {
+      if (mounted) setState(() => overlay = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final api = widget.api;
-    Widget page(int tab) => visited.putIfAbsent(
-      tab,
-      () => switch (tab) {
-        0 => HomePage(
-          api: api,
-          onCourses: () => setState(() => index = 1),
-          onSessions: () => setState(() => index = 2),
-        ),
-        1 => CoursesPage(api: api),
-        2 => SessionsPage(api: api),
-        3 when !api.guardian => ThreadsPage(api: api),
-        _ => AccountPage(api: api, onTheme: widget.onTheme),
-      },
-    );
-    page(index);
-    final count = api.guardian ? 4 : 5;
+    final hasReels = api.student;
+    final immersive = hasReels && index == 2;
     final titles = [
       'الرئيسية',
       'الكورسات',
-      'الحصص',
-      if (!api.guardian) 'الرسائل',
+      hasReels ? 'ريلز' : 'الحصص',
+      hasReels ? 'الحصص' : 'الرسائل',
       'حسابي',
     ];
+    Widget page(int tab) {
+      // This widget must receive visibility updates even inside IndexedStack.
+      if (hasReels && tab == 2) {
+        return ReelsPage(
+          key: const ValueKey('course-reels'),
+          api: api,
+          active: index == 2 && !overlay,
+        );
+      }
+      return visited.putIfAbsent(
+        tab,
+        () => switch (tab) {
+          0 => HomePage(
+            api: api,
+            onCourses: () => setState(() => index = 1),
+            onSessions: () => setState(() => index = hasReels ? 3 : 2),
+          ),
+          1 => CoursesPage(api: api),
+          2 => SessionsPage(api: api),
+          3 when hasReels => SessionsPage(api: api),
+          3 => ThreadsPage(api: api),
+          _ => AccountPage(api: api, onTheme: widget.onTheme),
+        },
+      );
+    }
+
+    if (!(hasReels && index == 2)) page(index);
     return Scaffold(
+      backgroundColor: immersive ? const Color(0xff07111f) : null,
       appBar: AppBar(
+        backgroundColor: immersive ? const Color(0xff07111f) : null,
+        foregroundColor: immersive ? Colors.white : null,
         title: Text(titles[index]),
         actions: [
+          if (!api.guardian)
+            IconButton(
+              tooltip: 'الرسائل',
+              onPressed: () => openOverlay(ThreadsPage(api: api)),
+              icon: const Icon(Icons.chat_bubble_outline_rounded),
+            ),
           IconButton(
             tooltip: 'الإشعارات',
-            onPressed: () => open(context, NotificationsPage(api: api)),
+            onPressed: () => openOverlay(NotificationsPage(api: api)),
             icon: const Icon(Icons.notifications_none_rounded),
           ),
         ],
@@ -88,44 +125,174 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         child: IndexedStack(
           index: index,
           children: List.generate(
-            count,
+            5,
             (i) => TickerMode(
               enabled: i == index,
-              child: visited[i] ?? const SizedBox.shrink(),
+              child:
+                  hasReels && i == 2 && (index == 2 || visited.containsKey(2))
+                  ? page(2)
+                  : visited[i] ?? const SizedBox.shrink(),
             ),
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: SentrakNavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (i) => setState(() => index = i),
-        destinations: [
-          NavigationDestination(
-            selectedIcon: Icon(Icons.grid_view_rounded),
-            icon: Icon(Icons.grid_view_outlined),
-            label: 'الرئيسية',
+        hasReels: hasReels,
+        immersive: immersive,
+        onSelected: (i) => setState(() {
+          index = i;
+          // Mark the feed visited while keeping its active property dynamic.
+          if (hasReels && i == 2) {
+            visited.putIfAbsent(2, () => const SizedBox.shrink());
+          }
+        }),
+      ),
+    );
+  }
+}
+
+class SentrakNavigationBar extends StatelessWidget {
+  const SentrakNavigationBar({
+    super.key,
+    required this.selectedIndex,
+    required this.onSelected,
+    this.hasReels = true,
+    this.immersive = false,
+  });
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+  final bool hasReels, immersive;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final labels = [
+      'الرئيسية',
+      'الكورسات',
+      hasReels ? 'ريلز' : 'الحصص',
+      hasReels ? 'الحصص' : 'الرسائل',
+      'حسابي',
+    ];
+    final icons = [
+      Icons.home_outlined,
+      Icons.auto_stories_outlined,
+      hasReels ? Icons.play_arrow_rounded : Icons.calendar_month_outlined,
+      hasReels
+          ? Icons.calendar_month_outlined
+          : Icons.chat_bubble_outline_rounded,
+      Icons.person_outline_rounded,
+    ];
+    final selected = [
+      Icons.home_rounded,
+      Icons.auto_stories_rounded,
+      hasReels ? Icons.play_arrow_rounded : Icons.calendar_month_rounded,
+      hasReels ? Icons.calendar_month_rounded : Icons.chat_bubble_rounded,
+      Icons.person_rounded,
+    ];
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+        decoration: BoxDecoration(
+          color: immersive ? const Color(0xff102438) : colors.surface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: colors.outlineVariant.withValues(alpha: .3),
           ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.auto_stories_rounded),
-            icon: Icon(Icons.auto_stories_outlined),
-            label: 'الكورسات',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.calendar_month_rounded),
-            icon: Icon(Icons.calendar_month_outlined),
-            label: 'الحصص',
-          ),
-          if (!api.guardian)
-            NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline_rounded),
-              label: 'الرسائل',
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: .06),
+              blurRadius: 24,
+              offset: const Offset(0, 6),
             ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.person_rounded),
-            icon: Icon(Icons.person_outline),
-            label: 'حسابي',
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            children: List.generate(5, (i) {
+              final active = i == selectedIndex;
+              final center = hasReels && i == 2;
+              final color = immersive
+                  ? active
+                        ? const Color(0xff9abaff)
+                        : Colors.white70
+                  : active
+                  ? colors.primary
+                  : colors.onSurfaceVariant;
+              return Expanded(
+                child: Semantics(
+                  button: true,
+                  selected: active,
+                  label: labels[i],
+                  excludeSemantics: true,
+                  child: Tooltip(
+                    message: labels[i],
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(22),
+                      onTap: () => onSelected(i),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: center ? 50 : 44,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                gradient: center
+                                    ? const LinearGradient(
+                                        colors: [
+                                          Color(0xff1d5bf0),
+                                          Color(0xff6a5ef2),
+                                        ],
+                                      )
+                                    : null,
+                                color: !center && active
+                                    ? colors.primary.withValues(alpha: .1)
+                                    : null,
+                                borderRadius: BorderRadius.circular(
+                                  center ? 13 : 12,
+                                ),
+                              ),
+                              child: Icon(
+                                active ? selected[i] : icons[i],
+                                size: center ? 29 : 24,
+                                color: center ? Colors.white : color,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 3,
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  labels[i],
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: color,
+                                    fontWeight: active
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -608,6 +775,12 @@ class AccountPage extends StatelessWidget {
         title: const Text('تغيير المظهر'),
         onTap: onTheme,
       ),
+      if (!api.guardian)
+        ListTile(
+          leading: const Icon(Icons.chat_bubble_outline_rounded),
+          title: const Text('الرسائل'),
+          onTap: () => open(context, ThreadsPage(api: api)),
+        ),
       if (api.student)
         ListTile(
           leading: const Icon(Icons.payments_outlined),
