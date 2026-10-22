@@ -10,10 +10,23 @@ import 'package:teacher_centers_mobile/features/session_check_in.dart';
 import 'api_test.dart' show MemoryStore, FakeAdapter, response, session;
 import 'course_experience_test.dart' show host, loadTestFonts, screenshot;
 
-class TestAttendanceDevice implements AttendanceDevice {
+class TestAttendanceDevice extends AttendanceDevice {
   TestAttendanceDevice({this.outside = false, this.mocked = false});
   final bool outside, mocked;
-  int locations = 0, photos = 0;
+  int locations = 0, photos = 0, cameraOpens = 0, cameraCloses = 0;
+  @override
+  Future<void> openCamera() async {
+    cameraOpens++;
+  }
+
+  @override
+  Future<void> closeCamera() async {
+    cameraCloses++;
+  }
+
+  @override
+  Widget cameraPreview() =>
+      const Center(child: Text('معاينة الكاميرا المباشرة'));
   @override
   Future<AttendanceLocation> locate() async {
     locations++;
@@ -37,13 +50,17 @@ class TestAttendanceDevice implements AttendanceDevice {
 
 void main() {
   setUpAll(loadTestFonts);
-  for (final allowed in [true, false]) {
+  for (final scenario in ['inside', 'outside', 'mocked']) {
+    final allowed = scenario == 'inside';
     testWidgets(
-      'attendance requires fresh inside location and camera photo (inside: $allowed)',
+      'attendance requires fresh inside location and camera photo (scenario: $scenario)',
       (tester) async {
         await tester.binding.setSurfaceSize(const Size(412, 915));
         addTearDown(() => tester.binding.setSurfaceSize(null));
-        final device = TestAttendanceDevice(outside: !allowed);
+        final device = TestAttendanceDevice(
+          outside: scenario == 'outside',
+          mocked: scenario == 'mocked',
+        );
         final requests = <RequestOptions>[];
         final client = Dio(BaseOptions(baseUrl: 'https://example.test'));
         client.httpClientAdapter = FakeAdapter((request) async {
@@ -99,6 +116,28 @@ void main() {
         await tester.ensureVisible(find.text('٢. تصوير علامة مميزة بالكاميرا'));
         await tester.tap(find.text('٢. تصوير علامة مميزة بالكاميرا'));
         await tester.pumpAndSettle();
+        expect(device.photos, 0);
+        expect(device.cameraOpens, 1);
+        expect(find.text('معاينة الكاميرا المباشرة'), findsOneWidget);
+        expect(find.textContaining('رفع صورة'), findsNothing);
+        final closed = device.cameraCloses;
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.inactive,
+        );
+        await tester.pumpAndSettle();
+        expect(device.cameraCloses, greaterThan(closed));
+        expect(find.text('معاينة الكاميرا المباشرة'), findsNothing);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('٢. تصوير علامة مميزة بالكاميرا'));
+        await tester.tap(find.text('٢. تصوير علامة مميزة بالكاميرا'));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('التقاط الصورة الآن'));
+        await tester.tap(find.text('التقاط الصورة الآن'));
+        await tester.pumpAndSettle();
+        expect(device.photos, 1);
         final button = find.widgetWithText(
           FilledButton,
           '٣. إرسال وتأكيد الحضور',
