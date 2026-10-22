@@ -9,17 +9,17 @@ import 'features/guardian.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(TeacherCentersApp(api: Api()));
+  runApp(سنتركApp(api: Api()));
 }
 
-class TeacherCentersApp extends StatefulWidget {
-  const TeacherCentersApp({super.key, required this.api});
+class سنتركApp extends StatefulWidget {
+  const سنتركApp({super.key, required this.api});
   final Api api;
   @override
-  State<TeacherCentersApp> createState() => _TeacherCentersAppState();
+  State<سنتركApp> createState() => _سنتركAppState();
 }
 
-class _TeacherCentersAppState extends State<TeacherCentersApp> {
+class _سنتركAppState extends State<سنتركApp> {
   ThemeMode mode = ThemeMode.system;
   bool ready = false;
   Object? startupError;
@@ -59,7 +59,7 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
-    title: 'TeacherCenters',
+    title: 'سنترك',
     locale: const Locale('ar'),
     supportedLocales: const [Locale('ar'), Locale('en')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,

@@ -21,7 +21,9 @@ class _LoginPageState extends State<LoginPage> {
   final form = GlobalKey<FormState>();
   bool student = true, guardian = false, busy = false;
   String? challenge, error, centerName;
-  Json? selection;
+  Json? selection, centerSelection;
+  String? loginTicket;
+  bool globalFlow = false;
   DateTime? resendAt;
   Timer? timer;
   int get remaining => resendAt == null
@@ -49,21 +51,17 @@ class _LoginPageState extends State<LoginPage> {
     });
     try {
       final api = widget.api;
-      if (!student) api.slug = center.text.trim();
-      if (api.slug.isEmpty) {
-        throw ApiFailure(
-          'تعذر تحديد جهة التعلم. افتح التطبيق من رابط السنتر أو استخدم نسخته المخصصة.',
-        );
+      if (student && challenge == null && studentId == null) {
+        try {globalFlow = obj(await api.call('GET', '/mobile/auth/config', auth: false))['globalOtp'] == true;}
+        on ApiFailure catch (e) {if (e.status != 404 && e.status != 501) rethrow; globalFlow = false;}
       }
-      if (centerName == null) {
-        final tenant = obj(
-          await api.call(
-            'GET',
-            '/t/${Uri.encodeComponent(api.slug)}',
-            auth: false,
-          ),
-        );
-        centerName = '${tenant['name']}';
+      if (!globalFlow || !student) {
+        if (!student) api.slug = center.text.trim();
+        if (api.slug.isEmpty) throw ApiFailure('تعذر تحديد جهة التعلم. الخدمة تحتاج تحديثًا لتفعيل اختيار السنترات.');
+        if (centerName == null) {
+          final tenant = obj(await api.call('GET', '/t/${Uri.encodeComponent(api.slug)}', auth: false));
+          centerName = '${tenant['name']}';
+        }
       }
       if (!student) {
         await api.accept(
@@ -94,7 +92,7 @@ class _LoginPageState extends State<LoginPage> {
         final data = obj(
           await api.call(
             'POST',
-            '${api.authPath}/otp/request',
+            globalFlow ? '/mobile/auth/otp/request' : '${api.authPath}/otp/request',
             auth: false,
             data: {
               'phone': phone.text.trim(),
@@ -103,6 +101,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
         challenge = '${data['challengeId']}';
+        loginTicket = data['loginTicket'] as String?;
         resendAt = DateTime.now().add(
           Duration(seconds: (data['resendAfterSeconds'] as num? ?? 60).toInt()),
         );
@@ -114,17 +113,19 @@ class _LoginPageState extends State<LoginPage> {
         final data = obj(
           await api.call(
             'POST',
-            '${api.authPath}/otp/verify',
+            globalFlow ? '/mobile/auth/otp/verify' : '${api.authPath}/otp/verify',
             auth: false,
             data: {
-              'challengeId': challenge,
+              if (globalFlow) 'loginTicket': loginTicket else 'challengeId': challenge,
               'phone': phone.text.trim(),
               'purpose': guardian ? 'guardian-login' : 'student-login',
               'code': code.text.trim(),
             },
           ),
         );
-        if (data['requiresStudentSelection'] == true) {
+        if (data['requiresCenterSelection'] == true) {
+          centerSelection = data;
+        } else if (data['requiresStudentSelection'] == true) {
           selection = data;
         } else {
           await api.accept(data);
@@ -138,6 +139,19 @@ class _LoginPageState extends State<LoginPage> {
     } finally {
       if (mounted) setState(() => busy = false);
     }
+  }
+
+  Future<void> selectCenter(Json center, Json account) async {
+    if (busy) return;
+    setState(() {busy = true; error = null;});
+    await action(context, () async {
+      final tokens = obj(await widget.api.call('POST', '/mobile/auth/select-center', auth: false, data: {
+        'selectionToken': centerSelection!['selectionToken'], 'tenantId': center['tenantId'], 'subjectId': account['subjectId'],
+      }));
+      widget.api.slug = '${obj(tokens['tenant'])['slug'] ?? center['slug']}';
+      await widget.api.accept(tokens);
+    });
+    if (mounted) setState(() => busy = false);
   }
 
   @override
@@ -176,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'TeacherCenters',
+                                'سنترك',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 24,
@@ -184,7 +198,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
                               Text(
-                                'مساحة واحدة. فرص أكبر.',
+                                'تعلّمك أقرب. يومك أوضح.',
                                 style: TextStyle(color: Colors.white70),
                               ),
                             ],
@@ -195,7 +209,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'مساحتك للتعلم',
+                    'خلّينا نبدأ',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -207,45 +221,16 @@ class _LoginPageState extends State<LoginPage> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
-                  SegmentedButton<bool>(
+                  SegmentedButton<String>(
                     segments: const [
-                      ButtonSegment(
-                        value: true,
-                        label: Text('طالب / ولي أمر'),
-                        icon: Icon(Icons.school_outlined),
-                      ),
-                      ButtonSegment(
-                        value: false,
-                        label: Text('أنا مدرس'),
-                        icon: Icon(Icons.co_present_outlined),
-                      ),
+                      ButtonSegment(value: 'student', label: Text('طالب'), icon: Icon(Icons.school_outlined)),
+                      ButtonSegment(value: 'guardian', label: Text('ولي أمر'), icon: Icon(Icons.family_restroom_outlined)),
+                      ButtonSegment(value: 'teacher', label: Text('مدرس'), icon: Icon(Icons.co_present_outlined)),
                     ],
-                    selected: {student},
-                    onSelectionChanged: busy || challenge != null
-                        ? null
-                        : (v) => setState(() {
-                            student = v.first;
-                            error = null;
-                          }),
+                    selected: {!student ? 'teacher' : guardian ? 'guardian' : 'student'},
+                    onSelectionChanged: busy || challenge != null ? null : (values) => setState(() {student = values.first != 'teacher'; guardian = values.first == 'guardian'; error = null;}),
                   ),
                   const SizedBox(height: 24),
-                  if (student && challenge == null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 18),
-                      child: SegmentedButton<bool>(
-                        segments: const [
-                          ButtonSegment(value: false, label: Text('طالب')),
-                          ButtonSegment(value: true, label: Text('ولي أمر')),
-                        ],
-                        selected: {guardian},
-                        onSelectionChanged: busy
-                            ? null
-                            : (v) => setState(() {
-                                guardian = v.first;
-                                error = null;
-                              }),
-                      ),
-                    ),
                   if (!student)
                     TextFormField(
                       controller: center,
@@ -292,7 +277,7 @@ class _LoginPageState extends State<LoginPage> {
                           v?.isNotEmpty == true ? null : 'اكتب كلمة المرور',
                     ),
                   ],
-                  if (challenge != null && selection == null) ...[
+                  if (challenge != null && selection == null && centerSelection == null) ...[
                     const SizedBox(height: 16),
                     Text(
                       'أدخل الرمز المرسل إلى ${phone.text}',
@@ -300,6 +285,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 14),
                     OtpCodeField(controller: code, enabled: !busy),
+                  ],
+                  if (centerSelection != null) ...[
+                    const SizedBox(height: 20), Text('اختر السنتر', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8), const Text('دي الحسابات المرتبطة برقمك. اختار المكان اللي تحب تدخل عليه.'), const SizedBox(height: 14),
+                    for (final c in rows(centerSelection!['centers'])) Card(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      ListTile(leading: const Icon(Icons.apartment_rounded), title: Text('${c['name']}', style: const TextStyle(fontWeight: FontWeight.bold))),
+                      for (final account in rows(c['accounts'])) ListTile(title: Text('${account['fullName']}'), trailing: const Icon(Icons.arrow_back_rounded), enabled: !busy, onTap: () => selectCenter(c, account)),
+                    ])),
                   ],
                   if (selection != null) ...[
                     const SizedBox(height: 16),
@@ -327,7 +320,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   const SizedBox(height: 24),
-                  if (selection == null)
+                  if (selection == null && centerSelection == null)
                     FilledButton(
                       onPressed: busy ? null : submit,
                       child: Padding(
@@ -357,6 +350,8 @@ class _LoginPageState extends State<LoginPage> {
                               setState(() {
                                 challenge = null;
                                 selection = null;
+                              centerSelection = null;
+                              loginTicket = null;
                                 code.clear();
                               });
                               submit();
@@ -374,6 +369,8 @@ class _LoginPageState extends State<LoginPage> {
                           : () => setState(() {
                               challenge = null;
                               selection = null;
+                              centerSelection = null;
+                              loginTicket = null;
                               code.clear();
                               error = null;
                             }),

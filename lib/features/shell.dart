@@ -42,20 +42,19 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   }
 
   int index = 0;
+  final Map<int, Widget> visited = {};
   @override
   Widget build(BuildContext context) {
     final api = widget.api;
-    final pages = [
-      HomePage(
-        api: api,
-        onCourses: () => setState(() => index = 1),
-        onSessions: () => setState(() => index = 2),
-      ),
-      CoursesPage(api: api),
-      SessionsPage(api: api),
-      if (!api.guardian) ThreadsPage(api: api),
-      AccountPage(api: api, onTheme: widget.onTheme),
-    ];
+    Widget page(int tab) => visited.putIfAbsent(tab, () => switch(tab) {
+      0 => HomePage(api: api, onCourses: () => setState(() => index = 1), onSessions: () => setState(() => index = 2)),
+      1 => CoursesPage(api: api),
+      2 => SessionsPage(api: api),
+      3 when !api.guardian => ThreadsPage(api: api),
+      _ => AccountPage(api: api, onTheme: widget.onTheme),
+    });
+    page(index);
+    final count = api.guardian ? 4 : 5;
     final titles = [
       'الرئيسية',
       'الكورسات',
@@ -74,20 +73,23 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           ),
         ],
       ),
-      body: KeyedSubtree(key: ValueKey(index), child: pages[index]),
+      body: PopScope(canPop: index == 0, onPopInvokedWithResult: (popped, result) {if (!popped) setState(() => index = 0);}, child: IndexedStack(index: index, children: List.generate(count, (i) => TickerMode(enabled: i == index, child: visited[i] ?? const SizedBox.shrink())))),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) => setState(() => index = i),
         destinations: [
           NavigationDestination(
-            icon: Icon(Icons.grid_view_rounded),
+            selectedIcon: Icon(Icons.grid_view_rounded),
+            icon: Icon(Icons.grid_view_outlined),
             label: 'الرئيسية',
           ),
           NavigationDestination(
+            selectedIcon: Icon(Icons.auto_stories_rounded),
             icon: Icon(Icons.auto_stories_outlined),
             label: 'الكورسات',
           ),
           NavigationDestination(
+            selectedIcon: Icon(Icons.calendar_month_rounded),
             icon: Icon(Icons.calendar_month_outlined),
             label: 'الحصص',
           ),
@@ -97,6 +99,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
               label: 'الرسائل',
             ),
           NavigationDestination(
+            selectedIcon: Icon(Icons.person_rounded),
             icon: Icon(Icons.person_outline),
             label: 'حسابي',
           ),
@@ -597,6 +600,7 @@ class AccountPage extends StatelessWidget {
           title: const Text('بطاقتي'),
           onTap: () => open(context, StudentCard(api: api)),
         ),
+      if (api.student) ListTile(leading: const Icon(Icons.swap_horiz_rounded), title: const Text('تغيير السنتر'), subtitle: const Text('أكد رقمك واختار من حساباتك المرتبطة'), onTap: () => action(context, api.logout)),
       ListTile(
         leading: const Icon(Icons.logout),
         title: const Text('تسجيل الخروج'),

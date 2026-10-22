@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api.dart';
 import '../core/widgets.dart';
+import 'session_detail.dart';
 
 class GroupsPage extends StatelessWidget {
   const GroupsPage({super.key, required this.api});
@@ -218,29 +219,14 @@ class _SessionsPageState extends State<SessionsPage> {
                     '${s['topic'] ?? s['groupName'] ?? 'حصة دراسية'}',
                   ),
                   subtitle: Text(
-                    '${when(s['startsAtUtc'])}\n${s['hallName'] ?? ''} · ${s['effectiveStatus'] ?? s['status'] ?? ''}${s['attendance'] == null ? '' : '\nالحضور: ${s['attendance']}'}',
+                    '${when(s['startsAtUtc'])}\n${s['hallName'] ?? ''} · ${sessionStatus(s['effectiveStatus'] ?? s['status'])}${s['attendance'] == null ? '' : '\nالحضور: ${attendanceStatus(s['attendance'])}'}',
                   ),
                   isThreeLine: true,
                   trailing: const Icon(Icons.chevron_left),
                   onTap: () => open(
                     context,
                     widget.api.student
-                        ? Scaffold(
-                            appBar: AppBar(title: const Text('تفاصيل الحصة')),
-                            body: ListView(
-                              padding: const EdgeInsets.all(20),
-                              children: [
-                                Text(when(s['startsAtUtc'])),
-                                DetailFields({
-                                  'status': s['status'],
-                                  'attendance': s['attendance'],
-                                }),
-                                ...rows(
-                                  s['quizzes'],
-                                ).map((q) => Card(child: DetailFields(q))),
-                              ],
-                            ),
-                          )
+                        ? StudentSessionPage(api: widget.api, studentId: studentId!, session: s)
                         : AttendancePage(api: widget.api, session: s),
                   ),
                 ),

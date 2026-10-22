@@ -18,7 +18,7 @@ void main() {
       );
       expect(find.text('إرسال رمز التحقق'), findsOneWidget);
       expect(find.text('كلمة المرور'), findsNothing);
-      await tester.tap(find.text('أنا مدرس'));
+      await tester.tap(find.text('مدرس'));
       await tester.pumpAndSettle();
       expect(find.text('كلمة المرور'), findsOneWidget);
       expect(find.text('دخول المدرس'), findsOneWidget);

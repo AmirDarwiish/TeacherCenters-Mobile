@@ -58,7 +58,7 @@ class CourseCover extends StatelessWidget {
             right: 22,
             top: 24,
             child: Text(
-              'TEACHER\nCENTERS',
+              'SENTRAK',
               textDirection: TextDirection.ltr,
               style: const TextStyle(
                 color: Colors.white70,
