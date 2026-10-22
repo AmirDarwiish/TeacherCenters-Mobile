@@ -163,7 +163,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
-                      if (unpaid.isNotEmpty && !widget.api.guardian)
+                      if (unpaid.isNotEmpty)
                         TextButton(
                           onPressed: () => setState(
                             () => selected = selected!.length == unpaid.length
@@ -213,8 +213,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                           children: [
                             Row(
                               children: [
-                                if ((c['remaining'] as num? ?? 0) > 0 &&
-                                    !widget.api.guardian)
+                                if ((c['remaining'] as num? ?? 0) > 0)
                                   Checkbox(
                                     value: selected!.contains('${c['id']}'),
                                     onChanged: (v) => setState(() {
@@ -268,7 +267,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                 ],
               ),
             ),
-            if (!widget.api.guardian && unpaid.isNotEmpty)
+            if (unpaid.isNotEmpty)
               SafeArea(
                 top: false,
                 child: Container(

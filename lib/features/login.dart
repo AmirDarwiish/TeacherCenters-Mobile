@@ -17,13 +17,11 @@ class _LoginPageState extends State<LoginPage> {
   final phone = TextEditingController(),
       password = TextEditingController(),
       code = TextEditingController();
-  late final center = TextEditingController(text: widget.api.slug);
   final form = GlobalKey<FormState>();
   bool student = true, guardian = false, busy = false;
   String? challenge, error, centerName;
-  Json? selection, centerSelection;
+  Json? centerSelection;
   String? loginTicket;
-  bool globalFlow = false;
   DateTime? resendAt;
   Timer? timer;
   int get remaining => resendAt == null
@@ -35,65 +33,44 @@ class _LoginPageState extends State<LoginPage> {
     phone.dispose();
     password.dispose();
     code.dispose();
-    center.dispose();
     super.dispose();
   }
 
-  Future<void> submit({String? studentId}) async {
-    if (busy ||
-        student && challenge == null && remaining > 0 ||
-        studentId == null && !form.currentState!.validate()) {
+  Future<void> acceptLogin(Json data) async {
+    if (data['requiresCenterSelection'] == true) {
+      centerSelection = data;
+      final centers = rows(data['centers']);
+      if (centers.length == 1 && rows(centers.single['accounts']).length == 1) {
+        await issueCenter(
+          centers.single,
+          rows(centers.single['accounts']).single,
+        );
+      }
       return;
     }
+    widget.api.slug = '${obj(data['tenant'])['slug'] ?? ''}';
+    await widget.api.accept(data);
+  }
+
+  Future<void> submit() async {
+    if (busy ||
+        student && challenge == null && remaining > 0 ||
+        !form.currentState!.validate())
+      return;
     setState(() {
       busy = true;
       error = null;
     });
     try {
       final api = widget.api;
-      // Portal accounts always discover their centers after phone verification.
-      // Never silently bind a guardian to the build-time demo center.
-      globalFlow = student;
       if (!student) {
-        api.slug = center.text.trim();
-        if (api.slug.isEmpty) {
-          throw ApiFailure(
-            'تعذر تحديد جهة التعلم. الخدمة تحتاج تحديثًا لتفعيل اختيار السنترات.',
-          );
-        }
-        if (centerName == null) {
-          final tenant = obj(
-            await api.call(
-              'GET',
-              '/t/${Uri.encodeComponent(api.slug)}',
-              auth: false,
-            ),
-          );
-          centerName = '${tenant['name']}';
-        }
-      }
-      if (!student) {
-        await api.accept(
+        await acceptLogin(
           obj(
             await api.call(
               'POST',
-              '${api.authPath}/login',
+              '/mobile/auth/staff/login',
               auth: false,
               data: {'phone': phone.text.trim(), 'password': password.text},
-            ),
-          ),
-        );
-      } else if (studentId != null) {
-        await api.accept(
-          obj(
-            await api.call(
-              'POST',
-              '${api.authPath}/otp/select-student',
-              auth: false,
-              data: {
-                'selectionToken': selection!['selectionToken'],
-                'studentId': studentId,
-              },
             ),
           ),
         );
@@ -101,9 +78,7 @@ class _LoginPageState extends State<LoginPage> {
         final data = obj(
           await api.call(
             'POST',
-            globalFlow
-                ? '/mobile/auth/otp/request'
-                : '${api.authPath}/otp/request',
+            '/mobile/auth/otp/request',
             auth: false,
             data: {
               'phone': phone.text.trim(),
@@ -121,35 +96,25 @@ class _LoginPageState extends State<LoginPage> {
           if (mounted) setState(() {});
         });
       } else {
-        final data = obj(
-          await api.call(
-            'POST',
-            globalFlow
-                ? '/mobile/auth/otp/verify'
-                : '${api.authPath}/otp/verify',
-            auth: false,
-            data: {
-              if (globalFlow)
-                'loginTicket': loginTicket
-              else
-                'challengeId': challenge,
-              'phone': phone.text.trim(),
-              'purpose': guardian ? 'guardian-login' : 'student-login',
-              'code': code.text.trim(),
-            },
+        await acceptLogin(
+          obj(
+            await api.call(
+              'POST',
+              '/mobile/auth/otp/verify',
+              auth: false,
+              data: {
+                'loginTicket': loginTicket,
+                'phone': phone.text.trim(),
+                'purpose': guardian ? 'guardian-login' : 'student-login',
+                'code': code.text.trim(),
+              },
+            ),
           ),
         );
-        if (data['requiresCenterSelection'] == true) {
-          centerSelection = data;
-        } else if (data['requiresStudentSelection'] == true) {
-          selection = data;
-        } else {
-          await api.accept(data);
-        }
       }
     } catch (e) {
-      error = student && e is ApiFailure && e.status == 404
-          ? 'خدمة الدخول الجديدة لم تُنشر على السيرفر بعد. حاول مرة أخرى بعد تحديث الخدمة.'
+      error = e is ApiFailure && e.status == 404
+          ? 'خدمة الدخول الجديدة تحتاج نشر آخر تحديث على السيرفر.'
           : '$e';
       if (e is ApiFailure && e.status == 429) {
         resendAt = DateTime.now().add(Duration(seconds: e.retryAfter ?? 60));
@@ -159,29 +124,38 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> issueCenter(Json center, Json account) async {
+    final tokens = obj(
+      await widget.api.call(
+        'POST',
+        student
+            ? '/mobile/auth/select-center'
+            : '/mobile/auth/staff/select-center',
+        auth: false,
+        data: {
+          'selectionToken': centerSelection!['selectionToken'],
+          'tenantId': center['tenantId'],
+          'subjectId': account['subjectId'],
+        },
+      ),
+    );
+    widget.api.slug = '${obj(tokens['tenant'])['slug'] ?? center['slug']}';
+    await widget.api.accept(tokens);
+  }
+
   Future<void> selectCenter(Json center, Json account) async {
     if (busy) return;
     setState(() {
       busy = true;
       error = null;
     });
-    await action(context, () async {
-      final tokens = obj(
-        await widget.api.call(
-          'POST',
-          '/mobile/auth/select-center',
-          auth: false,
-          data: {
-            'selectionToken': centerSelection!['selectionToken'],
-            'tenantId': center['tenantId'],
-            'subjectId': account['subjectId'],
-          },
-        ),
-      );
-      widget.api.slug = '${obj(tokens['tenant'])['slug'] ?? center['slug']}';
-      await widget.api.accept(tokens);
-    });
-    if (mounted) setState(() => busy = false);
+    try {
+      await issueCenter(center, account);
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   @override
@@ -276,7 +250,8 @@ class _LoginPageState extends State<LoginPage> {
                           ? 'guardian'
                           : 'student',
                     },
-                    onSelectionChanged: busy || challenge != null
+                    onSelectionChanged:
+                        busy || challenge != null || centerSelection != null
                         ? null
                         : (values) => setState(() {
                             student = values.first != 'teacher';
@@ -285,23 +260,6 @@ class _LoginPageState extends State<LoginPage> {
                           }),
                   ),
                   const SizedBox(height: 24),
-                  if (!student)
-                    TextFormField(
-                      controller: center,
-                      enabled: !busy && challenge == null,
-                      decoration: const InputDecoration(
-                        labelText: 'رابط السنتر أو اسمه في الرابط',
-                        hintText: 'teachercenter-demo',
-                        prefixIcon: Icon(Icons.apartment),
-                      ),
-                      textDirection: TextDirection.ltr,
-                      onChanged: (_) => centerName = null,
-                      validator: (v) =>
-                          RegExp(r'^[a-zA-Z0-9-]+$').hasMatch(v?.trim() ?? '')
-                          ? null
-                          : 'اكتب اسم السنتر الموجود في الرابط',
-                    ),
-                  const SizedBox(height: 16),
                   TextFormField(
                     controller: phone,
                     enabled: !busy && challenge == null,
@@ -331,9 +289,7 @@ class _LoginPageState extends State<LoginPage> {
                           v?.isNotEmpty == true ? null : 'اكتب كلمة المرور',
                     ),
                   ],
-                  if (challenge != null &&
-                      selection == null &&
-                      centerSelection == null) ...[
+                  if (challenge != null && centerSelection == null) ...[
                     const SizedBox(height: 16),
                     Text(
                       'أدخل الرمز المرسل إلى ${phone.text}',
@@ -380,21 +336,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                   ],
-                  if (selection != null) ...[
-                    const SizedBox(height: 16),
-                    const Text('اختار حساب الطالب'),
-                    ...rows(selection!['students']).map(
-                      (s) => Card(
-                        child: ListTile(
-                          title: Text('${s['fullName']}'),
-                          trailing: const Icon(Icons.chevron_left),
-                          onTap: busy
-                              ? null
-                              : () => submit(studentId: '${s['studentId']}'),
-                        ),
-                      ),
-                    ),
-                  ],
                   if (error != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -406,7 +347,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   const SizedBox(height: 24),
-                  if (selection == null && centerSelection == null)
+                  if (centerSelection == null)
                     FilledButton(
                       onPressed: busy ? null : submit,
                       child: Padding(
@@ -435,7 +376,6 @@ class _LoginPageState extends State<LoginPage> {
                           : () {
                               setState(() {
                                 challenge = null;
-                                selection = null;
                                 centerSelection = null;
                                 loginTicket = null;
                                 code.clear();
@@ -454,7 +394,6 @@ class _LoginPageState extends State<LoginPage> {
                           ? null
                           : () => setState(() {
                               challenge = null;
-                              selection = null;
                               centerSelection = null;
                               loginTicket = null;
                               code.clear();
@@ -466,21 +405,21 @@ class _LoginPageState extends State<LoginPage> {
                     TextButton(
                       onPressed: busy
                           ? null
-                          : () => action(context, () async {
-                              widget.api.slug = center.text.trim();
-                              await widget.api.call(
-                                'POST',
-                                '${widget.api.authPath}/password/forgot',
-                                auth: false,
-                                data: {'phone': phone.text.trim()},
-                              );
-                              if (context.mounted) {
-                                toast(
-                                  context,
-                                  'تم طلب استعادة كلمة المرور. راجع وسيلة التواصل المسجلة.',
-                                );
-                              }
-                            }),
+                          : () => showDialog<void>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('استعادة كلمة المرور'),
+                                content: const Text(
+                                  'تواصل مع إدارة السنتر لإعادة تعيين كلمة مرور حساب المدرس.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('تمام'),
+                                  ),
+                                ],
+                              ),
+                            ),
                       child: const Text('نسيت كلمة المرور؟'),
                     ),
                 ],

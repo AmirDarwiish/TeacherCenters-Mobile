@@ -504,10 +504,8 @@ class HomePage extends StatelessWidget {
                 leading: const Icon(Icons.account_balance_wallet_outlined),
                 title: const Text('المستحقات الحالية'),
                 subtitle: Text('${obj(d['balance'])['totalDue'] ?? 0} ج.م'),
-                trailing: api.guardian ? null : const Icon(Icons.chevron_left),
-                onTap: api.guardian
-                    ? null
-                    : () => open(context, PaymentsPage(api: api)),
+                trailing: const Icon(Icons.chevron_left),
+                onTap: () => open(context, PaymentsPage(api: api)),
               ),
             ),
         ],
@@ -610,7 +608,7 @@ class AccountPage extends StatelessWidget {
         title: const Text('تغيير المظهر'),
         onTap: onTheme,
       ),
-      if (api.student && !api.guardian)
+      if (api.student)
         ListTile(
           leading: const Icon(Icons.payments_outlined),
           title: const Text('المدفوعات والمستحقات'),

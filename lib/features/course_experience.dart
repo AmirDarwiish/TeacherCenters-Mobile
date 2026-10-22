@@ -458,8 +458,24 @@ class _CoursePageState extends State<CoursePage> {
       api.get('${api.student ? '/portal' : ''}/courses/${widget.id}'),
       if (api.student) api.get('/portal/courses'),
     ]);
+    final course = obj(result.first);
+    if (api.student) {
+      try {
+        final catalog = obj(await api.get('/portal/catalog/${widget.id}'));
+        for (final key in [
+          'teacherPhotoUrl',
+          'teacherBio',
+          'subjectName',
+          'gradeLevelName',
+        ]) {
+          if (catalog[key] != null) course[key] = catalog[key];
+        }
+      } on ApiFailure {
+        /* Optional profile data must not hide the enrolled lesson list. */
+      }
+    }
     return {
-      'course': obj(result.first),
+      'course': course,
       'enrolled':
           api.student &&
           rows(result.last).any((c) => '${c['id']}' == widget.id),
@@ -474,6 +490,7 @@ class _CoursePageState extends State<CoursePage> {
             ? LessonPage(
                 api: widget.api,
                 id: '${l['id']}',
+                courseId: widget.id,
                 position: (l['positionSeconds'] as num? ?? 0).toInt(),
               )
             : TeacherLessonPage(api: widget.api, lesson: l),
@@ -534,23 +551,7 @@ class _CoursePageState extends State<CoursePage> {
                           Text('${c['subtitle']}'),
                         ],
                         const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
-                              child: const Icon(Icons.school_outlined),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                '${c['teacherName'] ?? 'فريق التدريس'}',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                            ),
-                          ],
-                        ),
+                        TeacherProfileCard(api: api, course: c),
                         if (enrolled) ...[
                           const SizedBox(height: 24),
                           Row(
@@ -929,7 +930,8 @@ class _CoursePageState extends State<CoursePage> {
                 ],
               ),
             ),
-            if (api.student && !api.guardian)
+            if (api.student &&
+                (!api.guardian || !enrolled && (c['price'] as num? ?? 0) > 0))
               SafeArea(
                 top: false,
                 child: Container(
@@ -1050,4 +1052,55 @@ class _CoursePageState extends State<CoursePage> {
       Text(text, style: const TextStyle(height: 1.8)),
     ],
   );
+}
+
+class TeacherProfileCard extends StatelessWidget {
+  const TeacherProfileCard({
+    super.key,
+    required this.api,
+    required this.course,
+  });
+  final Api api;
+  final Json course;
+  @override
+  Widget build(BuildContext context) {
+    final photo = '${course['teacherPhotoUrl'] ?? ''}';
+    final bio = '${course['teacherBio'] ?? ''}'.trim();
+    return Card(
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        leading: ClipOval(
+          child: photo.isEmpty
+              ? const CircleAvatar(
+                  radius: 27,
+                  child: Icon(Icons.person_outline_rounded),
+                )
+              : Image.network(
+                  api.resolveUrl(photo).toString(),
+                  width: 54,
+                  height: 54,
+                  fit: BoxFit.cover,
+                  cacheWidth: 160,
+                  errorBuilder: (_, error, stack) => const CircleAvatar(
+                    radius: 27,
+                    child: Icon(Icons.person_outline_rounded),
+                  ),
+                ),
+        ),
+        title: Text(
+          '${course['teacherName'] ?? 'فريق التدريس'}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text('${course['subjectName'] ?? 'مدرس الكورس'} • عن المدرس'),
+        childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            bio.isEmpty ? 'لم يضف المدرس نبذة تعريفية بعد.' : bio,
+            style: const TextStyle(height: 1.8),
+          ),
+        ],
+      ),
+    );
+  }
 }

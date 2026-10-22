@@ -10,6 +10,7 @@ import '../core/course_model.dart';
 export 'course_experience.dart';
 import 'quiz.dart';
 import 'uploads.dart';
+import 'lesson_discussion.dart';
 
 Future<void> launchResource(Api api, String value) async {
   final uri = api.resolveUrl(value);
@@ -30,10 +31,12 @@ class LessonPage extends StatefulWidget {
     super.key,
     required this.api,
     required this.id,
+    this.courseId,
     this.position = 0,
   });
   final Api api;
   final String id;
+  final String? courseId;
   final int position;
   @override
   State<LessonPage> createState() => _LessonPageState();
@@ -41,6 +44,32 @@ class LessonPage extends StatefulWidget {
 
 class _LessonPageState extends State<LessonPage> {
   bool completing = false, completed = false;
+  late final currentPosition = ValueNotifier<Duration>(
+    Duration(seconds: widget.position),
+  );
+  VideoPlayerController? player;
+  @override
+  void dispose() {
+    currentPosition.dispose();
+    super.dispose();
+  }
+
+  void trackPosition(Duration value) {
+    if (mounted && currentPosition.value.inSeconds != value.inSeconds)
+      currentPosition.value = value;
+  }
+
+  void seek(int seconds) {
+    final active = player;
+    if (active == null || !active.value.isInitialized) {
+      toast(context, 'افتح الفيديو داخل التطبيق للانتقال إلى وقت الملاحظة.');
+      return;
+    }
+    active.seekTo(
+      Duration(seconds: seconds.clamp(0, active.value.duration.inSeconds)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('مساحة التعلم')),
@@ -64,6 +93,8 @@ class _LessonPageState extends State<LessonPage> {
                   video: v,
                   position: widget.position,
                   onRetry: refresh,
+                  onReady: (controller) => player = controller,
+                  onPosition: trackPosition,
                 ),
               )
             else if (v['url'] != null)
@@ -218,6 +249,17 @@ class _LessonPageState extends State<LessonPage> {
                       : 'أنهيت الدرس',
                 ),
               ),
+            if (!widget.api.guardian &&
+                widget.courseId != null &&
+                l['type'] == 'Video')
+              LessonDiscussion(
+                api: widget.api,
+                courseId: widget.courseId!,
+                lessonId: widget.id,
+                position: currentPosition,
+                onSeek: seek,
+                onPause: () => player?.pause(),
+              ),
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 12),
@@ -251,7 +293,8 @@ class _LessonPageState extends State<LessonPage> {
   void navigate(String id) => Navigator.pushReplacement(
     context,
     MaterialPageRoute<void>(
-      builder: (_) => LessonPage(api: widget.api, id: id),
+      builder: (_) =>
+          LessonPage(api: widget.api, id: id, courseId: widget.courseId),
     ),
   );
 }
@@ -264,7 +307,11 @@ class LessonPlayer extends StatefulWidget {
     required this.video,
     this.position = 0,
     this.onRetry,
+    this.onReady,
+    this.onPosition,
   });
+  final ValueChanged<VideoPlayerController>? onReady;
+  final ValueChanged<Duration>? onPosition;
   final VoidCallback? onRetry;
   final Api api;
   final String id;
@@ -287,18 +334,27 @@ class _LessonPlayerState extends State<LessonPlayer>
     controller = VideoPlayerController.networkUrl(
       widget.api.resolveUrl('${widget.video['url']}'),
     );
+    controller.addListener(positionChanged);
     controller
         .initialize()
         .then((_) async {
           if (widget.position > 0) {
             await controller.seekTo(Duration(seconds: widget.position));
           }
-          if (mounted) setState(() {});
+          if (mounted) {
+            widget.onReady?.call(controller);
+            setState(() {});
+          }
         })
         .catchError((Object e) {
           if (mounted) setState(() => error = e);
         });
     timer = Timer.periodic(const Duration(seconds: 15), (_) => save());
+  }
+
+  void positionChanged() {
+    if (mounted && controller.value.isInitialized)
+      widget.onPosition?.call(controller.value.position);
   }
 
   Future<void> save() async {
@@ -337,6 +393,7 @@ class _LessonPlayerState extends State<LessonPlayer>
     WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
     save();
+    controller.removeListener(positionChanged);
     controller.dispose();
     super.dispose();
   }
