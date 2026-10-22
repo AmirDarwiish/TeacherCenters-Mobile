@@ -46,13 +46,20 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final api = widget.api;
-    Widget page(int tab) => visited.putIfAbsent(tab, () => switch(tab) {
-      0 => HomePage(api: api, onCourses: () => setState(() => index = 1), onSessions: () => setState(() => index = 2)),
-      1 => CoursesPage(api: api),
-      2 => SessionsPage(api: api),
-      3 when !api.guardian => ThreadsPage(api: api),
-      _ => AccountPage(api: api, onTheme: widget.onTheme),
-    });
+    Widget page(int tab) => visited.putIfAbsent(
+      tab,
+      () => switch (tab) {
+        0 => HomePage(
+          api: api,
+          onCourses: () => setState(() => index = 1),
+          onSessions: () => setState(() => index = 2),
+        ),
+        1 => CoursesPage(api: api),
+        2 => SessionsPage(api: api),
+        3 when !api.guardian => ThreadsPage(api: api),
+        _ => AccountPage(api: api, onTheme: widget.onTheme),
+      },
+    );
     page(index);
     final count = api.guardian ? 4 : 5;
     final titles = [
@@ -73,7 +80,22 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           ),
         ],
       ),
-      body: PopScope(canPop: index == 0, onPopInvokedWithResult: (popped, result) {if (!popped) setState(() => index = 0);}, child: IndexedStack(index: index, children: List.generate(count, (i) => TickerMode(enabled: i == index, child: visited[i] ?? const SizedBox.shrink())))),
+      body: PopScope(
+        canPop: index == 0,
+        onPopInvokedWithResult: (popped, result) {
+          if (!popped) setState(() => index = 0);
+        },
+        child: IndexedStack(
+          index: index,
+          children: List.generate(
+            count,
+            (i) => TickerMode(
+              enabled: i == index,
+              child: visited[i] ?? const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) => setState(() => index = i),
@@ -600,7 +622,13 @@ class AccountPage extends StatelessWidget {
           title: const Text('بطاقتي'),
           onTap: () => open(context, StudentCard(api: api)),
         ),
-      if (api.student) ListTile(leading: const Icon(Icons.swap_horiz_rounded), title: const Text('تغيير السنتر'), subtitle: const Text('أكد رقمك واختار من حساباتك المرتبطة'), onTap: () => action(context, api.logout)),
+      if (api.student)
+        ListTile(
+          leading: const Icon(Icons.swap_horiz_rounded),
+          title: const Text('تغيير السنتر'),
+          subtitle: const Text('أكد رقمك واختار من حساباتك المرتبطة'),
+          onTap: () => action(context, api.logout),
+        ),
       ListTile(
         leading: const Icon(Icons.logout),
         title: const Text('تسجيل الخروج'),

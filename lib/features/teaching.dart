@@ -226,7 +226,11 @@ class _SessionsPageState extends State<SessionsPage> {
                   onTap: () => open(
                     context,
                     widget.api.student
-                        ? StudentSessionPage(api: widget.api, studentId: studentId!, session: s)
+                        ? StudentSessionPage(
+                            api: widget.api,
+                            studentId: studentId!,
+                            session: s,
+                          )
                         : AttendancePage(api: widget.api, session: s),
                   ),
                 ),

@@ -52,14 +52,32 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final api = widget.api;
       if (student && challenge == null && studentId == null) {
-        try {globalFlow = obj(await api.call('GET', '/mobile/auth/config', auth: false))['globalOtp'] == true;}
-        on ApiFailure catch (e) {if (e.status != 404 && e.status != 501) rethrow; globalFlow = false;}
+        try {
+          globalFlow =
+              obj(
+                await api.call('GET', '/mobile/auth/config', auth: false),
+              )['globalOtp'] ==
+              true;
+        } on ApiFailure catch (e) {
+          if (e.status != 404 && e.status != 501) rethrow;
+          globalFlow = false;
+        }
       }
       if (!globalFlow || !student) {
         if (!student) api.slug = center.text.trim();
-        if (api.slug.isEmpty) throw ApiFailure('تعذر تحديد جهة التعلم. الخدمة تحتاج تحديثًا لتفعيل اختيار السنترات.');
+        if (api.slug.isEmpty) {
+          throw ApiFailure(
+            'تعذر تحديد جهة التعلم. الخدمة تحتاج تحديثًا لتفعيل اختيار السنترات.',
+          );
+        }
         if (centerName == null) {
-          final tenant = obj(await api.call('GET', '/t/${Uri.encodeComponent(api.slug)}', auth: false));
+          final tenant = obj(
+            await api.call(
+              'GET',
+              '/t/${Uri.encodeComponent(api.slug)}',
+              auth: false,
+            ),
+          );
           centerName = '${tenant['name']}';
         }
       }
@@ -92,7 +110,9 @@ class _LoginPageState extends State<LoginPage> {
         final data = obj(
           await api.call(
             'POST',
-            globalFlow ? '/mobile/auth/otp/request' : '${api.authPath}/otp/request',
+            globalFlow
+                ? '/mobile/auth/otp/request'
+                : '${api.authPath}/otp/request',
             auth: false,
             data: {
               'phone': phone.text.trim(),
@@ -113,10 +133,15 @@ class _LoginPageState extends State<LoginPage> {
         final data = obj(
           await api.call(
             'POST',
-            globalFlow ? '/mobile/auth/otp/verify' : '${api.authPath}/otp/verify',
+            globalFlow
+                ? '/mobile/auth/otp/verify'
+                : '${api.authPath}/otp/verify',
             auth: false,
             data: {
-              if (globalFlow) 'loginTicket': loginTicket else 'challengeId': challenge,
+              if (globalFlow)
+                'loginTicket': loginTicket
+              else
+                'challengeId': challenge,
               'phone': phone.text.trim(),
               'purpose': guardian ? 'guardian-login' : 'student-login',
               'code': code.text.trim(),
@@ -143,11 +168,23 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> selectCenter(Json center, Json account) async {
     if (busy) return;
-    setState(() {busy = true; error = null;});
+    setState(() {
+      busy = true;
+      error = null;
+    });
     await action(context, () async {
-      final tokens = obj(await widget.api.call('POST', '/mobile/auth/select-center', auth: false, data: {
-        'selectionToken': centerSelection!['selectionToken'], 'tenantId': center['tenantId'], 'subjectId': account['subjectId'],
-      }));
+      final tokens = obj(
+        await widget.api.call(
+          'POST',
+          '/mobile/auth/select-center',
+          auth: false,
+          data: {
+            'selectionToken': centerSelection!['selectionToken'],
+            'tenantId': center['tenantId'],
+            'subjectId': account['subjectId'],
+          },
+        ),
+      );
       widget.api.slug = '${obj(tokens['tenant'])['slug'] ?? center['slug']}';
       await widget.api.accept(tokens);
     });
@@ -223,12 +260,36 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 32),
                   SegmentedButton<String>(
                     segments: const [
-                      ButtonSegment(value: 'student', label: Text('طالب'), icon: Icon(Icons.school_outlined)),
-                      ButtonSegment(value: 'guardian', label: Text('ولي أمر'), icon: Icon(Icons.family_restroom_outlined)),
-                      ButtonSegment(value: 'teacher', label: Text('مدرس'), icon: Icon(Icons.co_present_outlined)),
+                      ButtonSegment(
+                        value: 'student',
+                        label: Text('طالب'),
+                        icon: Icon(Icons.school_outlined),
+                      ),
+                      ButtonSegment(
+                        value: 'guardian',
+                        label: Text('ولي أمر'),
+                        icon: Icon(Icons.family_restroom_outlined),
+                      ),
+                      ButtonSegment(
+                        value: 'teacher',
+                        label: Text('مدرس'),
+                        icon: Icon(Icons.co_present_outlined),
+                      ),
                     ],
-                    selected: {!student ? 'teacher' : guardian ? 'guardian' : 'student'},
-                    onSelectionChanged: busy || challenge != null ? null : (values) => setState(() {student = values.first != 'teacher'; guardian = values.first == 'guardian'; error = null;}),
+                    selected: {
+                      !student
+                          ? 'teacher'
+                          : guardian
+                          ? 'guardian'
+                          : 'student',
+                    },
+                    onSelectionChanged: busy || challenge != null
+                        ? null
+                        : (values) => setState(() {
+                            student = values.first != 'teacher';
+                            guardian = values.first == 'guardian';
+                            error = null;
+                          }),
                   ),
                   const SizedBox(height: 24),
                   if (!student)
@@ -277,7 +338,9 @@ class _LoginPageState extends State<LoginPage> {
                           v?.isNotEmpty == true ? null : 'اكتب كلمة المرور',
                     ),
                   ],
-                  if (challenge != null && selection == null && centerSelection == null) ...[
+                  if (challenge != null &&
+                      selection == null &&
+                      centerSelection == null) ...[
                     const SizedBox(height: 16),
                     Text(
                       'أدخل الرمز المرسل إلى ${phone.text}',
@@ -287,12 +350,42 @@ class _LoginPageState extends State<LoginPage> {
                     OtpCodeField(controller: code, enabled: !busy),
                   ],
                   if (centerSelection != null) ...[
-                    const SizedBox(height: 20), Text('اختر السنتر', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8), const Text('دي الحسابات المرتبطة برقمك. اختار المكان اللي تحب تدخل عليه.'), const SizedBox(height: 14),
-                    for (final c in rows(centerSelection!['centers'])) Card(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                      ListTile(leading: const Icon(Icons.apartment_rounded), title: Text('${c['name']}', style: const TextStyle(fontWeight: FontWeight.bold))),
-                      for (final account in rows(c['accounts'])) ListTile(title: Text('${account['fullName']}'), trailing: const Icon(Icons.arrow_back_rounded), enabled: !busy, onTap: () => selectCenter(c, account)),
-                    ])),
+                    const SizedBox(height: 20),
+                    Text(
+                      'اختر السنتر',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'دي الحسابات المرتبطة برقمك. اختار المكان اللي تحب تدخل عليه.',
+                    ),
+                    const SizedBox(height: 14),
+                    for (final c in rows(centerSelection!['centers']))
+                      Card(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.apartment_rounded),
+                              title: Text(
+                                '${c['name']}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            for (final account in rows(c['accounts']))
+                              ListTile(
+                                title: Text('${account['fullName']}'),
+                                trailing: const Icon(Icons.arrow_back_rounded),
+                                enabled: !busy,
+                                onTap: () => selectCenter(c, account),
+                              ),
+                          ],
+                        ),
+                      ),
                   ],
                   if (selection != null) ...[
                     const SizedBox(height: 16),
@@ -350,8 +443,8 @@ class _LoginPageState extends State<LoginPage> {
                               setState(() {
                                 challenge = null;
                                 selection = null;
-                              centerSelection = null;
-                              loginTicket = null;
+                                centerSelection = null;
+                                loginTicket = null;
                                 code.clear();
                               });
                               submit();
