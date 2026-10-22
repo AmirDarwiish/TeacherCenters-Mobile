@@ -9,17 +9,17 @@ import 'features/guardian.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(سنتركApp(api: Api()));
+  runApp(TeacherCentersApp(api: Api()));
 }
 
-class سنتركApp extends StatefulWidget {
-  const سنتركApp({super.key, required this.api});
+class TeacherCentersApp extends StatefulWidget {
+  const TeacherCentersApp({super.key, required this.api});
   final Api api;
   @override
-  State<سنتركApp> createState() => _سنتركAppState();
+  State<TeacherCentersApp> createState() => _TeacherCentersAppState();
 }
 
-class _سنتركAppState extends State<سنتركApp> {
+class _TeacherCentersAppState extends State<TeacherCentersApp> {
   ThemeMode mode = ThemeMode.system;
   bool ready = false;
   Object? startupError;
