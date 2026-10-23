@@ -65,7 +65,6 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final api = widget.api;
     final hasReels = api.student;
-    final immersive = hasReels && index == 2;
     final titles = [
       'الرئيسية',
       'الكورسات',
@@ -101,19 +100,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
 
     if (!(hasReels && index == 2)) page(index);
     return Scaffold(
-      backgroundColor: immersive ? BrandColors.night : null,
       appBar: AppBar(
-        flexibleSpace: immersive ? null : const BrandHeader(),
-        titleTextStyle: immersive
-            ? Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: BrandColors.white)
-            : null,
-        actionsIconTheme: immersive
-            ? const IconThemeData(color: BrandColors.white, size: 20)
-            : null,
-        backgroundColor: immersive ? BrandColors.night : null,
-        foregroundColor: immersive ? BrandColors.white : null,
+        flexibleSpace: const BrandHeader(),
         title: index == 0 ? const SentrakLogo(size: 32) : Text(titles[index]),
         actions: [
           if (!api.guardian)
@@ -151,7 +139,6 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       bottomNavigationBar: SentrakNavigationBar(
         selectedIndex: index,
         hasReels: hasReels,
-        immersive: immersive,
         onSelected: (i) => setState(() {
           index = i;
           // Mark the feed visited while keeping its active property dynamic.

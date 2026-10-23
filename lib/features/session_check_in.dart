@@ -614,7 +614,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                   FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: context.brand.success,
-                      foregroundColor: BrandColors.white,
+                      foregroundColor: context.brand.primaryInk,
                     ),
                     onPressed:
                         !ready ||

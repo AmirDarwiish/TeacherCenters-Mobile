@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-/// Mirrored from the supplied Sentrak dashboard tokens (23 October 2026).
+/// Sentrak dashboard tokens, with the mobile dark palette refined for contrast.
 class BrandColors extends ThemeExtension<BrandColors> {
   const BrandColors(this.values);
   final Map<String, Color> values;
@@ -29,8 +29,8 @@ class BrandColors extends ThemeExtension<BrandColors> {
   Color get skeleton => values['skeleton']!;
   static const primaryHoverFixed = Color(0xff1648c4);
   static const primaryTintFixed = Color(0xffeaf1ff);
-  static const darkPrimaryFixed = Color(0xff4c82f7);
-  static const darkSurfaceFixed = Color(0xff0e1b2c);
+  static const darkPrimaryFixed = Color(0xff82a8ff);
+  static const darkSurfaceFixed = Color(0xff1a2737);
   static const successFixed = Color(0xff0e7a5a);
   static const whiteMuted = Color(0xb3ffffff),
       whiteFaint = Color(0x61ffffff),
@@ -78,17 +78,17 @@ class BrandColors extends ThemeExtension<BrandColors> {
     'gold': gold,
   });
   static const dark = BrandColors({
-    'bg': Color(0xff08121f),
-    'surface': Color(0xff0e1b2c),
-    'surfaceGlass': Color(0xdb0e1b2c),
-    'line': Color(0xff1d3048),
-    'ink': Color(0xffe6eef7),
-    'muted': Color(0xff93a9c0),
-    'primary': Color(0xff4c82f7),
-    'primaryHover': Color(0xff6a98fa),
-    'primaryInk': white,
-    'primaryTint': Color(0xff13254a),
-    'primarySoft': Color(0xff2a4a8f),
+    'bg': Color(0xff101822),
+    'surface': Color(0xff1a2737),
+    'surfaceGlass': Color(0xdb1a2737),
+    'line': Color(0xff33465c),
+    'ink': Color(0xffeaf0f8),
+    'muted': Color(0xffadbed2),
+    'primary': Color(0xff82a8ff),
+    'primaryHover': Color(0xffa2bfff),
+    'primaryInk': Color(0xff10213a),
+    'primaryTint': Color(0xff223656),
+    'primarySoft': Color(0xff3d5b87),
     'cyan': Color(0xff2bc7e6),
     'cyanDeep': Color(0xff7fe3f5),
     'cyanTint': Color(0xff0e3440),
@@ -105,7 +105,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
     'info': Color(0xff7fe3f5),
     'infoTint': Color(0xff0e3440),
     'overlay': Color(0x99000000),
-    'skeleton': Color(0xff16263a),
+    'skeleton': Color(0xff28394d),
     'focus': Color(0xff2bc7e6),
   });
   @override

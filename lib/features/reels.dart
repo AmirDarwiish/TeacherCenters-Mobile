@@ -247,27 +247,23 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             AppIcons.videoCollectionOutlined,
             size: 48,
-            color: BrandColors.whiteMuted,
+            color: context.brand.muted,
           ),
           const SizedBox(height: 16),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: BrandColors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(context).textTheme.titleLarge,
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 10),
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: BrandColors.whiteMuted),
+              style: TextStyle(color: context.brand.muted),
             ),
           ],
           if (retry != null) ...[
@@ -279,21 +275,23 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
     ),
   );
 
+  Widget loading() =>
+      Center(child: CircularProgressIndicator(color: context.brand.primary));
+
   @override
   Widget build(BuildContext context) => ColoredBox(
-    color: BrandColors.night,
+    key: const ValueKey('reels-background'),
+    color: context.brand.bg,
     child: feed.items.isEmpty
         ? feed.loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: BrandColors.white),
-                )
+              ? loading()
               : message(
                   feed.error != null
                       ? 'تعذر تحميل الريلز'
                       : 'لسه مفيش فيديوهات مفتوحة',
                   subtitle: feed.error != null
                       ? '${feed.error}'
-                      : 'الفيديوهات التي يتيحها المدرس للمعاينة هتظهر هنا.',
+                      : 'الفيديوهات اللي المدرس فاتحها للمعاينة هتظهر هنا.',
                   retry: feed.error != null ? () => feed.loadMore() : refresh,
                   button: feed.error != null ? 'حاول تاني' : 'تحديث',
                 )
@@ -310,22 +308,14 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
             },
             itemBuilder: (context, i) {
               if (i >= feed.items.length) {
-                if (feed.loading) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: BrandColors.white),
-                  );
-                }
+                if (feed.loading) return loading();
                 return message(
                   feed.error != null
                       ? 'تعذر تحميل فيديوهات إضافية'
-                      : feed.hasMore
-                      ? 'شاهد المزيد'
-                      : 'شفت كل الفيديوهات المتاحة',
-                  subtitle: feed.error != null
-                      ? '${feed.error}'
-                      : 'تقدر ترجع لأي فيديو بالسحب لأسفل أو تحدّث القائمة.',
+                      : 'شاهد المزيد',
+                  subtitle: feed.error != null ? '${feed.error}' : null,
                   retry: feed.hasMore ? () => feed.loadMore() : refresh,
-                  button: feed.hasMore ? 'تحميل المزيد' : 'تحديث الفيديوهات',
+                  button: feed.hasMore ? 'حاول تاني' : 'تحديث',
                 );
               }
               return reelCard(feed.items[i], i == index);
@@ -334,218 +324,223 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   );
 
   Widget reelCard(CourseReel reel, bool current) {
+    final b = context.brand;
     final active = current ? player : null;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (active != null)
-          ValueListenableBuilder<VideoPlayerValue>(
-            valueListenable: active.value,
-            builder: (_, value, child) {
-              if (value.hasError) {
-                return message('تعذر تشغيل الفيديو', retry: schedule);
-              }
-              if (!value.isInitialized) {
-                return const Center(
-                  child: CircularProgressIndicator(color: BrandColors.white),
-                );
-              }
-              return Semantics(
-                button: true,
-                label: value.isPlaying ? 'إيقاف مؤقت' : 'تشغيل الفيديو',
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => action(
-                    context,
-                    () => value.isPlaying ? active.pause() : active.play(),
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Center(
-                        child: AspectRatio(
-                          aspectRatio: value.aspectRatio,
-                          child: active.view,
-                        ),
-                      ),
-                      if (!value.isPlaying)
-                        const Center(
-                          child: Icon(
-                            AppIcons.playCircleFillRounded,
-                            size: 64,
-                            color: BrandColors.whiteMuted,
+    return LayoutBuilder(
+      builder: (context, constraints) => Column(
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (active != null)
+                  ValueListenableBuilder<VideoPlayerValue>(
+                    valueListenable: active.value,
+                    builder: (_, value, child) {
+                      if (value.hasError) {
+                        return message('تعذر تشغيل الفيديو', retry: schedule);
+                      }
+                      if (!value.isInitialized) return loading();
+                      return Semantics(
+                        button: true,
+                        label: value.isPlaying ? 'إيقاف مؤقت' : 'تشغيل الفيديو',
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => action(
+                            context,
+                            () => value.isPlaying
+                                ? active.pause()
+                                : active.play(),
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Center(
+                                child: AspectRatio(
+                                  aspectRatio: value.aspectRatio,
+                                  child: active.view,
+                                ),
+                              ),
+                              if (!value.isPlaying)
+                                Center(
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: b.glass,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Icon(
+                                        AppIcons.playCircleFillRounded,
+                                        size: 48,
+                                        color: b.ink,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (value.isBuffering) loading(),
+                            ],
                           ),
                         ),
-                      if (value.isBuffering)
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: BrandColors.white,
+                      );
+                    },
+                  )
+                else if (current && busy)
+                  loading()
+                else if (current && error != null)
+                  message('$error', retry: schedule)
+                else if (current &&
+                    ['youtube', 'vimeo'].contains(video['kind']))
+                  message(
+                    'الفيديو متاح على منصة خارجية',
+                    subtitle: 'افتح الكورس عشان تشاهده من صفحة الدرس.',
+                  )
+                else
+                  Center(
+                    child: Icon(
+                      AppIcons.playCircleOutlineRounded,
+                      size: 64,
+                      color: b.muted,
+                    ),
+                  ),
+                PositionedDirectional(
+                  top: 12,
+                  start: 16,
+                  end: 16,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: b.glass,
+                          border: Border.all(color: b.line),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          'دروس مفتوحة',
+                          style: TextStyle(
+                            color: b.ink,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (current && active != null)
+                        IconButton.filledTonal(
+                          style: IconButton.styleFrom(
+                            backgroundColor: b.glass,
+                            foregroundColor: b.ink,
+                          ),
+                          tooltip: muted ? 'تشغيل الصوت' : 'كتم الصوت',
+                          onPressed: () async {
+                            setState(() => muted = !muted);
+                            await action(
+                              context,
+                              () => active.setVolume(muted ? 0 : 1),
+                            );
+                          },
+                          icon: Icon(
+                            muted
+                                ? AppIcons.volumeOffRounded
+                                : AppIcons.volumeUpRounded,
                           ),
                         ),
                     ],
                   ),
                 ),
-              );
-            },
-          )
-        else if (current && busy)
-          const Center(
-            child: CircularProgressIndicator(color: BrandColors.white),
-          )
-        else if (current && error != null)
-          message('$error', retry: schedule)
-        else if (current && ['youtube', 'vimeo'].contains(video['kind']))
-          message(
-            'هذا الفيديو متاح على منصة خارجية',
-            subtitle: 'افتح الكورس لمشاهدته من صفحة الدرس.',
-          )
-        else
-          const Center(
-            child: Icon(
-              AppIcons.playCircleOutlineRounded,
-              size: 64,
-              color: BrandColors.whiteFaint,
-            ),
-          ),
-        const Positioned.fill(
-          child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [0, .3, .55, 1],
-                  colors: [
-                    BrandColors.nightOverlay,
-                    BrandColors.transparent,
-                    BrandColors.transparent,
-                    BrandColors.nightDense,
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        PositionedDirectional(
-          top: 16,
-          start: 18,
-          end: 18,
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: BrandColors.white.withValues(alpha: .14),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Text(
-                  'دروس مفتوحة',
-                  style: TextStyle(
-                    color: BrandColors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              if (current && active != null)
-                IconButton(
-                  tooltip: muted ? 'تشغيل الصوت' : 'كتم الصوت',
-                  onPressed: () async {
-                    setState(() => muted = !muted);
-                    await action(
-                      context,
-                      () => active.setVolume(muted ? 0 : 1),
-                    );
-                  },
-                  icon: Icon(
-                    muted
-                        ? AppIcons.volumeOffRounded
-                        : AppIcons.volumeUpRounded,
-                    color: BrandColors.white,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        if (current && video['watermarkText'] != null)
-          PositionedDirectional(
-            top: 76,
-            start: 18,
-            end: 18,
-            child: IgnorePointer(
-              child: Text(
-                '${video['watermarkText']}',
-                style: const TextStyle(
-                  color: BrandColors.whiteMuted,
-                  fontSize: 11,
-                ),
-              ),
-            ),
-          ),
-        PositionedDirectional(
-          start: 20,
-          end: 20,
-          bottom: 22,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                reel.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: BrandColors.white,
-                  fontSize: 23,
-                  height: 1.4,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                [
-                  reel.teacherName,
-                  reel.courseTitle,
-                ].where((s) => s.isNotEmpty).join(' • '),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: BrandColors.whiteMuted,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  FilledButton.tonalIcon(
-                    onPressed: () => goToCourse(reel),
-                    icon: const Icon(AppIcons.autoStoriesOutlined, size: 18),
-                    label: const Text('افتح الكورس'),
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    AppIcons.swipeUpRounded,
-                    size: 20,
-                    color: BrandColors.whiteMuted,
-                  ),
-                  const SizedBox(width: 6),
-                  const Flexible(
-                    child: Text(
-                      'اسحب للمزيد',
-                      style: TextStyle(
-                        color: BrandColors.whiteMuted,
-                        fontSize: 12,
+                if (current && video['watermarkText'] != null)
+                  PositionedDirectional(
+                    top: 64,
+                    start: 16,
+                    child: IgnorePointer(
+                      child: Container(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.sizeOf(context).width - 32,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: b.glass,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${video['watermarkText']}',
+                          style: TextStyle(color: b.ink, fontSize: 11),
+                        ),
                       ),
                     ),
                   ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: constraints.maxHeight * .45),
+            child: SingleChildScrollView(
+              child: BrandCard(
+                margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        reel.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        [
+                          reel.teacherName,
+                          reel.courseTitle,
+                        ].where((s) => s.isNotEmpty).join(' • '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: b.muted),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          FilledButton.tonalIcon(
+                            onPressed: () => goToCourse(reel),
+                            icon: const Icon(
+                              AppIcons.autoStoriesOutlined,
+                              size: 18,
+                            ),
+                            label: const Text('افتح الكورس'),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            AppIcons.swipeUpRounded,
+                            size: 20,
+                            color: b.muted,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'اسحب للمزيد',
+                              style: TextStyle(color: b.muted, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

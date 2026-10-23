@@ -5,24 +5,34 @@ import 'package:teacher_centers_mobile/core/format.dart';
 import 'package:teacher_centers_mobile/core/brand_logo.dart';
 
 void main() {
-  test(
-    'theme uses exact supplied Sentrak palette and typography in both modes',
-    () {
-      final light = appTheme(Brightness.light),
-          dark = appTheme(Brightness.dark);
-      expect(light.colorScheme.primary, const Color(0xff1d5bf0));
-      expect(light.scaffoldBackgroundColor, const Color(0xfff4f8fc));
-      expect(dark.colorScheme.primary, const Color(0xff4c82f7));
-      expect(dark.colorScheme.surface, const Color(0xff0e1b2c));
-      expect(light.textTheme.headlineSmall!.fontFamily, 'Tajawal');
-      expect(light.textTheme.headlineSmall!.fontSize, 24);
-      expect(light.textTheme.bodyMedium!.fontFamily, 'Tajawal');
-      expect(light.textTheme.bodyMedium!.fontSize, 16);
-      expect(light.appBarTheme.toolbarHeight, 48);
-      expect(light.appBarTheme.titleTextStyle!.fontSize, 18);
-      expect(light.extension<BrandColors>()!.cyan, const Color(0xff13b5d6));
-    },
-  );
+  test('theme preserves light branding and uses the refined dark palette', () {
+    final light = appTheme(Brightness.light), dark = appTheme(Brightness.dark);
+    expect(light.colorScheme.primary, const Color(0xff1d5bf0));
+    expect(light.scaffoldBackgroundColor, const Color(0xfff4f8fc));
+    expect(dark.colorScheme.primary, const Color(0xff82a8ff));
+    expect(dark.colorScheme.surface, const Color(0xff1a2737));
+    expect(light.textTheme.headlineSmall!.fontFamily, 'Tajawal');
+    expect(light.textTheme.headlineSmall!.fontSize, 24);
+    expect(light.textTheme.bodyMedium!.fontFamily, 'Tajawal');
+    expect(light.textTheme.bodyMedium!.fontSize, 16);
+    expect(light.appBarTheme.toolbarHeight, 48);
+    expect(light.appBarTheme.titleTextStyle!.fontSize, 18);
+    expect(light.extension<BrandColors>()!.cyan, const Color(0xff13b5d6));
+  });
+  test('dark text and semantic button labels have readable contrast', () {
+    final b = BrandColors.dark;
+    double contrast(Color a, Color b) {
+      final x = a.computeLuminance(), y = b.computeLuminance();
+      return x > y ? (x + .05) / (y + .05) : (y + .05) / (x + .05);
+    }
+
+    expect(contrast(b.ink, b.surface), greaterThanOrEqualTo(7));
+    expect(contrast(b.muted, b.surface), greaterThanOrEqualTo(4.5));
+    for (final background in [b.primary, b.success, b.warning, b.danger]) {
+      expect(contrast(background, b.primaryInk), greaterThanOrEqualTo(4.5));
+    }
+    expect(b.surface.computeLuminance(), greaterThan(b.bg.computeLuminance()));
+  });
   test(
     'display numbers and currency use Arabic digits; Cairo timezone observes DST',
     () {

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:video_player/video_player.dart';
 import 'package:teacher_centers_mobile/core/api.dart';
+import 'package:teacher_centers_mobile/core/brand.dart';
 import 'package:teacher_centers_mobile/core/reels_feed.dart';
 import 'package:teacher_centers_mobile/features/reels.dart';
 import 'package:teacher_centers_mobile/features/shell.dart';
@@ -342,6 +343,144 @@ void main() {
     await tester.pumpAndSettle();
     expect(players.single.disposed, isTrue);
   });
+
+  testWidgets(
+    'reels update their light and dark chrome without restarting playback',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 740));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final api = await apiWith(
+        (r) async => r.path.endsWith('/catalog')
+            ? response(200, [catalogCourse('open', count: 3)])
+            : response(200, {
+                'video': {
+                  'kind': 'mp4',
+                  'url': '/clip.mp4',
+                  'watermarkText': 'الطالب ١٢٣',
+                },
+              }),
+      );
+      var created = 0;
+      Widget view(bool dark) => host(
+        Scaffold(
+          body: ReelsPage(
+            api: api,
+            playbackFactory: (uri) {
+              created++;
+              return TestPlayback(uri, () {});
+            },
+          ),
+        ),
+        dark: dark,
+      );
+      await tester.pumpWidget(view(false));
+      await settleReel(tester);
+      for (final dark in [false, true, false]) {
+        await tester.pumpWidget(view(dark));
+        await tester.pumpAndSettle();
+        final b = dark ? BrandColors.dark : BrandColors.light;
+        expect(
+          tester
+              .widget<ColoredBox>(
+                find.byKey(const ValueKey('reels-background')),
+              )
+              .color,
+          b.bg,
+        );
+        expect(
+          tester.widget<Text>(find.text('دروس مفتوحة').first).style!.color,
+          b.ink,
+        );
+        expect(
+          tester.widget<Text>(find.text('اسحب للمزيد').first).style!.color,
+          b.muted,
+        );
+        expect(created, 1);
+        await screenshot(tester, 'reels-${dark ? 'dark' : 'light'}');
+        expect(tester.takeException(), isNull);
+      }
+      await tester.binding.setSurfaceSize(const Size(640, 320));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(created, 1);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  for (final dark in [false, true]) {
+    testWidgets(
+      'reels loading and empty states follow the theme (dark: $dark)',
+      (tester) async {
+        final responseReady = Completer<ResponseBody>();
+        final api = await apiWith((_) => responseReady.future);
+        final b = dark ? BrandColors.dark : BrandColors.light;
+        await tester.pumpWidget(
+          host(
+            Scaffold(body: ReelsPage(api: api)),
+            dark: dark,
+          ),
+        );
+        await tester.pump();
+        expect(
+          tester
+              .widget<CircularProgressIndicator>(
+                find.byType(CircularProgressIndicator),
+              )
+              .color,
+          b.primary,
+        );
+        responseReady.complete(response(200, []));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<ColoredBox>(
+                find.byKey(const ValueKey('reels-background')),
+              )
+              .color,
+          b.bg,
+        );
+        final text = find.text('لسه مفيش فيديوهات مفتوحة');
+        expect(tester.widget<Text>(text).style!.color, b.ink);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'shell keeps theme-aware header and navigation when entering reels',
+    (tester) async {
+      final api = await apiWith((_) async => response(200, []));
+      for (final dark in [false, true]) {
+        await tester.pumpWidget(
+          host(
+            Shell(api: api, onTheme: () {}),
+            dark: dark,
+          ),
+        );
+        await tester.pumpAndSettle();
+        if (!dark) {
+          await tester.tap(find.text('ريلز'));
+          await tester.pumpAndSettle();
+        }
+        final appBar = tester.widget<AppBar>(find.byType(AppBar));
+        expect(appBar.flexibleSpace, isA<BrandHeader>());
+        expect(appBar.backgroundColor, isNull);
+        expect(appBar.foregroundColor, isNull);
+        expect(find.byType(SentrakNavigationBar), findsOneWidget);
+        final b = dark ? BrandColors.dark : BrandColors.light;
+        expect(
+          tester
+              .widget<ColoredBox>(
+                find.byKey(const ValueKey('reels-background')),
+              )
+              .color,
+          b.bg,
+        );
+        expect(tester.takeException(), isNull);
+      }
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('inactive reels make no catalog or playback requests', (
     tester,

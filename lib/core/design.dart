@@ -165,7 +165,11 @@ ThemeData appTheme(Brightness brightness) {
         borderSide: BorderSide(color: b.danger, width: 2),
       ),
       disabledBorder: border,
-      hintStyle: body.copyWith(color: b.muted.withValues(alpha: .7)),
+      hintStyle: body.copyWith(
+        color: brightness == Brightness.dark
+            ? b.muted
+            : b.muted.withValues(alpha: .7),
+      ),
       errorStyle: hint.copyWith(color: b.danger),
       labelStyle: small.copyWith(color: b.muted),
       floatingLabelBehavior: FloatingLabelBehavior.always,
