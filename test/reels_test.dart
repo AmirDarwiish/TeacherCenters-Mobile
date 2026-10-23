@@ -451,7 +451,7 @@ void main() {
   }
 
   testWidgets(
-    'shell gives reels the full viewport and keeps an exit even for an empty feed',
+    'shell keeps bottom navigation available over the reels tab in both themes',
     (tester) async {
       final api = await apiWith((_) async => response(200, []));
       for (final dark in [false, true]) {
@@ -467,7 +467,7 @@ void main() {
           await tester.pumpAndSettle();
         }
         expect(find.byType(AppBar), findsNothing);
-        expect(find.byType(SentrakNavigationBar), findsNothing);
+        expect(find.byType(SentrakNavigationBar), findsOneWidget);
         expect(find.byTooltip('رجوع'), findsOneWidget);
         final b = dark ? BrandColors.dark : BrandColors.light;
         expect(
@@ -480,7 +480,7 @@ void main() {
         );
         expect(tester.takeException(), isNull);
       }
-      await tester.tap(find.byTooltip('رجوع'));
+      await tester.tap(find.text('الرئيسية'));
       await tester.pumpAndSettle();
       expect(find.byType(AppBar), findsOneWidget);
       expect(find.byType(SentrakNavigationBar), findsOneWidget);

@@ -142,19 +142,17 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           ),
         ),
       ),
-      bottomNavigationBar: fullScreenReels
-          ? null
-          : SentrakNavigationBar(
-              selectedIndex: index,
-              hasReels: hasReels,
-              onSelected: (i) => setState(() {
-                index = i;
-                // Mark the feed visited while keeping its active property dynamic.
-                if (hasReels && i == 2) {
-                  visited.putIfAbsent(2, () => const SizedBox.shrink());
-                }
-              }),
-            ),
+      bottomNavigationBar: SentrakNavigationBar(
+        selectedIndex: index,
+        hasReels: hasReels,
+        onSelected: (i) => setState(() {
+          index = i;
+          // Mark the feed visited while keeping its active property dynamic.
+          if (hasReels && i == 2) {
+            visited.putIfAbsent(2, () => const SizedBox.shrink());
+          }
+        }),
+      ),
     );
   }
 }
