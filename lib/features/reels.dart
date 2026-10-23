@@ -533,8 +533,9 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                           reel.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(color: ink),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(color: ink),
                         ),
                         const SizedBox(height: 6),
                         Text(

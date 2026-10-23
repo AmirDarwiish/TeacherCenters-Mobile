@@ -115,117 +115,131 @@ Future<void> settleReel(WidgetTester tester) async {
 void main() {
   setUpAll(loadTestFonts);
 
-  test('authorized previews shuffle without duplicates per round and continue beyond catalog end', () async {
-    var requests = 0;
-    final c = catalogCourse('course');
-    final lessons = ((c['sections'] as List).first as Map)['lessons'] as List;
-    lessons.addAll(<Json>[
-      {'id': 'private', 'type': 'Video', 'isPreview': false},
-      {'id': 'text', 'type': 'Text', 'isPreview': true},
-      {'id': 'locked', 'type': 'Video', 'isPreview': true, 'status': 'Locked'},
-      {'id': 'no-link', 'type': 'Video', 'isPreview': true},
-      lessons.first,
-    ]);
-    final api = await apiWith((r) async {
-      requests++;
-      expect(r.path, '/public/t/demo/courses');
-      expect(r.headers.containsKey('Authorization'), isFalse);
-      return response(200, [
-        c,
-        {...catalogCourse('draft'), 'status': 'Draft'},
-        {...catalogCourse('group'), 'audience': 'Group'},
-      ]);
-    });
-    final feed = ReelsFeed(api, random: Random(7));
-    await feed.loadMore();
-    expect(feed.items.length, 12);
-    expect(feed.hasMore, isTrue);
-    await feed.loadMore();
-    await feed.loadMore();
-    expect(feed.items.length, 26);
-    expect(feed.items.map((e) => e.lessonId).toSet().length, 26);
-    expect(feed.hasMore, isTrue);
-    final firstRound = feed.items.map((e) => e.lessonId).toList();
-    expect(firstRound, isNot(List.generate(26, (i) => 'course-$i')));
-    for (var i = 0; i < 8; i++) {
-      await feed.loadMore();
-    }
-    expect(feed.items.length, greaterThan(100));
-    final secondRound = feed.items
-        .skip(26)
-        .take(26)
-        .map((e) => e.lessonId)
-        .toList();
-    expect(secondRound.toSet().length, 26);
-    expect(secondRound, isNot(firstRound));
-    for (var i = 1; i < feed.items.length; i++) {
-      expect(feed.items[i].lessonId, isNot(feed.items[i - 1].lessonId));
-    }
-    expect(requests, 1);
-    feed.dispose();
-  });
-
-  test('paginated catalog skips empty pages, retries failures and continues after remote end', () async {
-    final requested = <int>[];
-    var failed = false;
-    final api = await apiWith((r) async {
-      final page = r.queryParameters['page'] as int;
-      requested.add(page);
-      if (page == 1) {
-        return response(200, {
-          'items': [catalogCourse('private', preview: false)],
-          'hasMore': true,
-        });
-      }
-      if (page == 2) {
-        return response(200, {
-          'items': [catalogCourse('open', count: 1)],
-          'hasMore': true,
-        });
-      }
-      if (!failed) {
-        failed = true;
-        return response(500, {'message': 'حاول مرة أخرى'});
-      }
-      return response(200, {
-        'items': [catalogCourse('last', count: 1)],
-        'hasMore': false,
-      });
-    });
-    final feed = ReelsFeed(api);
-    await feed.loadMore();
-    expect(requested, [1, 2]);
-    expect(feed.items.single.lessonId, 'open-0');
-    await feed.loadMore();
-    expect(feed.error, isNotNull);
-    expect(feed.items.length, 1);
-    await feed.loadMore();
-    expect(requested, [1, 2, 3, 3]);
-    expect(feed.items.length, 2);
-    expect(feed.hasMore, isTrue);
-    await feed.loadMore();
-    expect(feed.items.length, 4);
-    expect(requested, [1, 2, 3, 3]);
-    feed.dispose();
-  });
-
-  test('empty catalog stops safely; one preview remains swipeable without more requests', () async {
-    for (final count in [0, 1]) {
+  test(
+    'authorized previews shuffle without duplicates per round and continue beyond catalog end',
+    () async {
       var requests = 0;
-      final api = await apiWith((_) async {
+      final c = catalogCourse('course');
+      final lessons = ((c['sections'] as List).first as Map)['lessons'] as List;
+      lessons.addAll(<Json>[
+        {'id': 'private', 'type': 'Video', 'isPreview': false},
+        {'id': 'text', 'type': 'Text', 'isPreview': true},
+        {
+          'id': 'locked',
+          'type': 'Video',
+          'isPreview': true,
+          'status': 'Locked',
+        },
+        {'id': 'no-link', 'type': 'Video', 'isPreview': true},
+        lessons.first,
+      ]);
+      final api = await apiWith((r) async {
         requests++;
-        return response(200, [catalogCourse('single', count: count)]);
+        expect(r.path, '/public/t/demo/courses');
+        expect(r.headers.containsKey('Authorization'), isFalse);
+        return response(200, [
+          c,
+          {...catalogCourse('draft'), 'status': 'Draft'},
+          {...catalogCourse('group'), 'audience': 'Group'},
+        ]);
       });
-      final feed = ReelsFeed(api);
-      for (var i = 0; i < 30; i++) {
+      final feed = ReelsFeed(api, random: Random(7));
+      await feed.loadMore();
+      expect(feed.items.length, 12);
+      expect(feed.hasMore, isTrue);
+      await feed.loadMore();
+      await feed.loadMore();
+      expect(feed.items.length, 26);
+      expect(feed.items.map((e) => e.lessonId).toSet().length, 26);
+      expect(feed.hasMore, isTrue);
+      final firstRound = feed.items.map((e) => e.lessonId).toList();
+      expect(firstRound, isNot(List.generate(26, (i) => 'course-$i')));
+      for (var i = 0; i < 8; i++) {
         await feed.loadMore();
       }
+      expect(feed.items.length, greaterThan(100));
+      final secondRound = feed.items
+          .skip(26)
+          .take(26)
+          .map((e) => e.lessonId)
+          .toList();
+      expect(secondRound.toSet().length, 26);
+      expect(secondRound, isNot(firstRound));
+      for (var i = 1; i < feed.items.length; i++) {
+        expect(feed.items[i].lessonId, isNot(feed.items[i - 1].lessonId));
+      }
       expect(requests, 1);
-      expect(feed.items.length, count == 0 ? 0 : 30);
-      expect(feed.hasMore, count == 1);
       feed.dispose();
-    }
-  });
+    },
+  );
+
+  test(
+    'paginated catalog skips empty pages, retries failures and continues after remote end',
+    () async {
+      final requested = <int>[];
+      var failed = false;
+      final api = await apiWith((r) async {
+        final page = r.queryParameters['page'] as int;
+        requested.add(page);
+        if (page == 1) {
+          return response(200, {
+            'items': [catalogCourse('private', preview: false)],
+            'hasMore': true,
+          });
+        }
+        if (page == 2) {
+          return response(200, {
+            'items': [catalogCourse('open', count: 1)],
+            'hasMore': true,
+          });
+        }
+        if (!failed) {
+          failed = true;
+          return response(500, {'message': 'حاول مرة أخرى'});
+        }
+        return response(200, {
+          'items': [catalogCourse('last', count: 1)],
+          'hasMore': false,
+        });
+      });
+      final feed = ReelsFeed(api);
+      await feed.loadMore();
+      expect(requested, [1, 2]);
+      expect(feed.items.single.lessonId, 'open-0');
+      await feed.loadMore();
+      expect(feed.error, isNotNull);
+      expect(feed.items.length, 1);
+      await feed.loadMore();
+      expect(requested, [1, 2, 3, 3]);
+      expect(feed.items.length, 2);
+      expect(feed.hasMore, isTrue);
+      await feed.loadMore();
+      expect(feed.items.length, 4);
+      expect(requested, [1, 2, 3, 3]);
+      feed.dispose();
+    },
+  );
+
+  test(
+    'empty catalog stops safely; one preview remains swipeable without more requests',
+    () async {
+      for (final count in [0, 1]) {
+        var requests = 0;
+        final api = await apiWith((_) async {
+          requests++;
+          return response(200, [catalogCourse('single', count: count)]);
+        });
+        final feed = ReelsFeed(api);
+        for (var i = 0; i < 30; i++) {
+          await feed.loadMore();
+        }
+        expect(requests, 1);
+        expect(feed.items.length, count == 0 ? 0 : 30);
+        expect(feed.hasMore, count == 1);
+        feed.dispose();
+      }
+    },
+  );
 
   testWidgets(
     'vertical feed loads beyond first batch and owns only the visible decoder, stops off-tab and in background',
