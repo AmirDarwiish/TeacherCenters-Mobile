@@ -65,6 +65,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final api = widget.api;
     final hasReels = api.student;
+    final fullScreenReels = hasReels && index == 2;
     final titles = [
       'الرئيسية',
       'الكورسات',
@@ -79,6 +80,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           key: const ValueKey('course-reels'),
           api: api,
           active: index == 2 && !overlay,
+          onExit: () => setState(() => index = 0),
         );
       }
       return visited.putIfAbsent(
@@ -100,23 +102,27 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
 
     if (!(hasReels && index == 2)) page(index);
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: const BrandHeader(),
-        title: index == 0 ? const SentrakLogo(size: 32) : Text(titles[index]),
-        actions: [
-          if (!api.guardian)
-            IconButton(
-              tooltip: 'الرسائل',
-              onPressed: () => openOverlay(ThreadsPage(api: api)),
-              icon: const Icon(AppIcons.chatBubbleOutlineRounded),
+      appBar: fullScreenReels
+          ? null
+          : AppBar(
+              flexibleSpace: const BrandHeader(),
+              title: index == 0
+                  ? const SentrakLogo(size: 32)
+                  : Text(titles[index]),
+              actions: [
+                if (!api.guardian)
+                  IconButton(
+                    tooltip: 'الرسائل',
+                    onPressed: () => openOverlay(ThreadsPage(api: api)),
+                    icon: const Icon(AppIcons.chatBubbleOutlineRounded),
+                  ),
+                IconButton(
+                  tooltip: 'الإشعارات',
+                  onPressed: () => openOverlay(NotificationsPage(api: api)),
+                  icon: const Icon(AppIcons.notificationsNoneRounded),
+                ),
+              ],
             ),
-          IconButton(
-            tooltip: 'الإشعارات',
-            onPressed: () => openOverlay(NotificationsPage(api: api)),
-            icon: const Icon(AppIcons.notificationsNoneRounded),
-          ),
-        ],
-      ),
       body: PopScope(
         canPop: index == 0,
         onPopInvokedWithResult: (popped, result) {
@@ -136,17 +142,19 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           ),
         ),
       ),
-      bottomNavigationBar: SentrakNavigationBar(
-        selectedIndex: index,
-        hasReels: hasReels,
-        onSelected: (i) => setState(() {
-          index = i;
-          // Mark the feed visited while keeping its active property dynamic.
-          if (hasReels && i == 2) {
-            visited.putIfAbsent(2, () => const SizedBox.shrink());
-          }
-        }),
-      ),
+      bottomNavigationBar: fullScreenReels
+          ? null
+          : SentrakNavigationBar(
+              selectedIndex: index,
+              hasReels: hasReels,
+              onSelected: (i) => setState(() {
+                index = i;
+                // Mark the feed visited while keeping its active property dynamic.
+                if (hasReels && i == 2) {
+                  visited.putIfAbsent(2, () => const SizedBox.shrink());
+                }
+              }),
+            ),
     );
   }
 }

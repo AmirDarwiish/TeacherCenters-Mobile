@@ -2,6 +2,7 @@ import '../core/app_icons.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/api.dart';
 import '../core/brand.dart';
@@ -23,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
   bool student = true, guardian = false, busy = false;
   String? challenge, error, centerName;
   Json? centerSelection;
-  String? loginTicket;
+  String? loginTicket, lastOtpAttempt;
   DateTime? resendAt;
   Timer? timer;
   int get remaining => resendAt == null
@@ -52,6 +53,15 @@ class _LoginPageState extends State<LoginPage> {
     }
     widget.api.slug = '${obj(data['tenant'])['slug'] ?? ''}';
     await widget.api.accept(data);
+  }
+
+  void completeOtp(String value) {
+    if (!busy &&
+        challenge != null &&
+        centerSelection == null &&
+        value != lastOtpAttempt) {
+      submit();
+    }
   }
 
   Future<void> submit() async {
@@ -89,6 +99,7 @@ class _LoginPageState extends State<LoginPage> {
             },
           ),
         );
+        lastOtpAttempt = null;
         challenge = '${data['challengeId']}';
         loginTicket = data['loginTicket'] as String?;
         resendAt = DateTime.now().add(
@@ -99,6 +110,7 @@ class _LoginPageState extends State<LoginPage> {
           if (mounted) setState(() {});
         });
       } else {
+        lastOtpAttempt = code.text;
         await acceptLogin(
           obj(
             await api.call(
@@ -248,16 +260,22 @@ class _LoginPageState extends State<LoginPage> {
                     controller: phone,
                     enabled: !busy && challenge == null,
                     keyboardType: TextInputType.phone,
+                    maxLength: 11,
+                    inputFormatters: [
+                      const ArabicDigitsFormatter(),
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ],
                     textDirection: TextDirection.ltr,
                     autofillHints: const [AutofillHints.telephoneNumber],
                     decoration: const InputDecoration(
                       labelText: 'رقم الموبايل',
+                      counterText: '',
                       prefixIcon: Icon(AppIcons.phoneOutlined),
                     ),
-                    validator: (v) =>
-                        (v?.replaceAll(RegExp(r'\D'), '').length ?? 0) >= 10
+                    validator: (v) => RegExp(r'^[0-9]{11}$').hasMatch(v ?? '')
                         ? null
-                        : 'اكتب رقم موبايل صحيح',
+                        : 'اكتب رقم الموبايل المكوّن من ١١ رقم',
                   ),
                   if (!student) ...[
                     const SizedBox(height: 16),
@@ -280,7 +298,11 @@ class _LoginPageState extends State<LoginPage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 14),
-                    OtpCodeField(controller: code, enabled: !busy),
+                    OtpCodeField(
+                      controller: code,
+                      enabled: !busy,
+                      onCompleted: completeOtp,
+                    ),
                   ],
                   if (centerSelection != null) ...[
                     const SizedBox(height: 20),

@@ -345,7 +345,7 @@ void main() {
   });
 
   testWidgets(
-    'reels update their light and dark chrome without restarting playback',
+    'reels cover the viewport with overlay captions and survive theme changes',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(360, 740));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -389,12 +389,16 @@ void main() {
         );
         expect(
           tester.widget<Text>(find.text('دروس مفتوحة').first).style!.color,
-          b.ink,
+          BrandColors.white,
         );
         expect(
           tester.widget<Text>(find.text('اسحب للمزيد').first).style!.color,
-          b.muted,
+          BrandColors.whiteMuted,
         );
+        final cover = find.byKey(const ValueKey('reel-video-cover')).first;
+        expect(tester.widget<FittedBox>(cover).fit, BoxFit.cover);
+        expect(tester.getSize(cover), const Size(360, 740));
+        expect(find.byType(BrandCard), findsNothing);
         expect(created, 1);
         await screenshot(tester, 'reels-${dark ? 'dark' : 'light'}');
         expect(tester.takeException(), isNull);
@@ -447,7 +451,7 @@ void main() {
   }
 
   testWidgets(
-    'shell keeps theme-aware header and navigation when entering reels',
+    'shell gives reels the full viewport and keeps an exit even for an empty feed',
     (tester) async {
       final api = await apiWith((_) async => response(200, []));
       for (final dark in [false, true]) {
@@ -462,11 +466,9 @@ void main() {
           await tester.tap(find.text('ريلز'));
           await tester.pumpAndSettle();
         }
-        final appBar = tester.widget<AppBar>(find.byType(AppBar));
-        expect(appBar.flexibleSpace, isA<BrandHeader>());
-        expect(appBar.backgroundColor, isNull);
-        expect(appBar.foregroundColor, isNull);
-        expect(find.byType(SentrakNavigationBar), findsOneWidget);
+        expect(find.byType(AppBar), findsNothing);
+        expect(find.byType(SentrakNavigationBar), findsNothing);
+        expect(find.byTooltip('رجوع'), findsOneWidget);
         final b = dark ? BrandColors.dark : BrandColors.light;
         expect(
           tester
@@ -478,6 +480,10 @@ void main() {
         );
         expect(tester.takeException(), isNull);
       }
+      await tester.tap(find.byTooltip('رجوع'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AppBar), findsOneWidget);
+      expect(find.byType(SentrakNavigationBar), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );

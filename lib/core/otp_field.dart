@@ -2,15 +2,40 @@ import 'brand.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+/// Keep Arabic keyboard input and SMS autofill normalized for API requests.
+class ArabicDigitsFormatter extends TextInputFormatter {
+  const ArabicDigitsFormatter();
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    const arabic = '٠١٢٣٤٥٦٧٨٩', persian = '۰۱۲۳۴۵۶۷۸۹';
+    final text = newValue.text
+        .split('')
+        .map(
+          (c) => arabic.contains(c)
+              ? '${arabic.indexOf(c)}'
+              : persian.contains(c)
+              ? '${persian.indexOf(c)}'
+              : c,
+        )
+        .join();
+    return newValue.copyWith(text: text);
+  }
+}
+
 /// A single native input preserves SMS autofill, paste and deletion semantics.
 class OtpCodeField extends StatefulWidget {
   const OtpCodeField({
     super.key,
     required this.controller,
     this.enabled = true,
+    this.onCompleted,
   });
   final TextEditingController controller;
   final bool enabled;
+  final ValueChanged<String>? onCompleted;
   @override
   State<OtpCodeField> createState() => _OtpCodeFieldState();
 }
@@ -78,26 +103,7 @@ class _OtpCodeFieldState extends State<OtpCodeField> {
                             textInputAction: TextInputAction.done,
                             autofillHints: const [AutofillHints.oneTimeCode],
                             inputFormatters: [
-                              TextInputFormatter.withFunction((old, next) {
-                                const arabic = '٠١٢٣٤٥٦٧٨٩',
-                                    persian = '۰۱۲۳۴۵۶۷۸۹';
-                                final normalized = next.text
-                                    .split('')
-                                    .map(
-                                      (c) => arabic.contains(c)
-                                          ? '${arabic.indexOf(c)}'
-                                          : persian.contains(c)
-                                          ? '${persian.indexOf(c)}'
-                                          : c,
-                                    )
-                                    .join();
-                                return TextEditingValue(
-                                  text: normalized,
-                                  selection: TextSelection.collapsed(
-                                    offset: normalized.length,
-                                  ),
-                                );
-                              }),
+                              const ArabicDigitsFormatter(),
                               FilteringTextInputFormatter.digitsOnly,
                               LengthLimitingTextInputFormatter(6),
                             ],
@@ -116,7 +122,10 @@ class _OtpCodeFieldState extends State<OtpCodeField> {
                               focusedBorder: InputBorder.none,
                               contentPadding: EdgeInsets.zero,
                             ),
-                            onChanged: (v) => state.didChange(v),
+                            onChanged: (v) {
+                              state.didChange(v);
+                              if (v.length == 6) widget.onCompleted?.call(v);
+                            },
                           ),
                         ),
                       ),

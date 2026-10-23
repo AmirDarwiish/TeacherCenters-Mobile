@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -110,9 +111,7 @@ void main() {
       await tester.enterText(find.byKey(const ValueKey('otp-input')), '١٢٣٤٥٦');
       await tester.pumpAndSettle();
       await screenshot(tester, 'otp');
-      await tester.ensureVisible(find.text('تأكيد ودخول'));
-      await tester.tap(find.text('تأكيد ودخول'));
-      await tester.pumpAndSettle();
+      expect(requests.where((r) => r.path.endsWith('/otp/verify')).length, 1);
       expect(requests.last.path, '/mobile/auth/otp/verify');
       expect(requests.last.data['loginTicket'], 'guardian-ticket');
       expect(requests.last.data['code'], '123456');
@@ -121,6 +120,75 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+  testWidgets(
+    'phone accepts exactly eleven normalized digits and rejects incomplete input',
+    (tester) async {
+      final requests = <RequestOptions>[];
+      final api = await loginApi(requests);
+      await tester.pumpWidget(host(LoginPage(api: api)));
+      final field = find.byType(TextFormField);
+      await tester.enterText(field, '٠١٠١٢٣٤٥٦٧');
+      await tester.ensureVisible(find.text('إرسال رمز التحقق'));
+      await tester.tap(find.text('إرسال رمز التحقق'));
+      await tester.pumpAndSettle();
+      expect(requests, isEmpty);
+      expect(find.text('اكتب رقم الموبايل المكوّن من ١١ رقم'), findsOneWidget);
+      await tester.enterText(field, '٠١٠١٢٣٤٥٦٧٨٩٩abc');
+      expect(
+        tester.widget<TextFormField>(field).controller!.text,
+        '01012345678',
+      );
+      await tester.tap(find.text('إرسال رمز التحقق'));
+      await tester.pumpAndSettle();
+      expect(requests.single.data['phone'], '01012345678');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'OTP completion submits once while pending and permits correction after failure',
+    (tester) async {
+      final pending = Completer<ResponseBody>();
+      var verifies = 0;
+      final client = Dio(BaseOptions(baseUrl: 'https://example.test'));
+      client.httpClientAdapter = FakeAdapter((r) async {
+        if (r.path.endsWith('/otp/request')) {
+          return response(202, {'challengeId': 'a'});
+        }
+        verifies++;
+        if (verifies == 1) return pending.future;
+        return response(200, session('token', 'refresh'));
+      });
+      final api = Api(client: client, storage: MemoryStore());
+      await tester.pumpWidget(host(LoginPage(api: api)));
+      await tester.enterText(find.byType(TextFormField), '01012345678');
+      await tester.ensureVisible(find.text('إرسال رمز التحقق'));
+      await tester.tap(find.text('إرسال رمز التحقق'));
+      await tester.pumpAndSettle();
+      final otp = find.byKey(const ValueKey('otp-input'));
+      await tester.enterText(otp, '12345');
+      await tester.pump();
+      expect(verifies, 0);
+      await tester.enterText(otp, '123456');
+      await tester.pump();
+      expect(verifies, 1);
+      final button = tester.widget<FilledButton>(
+        find.byType(FilledButton).first,
+      );
+      expect(button.onPressed, isNull);
+      pending.complete(response(400, {'message': 'رمز غير صحيح'}));
+      await tester.pumpAndSettle();
+      await tester.enterText(otp, '123456');
+      await tester.pumpAndSettle();
+      expect(verifies, 1);
+      await tester.enterText(otp, '654321');
+      await tester.pumpAndSettle();
+      expect(verifies, 2);
+      expect(api.student, isTrue);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets(
     'home presents learning and upcoming class before secondary actions',
     (tester) async {
