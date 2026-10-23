@@ -1,5 +1,6 @@
 import '../core/brand.dart';
 import '../core/app_icons.dart';
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -64,7 +65,6 @@ class ReelsPage extends StatefulWidget {
 class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   late ReelsFeed feed;
   final pages = PageController();
-  final Map<String, Json> links = {};
   ReelPlayback? player;
   Timer? settle;
   Future<void> cleanup = Future.value();
@@ -128,7 +128,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
     if (mounted) setState(() {});
     if (!eligible || index >= feed.items.length) return;
     final token = epoch;
-    // Swipe past a card without requesting a signed playback link for it.
+    // Swipe past a card without allocating a decoder for it.
     settle = Timer(const Duration(milliseconds: 350), () => start(token));
   }
 
@@ -144,36 +144,29 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
       video = {};
     });
     try {
-      final cached = links[reel.lessonId];
-      final expires = DateTime.tryParse('${cached?['expiresAt']}');
-      var media = cached;
-      if (media == null ||
-          expires != null &&
-              !expires.isAfter(
-                DateTime.now().toUtc().add(const Duration(seconds: 30)),
-              )) {
-        final lesson = obj(
-          await widget.api.get('/portal/lessons/${reel.lessonId}'),
-        );
-        media = obj(lesson['video']);
-        if (!valid(token)) return;
-        if (media['url'] == null || '${media['url']}'.trim().isEmpty) {
-          throw ApiFailure('الفيديو غير جاهز للعرض حاليًا. جرّب فيديو آخر.');
-        }
-        links.remove(reel.lessonId);
-        links[reel.lessonId] = media;
-        while (links.length > 3) {
-          links.remove(links.keys.first);
-        }
-      }
-      if (!valid(token)) return;
-      video = media;
-      if (['youtube', 'vimeo'].contains(media['kind'])) return;
-      final uri = widget.api.resolveUrl('${media['url']}');
+      // Public previews do not claim protected course playback sessions.
+      final uri = widget.api.resolveUrl(reel.previewUrl);
       if (uri.scheme != 'https' &&
           !(uri.scheme == 'http' && uri.host == 'localhost')) {
         throw ApiFailure('رابط الفيديو غير صالح.');
       }
+      if (uri.userInfo.isNotEmpty) {
+        throw ApiFailure('رابط الفيديو غير صالح.');
+      }
+      final host = uri.host.toLowerCase();
+      final kind =
+          [
+            'youtube.com',
+            'www.youtube.com',
+            'youtu.be',
+            'www.youtube-nocookie.com',
+          ].contains(host)
+          ? 'youtube'
+          : ['vimeo.com', 'www.vimeo.com', 'player.vimeo.com'].contains(host)
+          ? 'vimeo'
+          : 'mp4';
+      video = {'kind': kind, 'url': uri.toString()};
+      if (['youtube', 'vimeo'].contains(kind)) return;
       final next = (widget.playbackFactory ?? NativeReelPlayback.new)(uri);
       player = next;
       await next.initialize();
@@ -183,7 +176,6 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
       await next.play();
     } catch (e) {
       if (valid(token)) {
-        links.remove(reel.lessonId);
         stop();
         setState(() {
           busy = false;

@@ -1,4 +1,5 @@
 import 'package:teacher_centers_mobile/core/app_icons.dart';
+
 import 'dart:async';
 import 'dart:math';
 
@@ -20,6 +21,7 @@ Json catalogCourse(String id, {int count = 26, bool preview = true}) => {
   'id': id,
   'title': 'الفيزياء ببساطة',
   'status': 'Published',
+  'audience': 'Open',
   'teacherName': 'أحمد محمود',
   'sections': [
     {
@@ -30,6 +32,8 @@ Json catalogCourse(String id, {int count = 26, bool preview = true}) => {
           'title': 'قوانين الحركة — تدريب ${i + 1}',
           'type': 'Video',
           'isPreview': preview,
+          'previewUrl':
+              '/api/v1/public/t/demo/courses/$id/lessons/$id-$i/preview.mp4',
         },
       ),
     },
@@ -41,15 +45,17 @@ Future<Api> apiWith(
 ) async {
   final client = Dio(BaseOptions(baseUrl: 'https://example.test/api/v1'));
   client.httpClientAdapter = FakeAdapter(handler);
-  final api = Api(client: client, storage: MemoryStore());
+  final api = Api(client: client, storage: MemoryStore())..slug = 'demo';
   await api.accept(session('token', 'refresh'));
   return api;
 }
 
 class TestPlayback implements ReelPlayback {
-  TestPlayback(this.uri, this.onDispose);
+  TestPlayback(this.uri, this.onDispose, {this.initializeGate});
   final Uri uri;
   final VoidCallback onDispose;
+  final Future<void>? initializeGate;
+  int plays = 0;
   bool disposed = false;
   double volume = 1;
   @override
@@ -65,6 +71,8 @@ class TestPlayback implements ReelPlayback {
   );
   @override
   Future<void> initialize() async {
+    await initializeGate;
+    if (disposed) return;
     value.value = value.value.copyWith(
       isInitialized: true,
       size: const Size(720, 1280),
@@ -73,7 +81,10 @@ class TestPlayback implements ReelPlayback {
 
   @override
   Future<void> play() async {
-    if (!disposed) value.value = value.value.copyWith(isPlaying: true);
+    if (!disposed) {
+      plays++;
+      value.value = value.value.copyWith(isPlaying: true);
+    }
   }
 
   @override
@@ -119,13 +130,17 @@ void main() {
           'isPreview': true,
           'status': 'Locked',
         },
+        {'id': 'no-link', 'type': 'Video', 'isPreview': true},
         lessons.first,
       ]);
       final api = await apiWith((r) async {
         requests++;
+        expect(r.path, '/public/t/demo/courses');
+        expect(r.headers.containsKey('Authorization'), isFalse);
         return response(200, [
           c,
           {...catalogCourse('draft'), 'status': 'Draft'},
+          {...catalogCourse('group'), 'audience': 'Group'},
         ]);
       });
       final feed = ReelsFeed(api, random: Random(7));
@@ -233,17 +248,11 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final signed = <String>[];
       final api = await apiWith((r) async {
-        if (r.path.endsWith('/catalog')) {
+        if (r.path.endsWith('/public/t/demo/courses')) {
           return response(200, [catalogCourse('open')]);
         }
         signed.add(r.path);
-        return response(200, {
-          'video': {
-            'kind': 'mp4',
-            'url': '/video/${r.path.split('/').last}.mp4',
-            'watermarkText': 'الطالب • ١٢٣',
-          },
-        });
+        return response(429, {'code': 'playback-limit'});
       });
       final players = <TestPlayback>[];
       var alive = 0, peak = 0;
@@ -262,7 +271,7 @@ void main() {
       );
       await tester.pumpWidget(view(true));
       await settleReel(tester);
-      expect(signed.length, 1);
+      expect(signed, isEmpty);
       expect(alive, 1);
       expect(players.last.value.value.isPlaying, isTrue);
       await screenshot(tester, 'course-reels');
@@ -274,7 +283,8 @@ void main() {
         await settleReel(tester);
       }
       expect(players.length, 41);
-      expect(signed.toSet().length, 26);
+      expect(signed, isEmpty);
+      expect(players.map((p) => p.uri).toSet().length, 26);
       expect(peak, 1);
       await tester.pumpWidget(view(false));
       await tester.pumpAndSettle();
@@ -296,20 +306,15 @@ void main() {
     },
   );
 
-  testWidgets('late playback response cannot start a video swiped past', (
+  testWidgets('late initialization cannot play a video swiped past', (
     tester,
   ) async {
-    final delayed = Completer<ResponseBody>();
+    final delayed = Completer<void>();
     final players = <TestPlayback>[];
-    var playbackRequests = 0;
+    final requests = <String>[];
     final api = await apiWith((r) async {
-      if (r.path.endsWith('/catalog')) {
-        return response(200, [catalogCourse('open', count: 2)]);
-      }
-      if (playbackRequests++ == 0) return delayed.future;
-      return response(200, {
-        'video': {'kind': 'mp4', 'url': '/second.mp4'},
-      });
+      requests.add(r.path);
+      return response(200, [catalogCourse('open', count: 2)]);
     });
     await tester.pumpWidget(
       host(
@@ -317,7 +322,11 @@ void main() {
           body: ReelsPage(
             api: api,
             playbackFactory: (uri) {
-              final p = TestPlayback(uri, () {});
+              final p = TestPlayback(
+                uri,
+                () {},
+                initializeGate: players.isEmpty ? delayed.future : null,
+              );
               players.add(p);
               return p;
             },
@@ -327,21 +336,22 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+    expect(players.length, 1);
     await tester.drag(find.byType(PageView), const Offset(0, -650));
     await settleReel(tester);
-    expect(players.length, 1);
-    expect(players.single.uri.path, '/second.mp4');
-    delayed.complete(
-      response(200, {
-        'video': {'kind': 'mp4', 'url': '/old.mp4'},
-      }),
-    );
+    expect(players.length, 2);
+    expect(players.first.disposed, isTrue);
+    expect(players.last.uri, isNot(players.first.uri));
+    expect(players.last.plays, 1);
+    delayed.complete();
     await tester.pumpAndSettle();
-    expect(players.length, 1);
-    expect(players.single.value.value.isPlaying, isTrue);
+    expect(players.first.plays, 0);
+    expect(players.last.value.value.isPlaying, isTrue);
+    expect(requests, ['/public/t/demo/courses']);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
-    expect(players.single.disposed, isTrue);
+    expect(players.last.disposed, isTrue);
   });
 
   testWidgets(
@@ -350,7 +360,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(360, 740));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final api = await apiWith(
-        (r) async => r.path.endsWith('/catalog')
+        (r) async => r.path.endsWith('/public/t/demo/courses')
             ? response(200, [catalogCourse('open', count: 3)])
             : response(200, {
                 'video': {
