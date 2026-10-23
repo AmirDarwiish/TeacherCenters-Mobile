@@ -11,11 +11,12 @@ class CourseReel {
     required this.title,
     required this.courseTitle,
     required this.teacherName,
+    required this.previewUrl,
   });
-  final String lessonId, courseId, title, courseTitle, teacherName;
+  final String lessonId, courseId, title, courseTitle, teacherName, previewUrl;
 }
 
-/// Only explicit preview video lessons returned by the authorized catalog qualify.
+/// Only explicit preview videos with playback URLs from the public catalog qualify.
 /// Supports today's complete-list response and a paginated catalog response.
 class ReelsFeed extends ChangeNotifier {
   ReelsFeed(this.api, {this.batchSize = 12, Random? random})
@@ -34,6 +35,7 @@ class ReelsFeed extends ChangeNotifier {
   Iterable<CourseReel> _extract(dynamic data) sync* {
     for (final course in rows(data)) {
       if (course['id'] == null ||
+          course['audience'] != 'Open' ||
           course['status'] != null && course['status'] != 'Published') {
         continue;
       }
@@ -42,6 +44,7 @@ class ReelsFeed extends ChangeNotifier {
           if (lesson['id'] == null ||
               lesson['type'] != 'Video' ||
               lesson['isPreview'] != true ||
+              '${lesson['previewUrl'] ?? ''}'.trim().isEmpty ||
               lesson['status'] == 'Locked') {
             continue;
           }
@@ -53,6 +56,7 @@ class ReelsFeed extends ChangeNotifier {
             title: label(lesson),
             courseTitle: label(course),
             teacherName: '${course['teacherName'] ?? ''}',
+            previewUrl: '${lesson['previewUrl']}'.trim(),
           );
         }
       }
@@ -67,8 +71,13 @@ class ReelsFeed extends ChangeNotifier {
     try {
       // Empty batches (courses with no previews) must not strand the feed.
       while (_pending.isEmpty && _remoteMore && !_disposed) {
-        final response = await api.get(
-          '/portal/catalog',
+        if (api.slug.trim().isEmpty) {
+          throw ApiFailure('تعذر تحديد السنتر. أعد تسجيل الدخول.');
+        }
+        final response = await api.call(
+          'GET',
+          '/public/t/${Uri.encodeComponent(api.slug)}/courses',
+          auth: false,
           query: {'page': _page, 'pageSize': pageSize},
         );
         if (_disposed) return;
