@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/api.dart';
+import 'core/app_viewport.dart';
 import 'core/design.dart';
 import 'features/login.dart';
 import 'features/shell.dart';
@@ -60,12 +61,14 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
     title: 'سنترك',
-    locale: const Locale('ar'),
-    supportedLocales: const [Locale('ar'), Locale('en')],
+    locale: const Locale('ar', 'EG'),
+    supportedLocales: const [Locale('ar', 'EG'), Locale('en')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
     theme: appTheme(Brightness.light),
     darkTheme: appTheme(Brightness.dark),
     themeMode: mode,
+    builder: (context, child) =>
+        AppViewport(child: child ?? const SizedBox.shrink()),
     // Replacing the keyed Navigator removes all private detail routes on logout.
     key: ValueKey(sessionEpoch),
     home: !ready

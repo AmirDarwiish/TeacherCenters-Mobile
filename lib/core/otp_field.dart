@@ -1,3 +1,4 @@
+import 'brand.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -131,7 +132,10 @@ class _OtpCodeFieldState extends State<OtpCodeField> {
                                         value.length == 6 && index == 5);
                                 return Expanded(
                                   child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 150),
+                                    duration: BrandMotion.duration(
+                                      context,
+                                      150,
+                                    ),
                                     margin: EdgeInsets.only(
                                       right: index == 5 ? 0 : 8,
                                     ),
@@ -155,7 +159,7 @@ class _OtpCodeFieldState extends State<OtpCodeField> {
                                     child: Text(
                                       index < value.length ? value[index] : '—',
                                       style: TextStyle(
-                                        fontFamily: 'Tajawal',
+                                        fontFamily: 'IBM Plex Sans Arabic',
                                         fontSize: 25,
                                         fontWeight: FontWeight.bold,
                                         color: index < value.length

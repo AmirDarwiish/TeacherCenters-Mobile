@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -71,14 +73,14 @@ class _CurriculumPageState extends State<CurriculumPage> {
         onPressed: busy || index == 0
             ? null
             : () => move(list, index, index - 1),
-        icon: const Icon(Icons.arrow_upward_rounded, size: 20),
+        icon: const Icon(AppIcons.arrowUpwardRounded, size: 20),
       ),
       IconButton(
         tooltip: 'نقل لأسفل',
         onPressed: busy || index == list.length - 1
             ? null
             : () => move(list, index, index + 1),
-        icon: const Icon(Icons.arrow_downward_rounded, size: 20),
+        icon: const Icon(AppIcons.arrowDownwardRounded, size: 20),
       ),
     ],
   );
@@ -94,16 +96,19 @@ class _CurriculumPageState extends State<CurriculumPage> {
       }
     },
     child: Scaffold(
-      appBar: AppBar(title: const Text('تنظيم المنهج')),
+      appBar: AppBar(
+        flexibleSpace: const BrandHeader(),
+        title: const Text('تنظيم المنهج'),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         children: [
           const Text(
             'رتّب الوحدات والدروس بالترتيب الذي يساعد طلابك على التعلم خطوة بخطوة.',
           ),
           const SizedBox(height: 20),
           for (final (index, section) in sections.indexed)
-            Card(
+            BrandCard(
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -171,7 +176,7 @@ class _CurriculumPageState extends State<CurriculumPage> {
                     }, success: 'تم حفظ ترتيب المنهج');
                     if (mounted) setState(() => busy = false);
                   },
-            icon: const Icon(Icons.check),
+            icon: const Icon(AppIcons.check),
             label: Text(busy ? 'جارٍ الحفظ…' : 'حفظ ترتيب المنهج'),
           ),
         ),

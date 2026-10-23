@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -12,12 +14,12 @@ class GroupsPage extends StatelessWidget {
     api: api,
     path: '/groups',
     title: 'مجموعاتي',
-    item: (g) => Card(
+    item: (g) => BrandCard(
       child: ListTile(
-        leading: const Icon(Icons.groups_rounded),
+        leading: const Icon(AppIcons.groupsRounded),
         title: Text(label(g)),
         subtitle: Text('${g['subject'] ?? ''} · ${g['grade'] ?? ''}'),
-        trailing: const Icon(Icons.chevron_left),
+        trailing: const Icon(AppIcons.chevronLeft),
         onTap: () => open(context, GroupPage(api: api, group: g)),
       ),
     ),
@@ -30,9 +32,12 @@ class GroupPage extends StatelessWidget {
   final Json group;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(label(group))),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: Text(label(group)),
+    ),
     body: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
         DetailFields({
           for (final key in [
@@ -50,7 +55,7 @@ class GroupPage extends StatelessWidget {
             context,
             SessionsPage(api: api, groupId: '${group['id']}', standalone: true),
           ),
-          icon: const Icon(Icons.calendar_month),
+          icon: const Icon(AppIcons.calendarMonth),
           label: const Text('حصص المجموعة'),
         ),
         const SizedBox(height: 12),
@@ -59,7 +64,7 @@ class GroupPage extends StatelessWidget {
             context,
             NewSessionPage(api: api, groupId: '${group['id']}'),
           ),
-          icon: const Icon(Icons.add),
+          icon: const Icon(AppIcons.add),
           label: const Text('إضافة حصة'),
         ),
         const SizedBox(height: 20),
@@ -70,7 +75,7 @@ class GroupPage extends StatelessWidget {
           child: PagedList(
             api: api,
             path: '/groups/${group['id']}/students',
-            item: (s) => Card(
+            item: (s) => BrandCard(
               child: ListTile(
                 title: Text(label(s)),
                 subtitle: Text('${s['code'] ?? ''}'),
@@ -90,21 +95,24 @@ class StudentDetail extends StatelessWidget {
   final Json student;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(label(student))),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: Text(label(student)),
+    ),
     body: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
         DetailFields(student),
         ListTile(
           title: const Text('سجل الحضور'),
-          trailing: const Icon(Icons.chevron_left),
+          trailing: const Icon(AppIcons.chevronLeft),
           onTap: () => open(
             context,
             PageViewList(
               api: api,
               path: '/students/${student['id']}/attendance',
               title: 'سجل الحضور',
-              item: (a) => Card(
+              item: (a) => BrandCard(
                 child: ListTile(
                   title: Text('${a['status'] ?? ''}'),
                   subtitle: Text(when(a['startsAtUtc'] ?? a['recordedAtUtc'])),
@@ -115,14 +123,14 @@ class StudentDetail extends StatelessWidget {
         ),
         ListTile(
           title: const Text('الدرجات'),
-          trailing: const Icon(Icons.chevron_left),
+          trailing: const Icon(AppIcons.chevronLeft),
           onTap: () => open(
             context,
             PageViewList(
               api: api,
               path: '/students/${student['id']}/grades',
               title: 'الدرجات',
-              item: (a) => Card(child: DetailFields(a)),
+              item: (a) => BrandCard(child: DetailFields(a)),
             ),
           ),
         ),
@@ -167,7 +175,7 @@ class _SessionsPageState extends State<SessionsPage> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              const Icon(Icons.date_range),
+              const Icon(AppIcons.dateRange),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -208,12 +216,12 @@ class _SessionsPageState extends State<SessionsPage> {
                 'to': end.toIso8601String().substring(0, 10),
                 if (widget.groupId != null) 'groupId': widget.groupId,
               },
-              item: (s) => Card(
+              item: (s) => BrandCard(
                 child: ListTile(
                   leading: Icon(
                     widget.api.student
-                        ? Icons.event_outlined
-                        : Icons.fact_check_outlined,
+                        ? AppIcons.eventOutlined
+                        : AppIcons.factCheckOutlined,
                   ),
                   title: Text(
                     '${s['topic'] ?? s['groupName'] ?? 'حصة دراسية'}',
@@ -222,7 +230,7 @@ class _SessionsPageState extends State<SessionsPage> {
                     '${when(s['startsAtUtc'])}\n${s['hallName'] ?? ''} · ${sessionStatus(s['effectiveStatus'] ?? s['status'])}${s['attendance'] == null ? '' : '\nالحضور: ${attendanceStatus(s['attendance'])}'}',
                   ),
                   isThreeLine: true,
-                  trailing: const Icon(Icons.chevron_left),
+                  trailing: const Icon(AppIcons.chevronLeft),
                   onTap: () => open(
                     context,
                     widget.api.student
@@ -242,7 +250,10 @@ class _SessionsPageState extends State<SessionsPage> {
     );
     return widget.standalone
         ? Scaffold(
-            appBar: AppBar(title: const Text('الحصص')),
+            appBar: AppBar(
+              flexibleSpace: const BrandHeader(),
+              title: const Text('الحصص'),
+            ),
             body: body,
           )
         : body;
@@ -277,12 +288,13 @@ class _AttendancePageState extends State<AttendancePage> {
     final id = widget.session['id'];
     return Scaffold(
       appBar: AppBar(
+        flexibleSpace: const BrandHeader(),
         title: const Text('كشف الحضور'),
         actions: [
           IconButton(
             tooltip: 'تبديل الكشف',
             onPressed: () => setState(() => all = !all),
-            icon: Icon(all ? Icons.pending_actions : Icons.list_alt),
+            icon: Icon(all ? AppIcons.pendingActions : AppIcons.listAlt),
           ),
         ],
       ),
@@ -307,7 +319,7 @@ class _AttendancePageState extends State<AttendancePage> {
                   widget.session['canRecordAttendance']) ==
               true;
           return ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               Text(
@@ -317,7 +329,7 @@ class _AttendancePageState extends State<AttendancePage> {
               Text(when(widget.session['startsAtUtc'])),
               const SizedBox(height: 16),
               if (!canRecord)
-                const Card(
+                const BrandCard(
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Text(
@@ -329,7 +341,7 @@ class _AttendancePageState extends State<AttendancePage> {
                 const Empty(text: 'لا يوجد طلاب في هذا الكشف'),
               ...students.map((s) {
                 final sid = '${s['studentId'] ?? s['id']}';
-                return Card(
+                return BrandCard(
                   child: ListTile(
                     title: Text(
                       '${s['fullName'] ?? s['studentName'] ?? label(s)}',
@@ -469,9 +481,12 @@ class _NewSessionPageState extends State<NewSessionPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('إضافة حصة')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('إضافة حصة'),
+    ),
     body: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
         TextField(
           controller: topic,
@@ -489,7 +504,7 @@ class _NewSessionPageState extends State<NewSessionPage> {
                 ? 'حدد الموعد بالتوقيت المحلي للجهاز'
                 : when(date!.toIso8601String()),
           ),
-          trailing: const Icon(Icons.calendar_month),
+          trailing: const Icon(AppIcons.calendarMonth),
           onTap: () async {
             final d = await showDatePicker(
               context: context,

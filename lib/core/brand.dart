@@ -1,0 +1,229 @@
+import 'dart:ui';
+import 'package:flutter/material.dart';
+
+/// Mirrored from the supplied Sentrak dashboard tokens (23 October 2026).
+class BrandColors extends ThemeExtension<BrandColors> {
+  const BrandColors(this.values);
+  final Map<String, Color> values;
+  Color get bg => values['bg']!;
+  Color get surface => values['surface']!;
+  Color get glass => values['surfaceGlass']!;
+  Color get line => values['line']!;
+  Color get ink => values['ink']!;
+  Color get muted => values['muted']!;
+  Color get primary => values['primary']!;
+  Color get primaryHover => values['primaryHover']!;
+  Color get primaryInk => values['primaryInk']!;
+  Color get primaryTint => values['primaryTint']!;
+  Color get primarySoft => values['primarySoft']!;
+  Color get cyan => values['cyan']!;
+  Color get cyanDeep => values['cyanDeep']!;
+  Color get cyanTint => values['cyanTint']!;
+  Color get success => values['success']!;
+  Color get successTint => values['successTint']!;
+  Color get warning => values['warning']!;
+  Color get warningTint => values['warningTint']!;
+  Color get danger => values['danger']!;
+  Color get dangerTint => values['dangerTint']!;
+  Color get overlay => values['overlay']!;
+  Color get skeleton => values['skeleton']!;
+  static const primaryHoverFixed = Color(0xff1648c4);
+  static const primaryTintFixed = Color(0xffeaf1ff);
+  static const darkPrimaryFixed = Color(0xff4c82f7);
+  static const darkSurfaceFixed = Color(0xff0e1b2c);
+  static const successFixed = Color(0xff0e7a5a);
+  static const whiteMuted = Color(0xb3ffffff),
+      whiteFaint = Color(0x61ffffff),
+      whiteSubtle = Color(0x1fffffff);
+  static const nightOverlay = Color(0x730b2540), nightDense = Color(0xdf0b2540);
+  static const transparent = Color(0x000b2540);
+  static const white = Color(0xffffffff);
+  static const night = Color(0xff0b2540);
+  static const logoBlue = Color(0xff1d5bf0);
+  static const logoCyan = Color(0xff13b5d6);
+  static const gold = Color(0xfff5b83d);
+  // The navigation bubble is the explicit gradient exception in the guide.
+  static const navStart = Color(0xff3b82f6), navEnd = Color(0xff1e40af);
+  static const light = BrandColors({
+    'bg': Color(0xfff4f8fc),
+    'surface': white,
+    'surfaceGlass': Color(0xe0ffffff),
+    'line': Color(0xffe1e9f2),
+    'ink': night,
+    'muted': Color(0xff526b84),
+    'primary': logoBlue,
+    'primaryHover': Color(0xff1648c4),
+    'primaryInk': white,
+    'primaryTint': Color(0xffeaf1ff),
+    'primarySoft': Color(0xffbcd0fb),
+    'cyan': logoCyan,
+    'cyanDeep': Color(0xff0b7489),
+    'cyanTint': Color(0xffe2f7fb),
+    'cyanLight': Color(0xff7fe3f5),
+    'success': Color(0xff0e7a5a),
+    'successHover': Color(0xff0a5f46),
+    'successTint': Color(0xffe3f5ee),
+    'warning': Color(0xff9a5b00),
+    'warningHover': Color(0xff7a4800),
+    'warningTint': Color(0xfffff3dc),
+    'danger': Color(0xffb42318),
+    'dangerHover': Color(0xff912018),
+    'dangerTint': Color(0xfffdecea),
+    'info': Color(0xff0b7489),
+    'infoTint': Color(0xffe2f7fb),
+    'overlay': Color(0x730b2540),
+    'skeleton': Color(0xffe9eff6),
+    'focus': logoCyan,
+    'night': night,
+    'gold': gold,
+  });
+  static const dark = BrandColors({
+    'bg': Color(0xff08121f),
+    'surface': Color(0xff0e1b2c),
+    'surfaceGlass': Color(0xdb0e1b2c),
+    'line': Color(0xff1d3048),
+    'ink': Color(0xffe6eef7),
+    'muted': Color(0xff93a9c0),
+    'primary': Color(0xff4c82f7),
+    'primaryHover': Color(0xff6a98fa),
+    'primaryInk': white,
+    'primaryTint': Color(0xff13254a),
+    'primarySoft': Color(0xff2a4a8f),
+    'cyan': Color(0xff2bc7e6),
+    'cyanDeep': Color(0xff7fe3f5),
+    'cyanTint': Color(0xff0e3440),
+    'cyanLight': Color(0xff7fe3f5),
+    'success': Color(0xff3fc79a),
+    'successHover': Color(0xff62d4ae),
+    'successTint': Color(0xff0f3328),
+    'warning': Color(0xfff0b44c),
+    'warningHover': Color(0xfff4c670),
+    'warningTint': Color(0xff3a2a0d),
+    'danger': Color(0xfff2766b),
+    'dangerHover': Color(0xfff59a91),
+    'dangerTint': Color(0xff3d1512),
+    'info': Color(0xff7fe3f5),
+    'infoTint': Color(0xff0e3440),
+    'overlay': Color(0x99000000),
+    'skeleton': Color(0xff16263a),
+    'focus': Color(0xff2bc7e6),
+  });
+  @override
+  BrandColors copyWith({Map<String, Color>? values}) =>
+      BrandColors(values ?? this.values);
+  @override
+  BrandColors lerp(covariant BrandColors? other, double t) => other == null
+      ? this
+      : BrandColors({
+          for (final key in values.keys)
+            key: Color.lerp(values[key], other.values[key] ?? values[key], t)!,
+        });
+}
+
+extension BrandContext on BuildContext {
+  BrandColors get brand =>
+      Theme.of(this).extension<BrandColors>() ??
+      (Theme.of(this).brightness == Brightness.dark
+          ? BrandColors.dark
+          : BrandColors.light);
+}
+
+class BrandMotion {
+  static const curve = Cubic(.2, .7, .2, 1);
+  static Duration duration(BuildContext context, [int milliseconds = 250]) =>
+      MediaQuery.disableAnimationsOf(context)
+      ? Duration.zero
+      : Duration(milliseconds: milliseconds);
+}
+
+class BrandGlass extends StatelessWidget {
+  const BrandGlass({super.key, required this.child, this.radius = 24});
+  final Widget child;
+  final double radius;
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(radius),
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+      child: ColoredBox(color: context.brand.glass, child: child),
+    ),
+  );
+}
+
+class BrandCard extends StatefulWidget {
+  const BrandCard({
+    super.key,
+    this.child,
+    this.color,
+    this.margin,
+    this.clipBehavior,
+    this.shape,
+  });
+  final Widget? child;
+  final Color? color;
+  final EdgeInsetsGeometry? margin;
+  final Clip? clipBehavior;
+  final ShapeBorder? shape;
+  @override
+  State<BrandCard> createState() => _BrandCardState();
+}
+
+class _BrandCardState extends State<BrandCard> {
+  bool pressed = false;
+  @override
+  Widget build(BuildContext context) {
+    final b = context.brand;
+    return Listener(
+      onPointerDown: (_) => setState(() => pressed = true),
+      onPointerUp: (_) => setState(() => pressed = false),
+      onPointerCancel: (_) => setState(() => pressed = false),
+      child: AnimatedContainer(
+        duration: BrandMotion.duration(context, 150),
+        curve: BrandMotion.curve,
+        transform: Matrix4.translationValues(0, pressed ? -4 : 0, 0),
+        margin: widget.margin ?? const EdgeInsets.only(bottom: 16),
+        decoration: ShapeDecoration(
+          color: widget.color ?? b.surface,
+          shape:
+              widget.shape ??
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: pressed ? b.cyan : b.line),
+              ),
+          shadows: [
+            BoxShadow(
+              color: BrandColors.night.withValues(alpha: .04),
+              blurRadius: pressed ? 4 : 2,
+              offset: Offset(0, pressed ? 2 : 1),
+            ),
+            BoxShadow(
+              color: (pressed ? BrandColors.logoBlue : BrandColors.night)
+                  .withValues(alpha: pressed ? .16 : .06),
+              blurRadius: pressed ? 40 : 24,
+              offset: Offset(0, pressed ? 18 : 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          clipBehavior: widget.clipBehavior ?? Clip.antiAlias,
+          child: Material(
+            color: widget.color ?? b.surface,
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class BrandHeader extends StatelessWidget {
+  const BrandHeader({super.key});
+  @override
+  Widget build(BuildContext context) => ClipRect(
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+      child: ColoredBox(color: context.brand.glass),
+    ),
+  );
+}

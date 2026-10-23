@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -204,7 +206,7 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
                                 }
                               }
                             },
-                      icon: const Icon(Icons.save_outlined),
+                      icon: const Icon(AppIcons.saveOutlined),
                       label: Text(
                         saving
                             ? 'جارٍ الحفظ…'
@@ -237,12 +239,12 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
         segments: const [
           ButtonSegment(
             value: true,
-            icon: Icon(Icons.edit_note_rounded),
+            icon: Icon(AppIcons.editNoteRounded),
             label: Text('ملاحظاتي'),
           ),
           ButtonSegment(
             value: false,
-            icon: Icon(Icons.question_answer_outlined),
+            icon: Icon(AppIcons.questionAnswerOutlined),
             label: Text('أسئلة الدرس'),
           ),
         ],
@@ -261,7 +263,7 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
         valueListenable: widget.position,
         builder: (_, position, child) => OutlinedButton.icon(
           onPressed: () => compose(),
-          icon: Icon(notes ? Icons.add_rounded : Icons.chat_bubble_outline),
+          icon: Icon(notes ? AppIcons.addRounded : AppIcons.chatBubbleOutline),
           label: Text(
             '${notes ? 'أضف ملاحظة' : 'اسأل المدرس'} عند ${videoTime(position.inSeconds)}',
           ),
@@ -273,7 +275,7 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
           child: Center(child: CircularProgressIndicator()),
         ),
       if (error != null)
-        Card(
+        BrandCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -281,7 +283,7 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
                 Text('$error'),
                 TextButton(
                   onPressed: () => load(),
-                  child: const Text('إعادة المحاولة'),
+                  child: const Text('حاول تاني'),
                 ),
               ],
             ),
@@ -298,7 +300,7 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
           ),
         ),
       for (final item in items)
-        Card(
+        BrandCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -308,7 +310,7 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
                   children: [
                     if (notes || questionTime(item['body']) != null)
                       ActionChip(
-                        avatar: const Icon(Icons.play_arrow_rounded, size: 18),
+                        avatar: const Icon(AppIcons.playArrowRounded, size: 18),
                         label: Text(
                           videoTime(
                             notes
@@ -373,7 +375,7 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
                       );
                       if (mounted) load();
                     },
-                    icon: const Icon(Icons.forum_outlined),
+                    icon: const Icon(AppIcons.forumOutlined),
                     label: Text(
                       '${item['answersCount'] ?? 0} ردود • ${item['hasInstructorAnswer'] == true ? 'رد المدرس' : 'عرض المناقشة'}',
                     ),
@@ -411,14 +413,17 @@ class _LessonQuestionPageState extends State<LessonQuestionPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('مناقشة السؤال')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('مناقشة السؤال'),
+    ),
     body: AsyncPanel(
       key: ValueKey(revision),
       load: () => widget.api.get('/portal/questions/${widget.id}'),
       builder: (data, refresh) {
         final question = obj(data);
         return ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           children: [
             Text(
               label(question),
@@ -428,7 +433,7 @@ class _LessonQuestionPageState extends State<LessonQuestionPage> {
             Text(noteText(question['body'])),
             const SizedBox(height: 20),
             for (final answer in rows(question['answers']))
-              Card(
+              BrandCard(
                 child: Padding(
                   padding: const EdgeInsets.all(18),
                   child: Column(

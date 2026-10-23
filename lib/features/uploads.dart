@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -210,16 +212,19 @@ class _UploadPageState extends State<UploadPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.video ? 'رفع فيديو' : 'رفع ملف')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: Text(widget.video ? 'رفع فيديو' : 'رفع ملف'),
+    ),
     body: PopScope(
       canPop: !busy,
       child: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         children: [
           Icon(
             widget.video
-                ? Icons.cloud_upload_outlined
-                : Icons.upload_file_outlined,
+                ? AppIcons.cloudUploadOutlined
+                : AppIcons.uploadFileOutlined,
             size: 80,
           ),
           const SizedBox(height: 24),

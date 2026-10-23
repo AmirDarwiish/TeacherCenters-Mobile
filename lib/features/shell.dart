@@ -1,3 +1,6 @@
+import '../core/brand.dart';
+import '../core/brand_logo.dart';
+import '../core/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -68,7 +71,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       'الكورسات',
       hasReels ? 'ريلز' : 'الحصص',
       hasReels ? 'الحصص' : 'الرسائل',
-      'حسابي',
+      'المزيد',
     ];
     Widget page(int tab) {
       // This widget must receive visibility updates even inside IndexedStack.
@@ -98,22 +101,31 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
 
     if (!(hasReels && index == 2)) page(index);
     return Scaffold(
-      backgroundColor: immersive ? const Color(0xff07111f) : null,
+      backgroundColor: immersive ? BrandColors.night : null,
       appBar: AppBar(
-        backgroundColor: immersive ? const Color(0xff07111f) : null,
-        foregroundColor: immersive ? Colors.white : null,
-        title: Text(titles[index]),
+        flexibleSpace: immersive ? null : const BrandHeader(),
+        titleTextStyle: immersive
+            ? Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(color: BrandColors.white)
+            : null,
+        actionsIconTheme: immersive
+            ? const IconThemeData(color: BrandColors.white, size: 20)
+            : null,
+        backgroundColor: immersive ? BrandColors.night : null,
+        foregroundColor: immersive ? BrandColors.white : null,
+        title: index == 0 ? const SentrakLogo(size: 32) : Text(titles[index]),
         actions: [
           if (!api.guardian)
             IconButton(
               tooltip: 'الرسائل',
               onPressed: () => openOverlay(ThreadsPage(api: api)),
-              icon: const Icon(Icons.chat_bubble_outline_rounded),
+              icon: const Icon(AppIcons.chatBubbleOutlineRounded),
             ),
           IconButton(
             tooltip: 'الإشعارات',
             onPressed: () => openOverlay(NotificationsPage(api: api)),
-            icon: const Icon(Icons.notifications_none_rounded),
+            icon: const Icon(AppIcons.notificationsNoneRounded),
           ),
         ],
       ),
@@ -163,134 +175,144 @@ class SentrakNavigationBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final bool hasReels, immersive;
-
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final b = context.brand;
     final labels = [
       'الرئيسية',
       'الكورسات',
       hasReels ? 'ريلز' : 'الحصص',
       hasReels ? 'الحصص' : 'الرسائل',
-      'حسابي',
+      'المزيد',
     ];
     final icons = [
-      Icons.home_outlined,
-      Icons.auto_stories_outlined,
-      hasReels ? Icons.play_arrow_rounded : Icons.calendar_month_outlined,
+      AppIcons.homeOutlined,
+      AppIcons.autoStoriesOutlined,
+      hasReels ? AppIcons.playCircle : AppIcons.calendarMonthOutlined,
       hasReels
-          ? Icons.calendar_month_outlined
-          : Icons.chat_bubble_outline_rounded,
-      Icons.person_outline_rounded,
-    ];
-    final selected = [
-      Icons.home_rounded,
-      Icons.auto_stories_rounded,
-      hasReels ? Icons.play_arrow_rounded : Icons.calendar_month_rounded,
-      hasReels ? Icons.calendar_month_rounded : Icons.chat_bubble_rounded,
-      Icons.person_rounded,
+          ? AppIcons.calendarMonthOutlined
+          : AppIcons.chatBubbleOutlineRounded,
+      AppIcons.personOutlineRounded,
     ];
     return SafeArea(
       top: false,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+        margin: const EdgeInsetsDirectional.fromSTEB(8, 8, 8, 8),
         decoration: BoxDecoration(
-          color: immersive ? const Color(0xff102438) : colors.surface,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: colors.outlineVariant.withValues(alpha: .3),
-          ),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: .06),
-              blurRadius: 24,
-              offset: const Offset(0, 6),
+              color: BrandColors.night.withValues(alpha: .04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+            BoxShadow(
+              color: BrandColors.logoBlue.withValues(alpha: .16),
+              blurRadius: 40,
+              offset: const Offset(0, 18),
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Row(
-            children: List.generate(5, (i) {
-              final active = i == selectedIndex;
-              final center = hasReels && i == 2;
-              final color = immersive
-                  ? active
-                        ? const Color(0xff9abaff)
-                        : Colors.white70
-                  : active
-                  ? colors.primary
-                  : colors.onSurfaceVariant;
-              return Expanded(
-                child: Semantics(
-                  button: true,
-                  selected: active,
-                  label: labels[i],
-                  excludeSemantics: true,
-                  child: Tooltip(
-                    message: labels[i],
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(22),
-                      onTap: () => onSelected(i),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              width: center ? 50 : 44,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                gradient: center
-                                    ? const LinearGradient(
-                                        colors: [
-                                          Color(0xff1d5bf0),
-                                          Color(0xff6a5ef2),
-                                        ],
-                                      )
-                                    : null,
-                                color: !center && active
-                                    ? colors.primary.withValues(alpha: .1)
-                                    : null,
-                                borderRadius: BorderRadius.circular(
-                                  center ? 13 : 12,
-                                ),
-                              ),
-                              child: Icon(
-                                active ? selected[i] : icons[i],
-                                size: center ? 29 : 24,
-                                color: center ? Colors.white : color,
-                              ),
+        child: BrandGlass(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: b.line),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: Row(
+                children: List.generate(5, (i) {
+                  final active = i == selectedIndex;
+                  return Expanded(
+                    child: Semantics(
+                      button: true,
+                      selected: active,
+                      label: labels[i],
+                      excludeSemantics: true,
+                      child: Tooltip(
+                        message: labels[i],
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => onSelected(i),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              minHeight: 64,
+                              minWidth: 44,
                             ),
-                            const SizedBox(height: 5),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 3,
-                              ),
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  labels[i],
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: color,
-                                    fontWeight: active
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                AnimatedContainer(
+                                  duration: BrandMotion.duration(context),
+                                  curve: BrandMotion.curve,
+                                  transform: Matrix4.translationValues(
+                                    0,
+                                    active ? -6 : 0,
+                                    0,
+                                  ),
+                                  width: 40,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    gradient: active
+                                        ? const LinearGradient(
+                                            begin: Alignment.topRight,
+                                            end: Alignment.bottomLeft,
+                                            colors: [
+                                              BrandColors.navStart,
+                                              BrandColors.navEnd,
+                                            ],
+                                          )
+                                        : null,
+                                    boxShadow: active
+                                        ? [
+                                            BoxShadow(
+                                              color: BrandColors.logoBlue
+                                                  .withValues(alpha: .16),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Icon(
+                                    icons[i],
+                                    size: 20,
+                                    color: active ? BrandColors.white : b.muted,
                                   ),
                                 ),
-                              ),
+                                const SizedBox(height: 4),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 3,
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      labels[i],
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        fontFamily: 'IBM Plex Sans Arabic',
+                                        fontSize: 12,
+                                        color: active ? b.primary : b.muted,
+                                        fontWeight: active
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            }),
+                  );
+                }),
+              ),
+            ),
           ),
         ),
       ),
@@ -312,7 +334,10 @@ class HomePage extends StatelessWidget {
       : open(
           context,
           Scaffold(
-            appBar: AppBar(title: const Text('الكورسات')),
+            appBar: AppBar(
+              flexibleSpace: const BrandHeader(),
+              title: const Text('الكورسات'),
+            ),
             body: CoursesPage(api: api),
           ),
         );
@@ -348,7 +373,7 @@ class HomePage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'أهلاً بعودتك 👋',
+                      'أهلاً بعودتك',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 4),
@@ -378,11 +403,11 @@ class HomePage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(24),
               gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [Color(0xff1648c4), Color(0xff1d5bf0)],
+                colors: [BrandColors.logoBlue, BrandColors.logoCyan],
               ),
             ),
             child: Column(
@@ -391,14 +416,14 @@ class HomePage extends StatelessWidget {
                 const Row(
                   children: [
                     Icon(
-                      Icons.auto_awesome_outlined,
+                      AppIcons.autoAwesomeOutlined,
                       size: 18,
-                      color: Color(0xffdce8ff),
+                      color: BrandColors.primaryTintFixed,
                     ),
                     SizedBox(width: 7),
                     Text(
                       'كل خطوة بتفرق',
-                      style: TextStyle(color: Color(0xffdce8ff)),
+                      style: TextStyle(color: BrandColors.primaryTintFixed),
                     ),
                   ],
                 ),
@@ -410,8 +435,9 @@ class HomePage extends StatelessWidget {
                       ? 'فهم أعمق.\nوثقة في اللي جاي.'
                       : 'وقت أكتر للتدريس.\nوتفاصيل تحت السيطرة.',
                   style: const TextStyle(
+                    fontFamily: 'Alexandria',
                     fontSize: 27,
-                    color: Colors.white,
+                    color: BrandColors.white,
                     fontWeight: FontWeight.bold,
                     height: 1.4,
                   ),
@@ -423,16 +449,19 @@ class HomePage extends StatelessWidget {
                       : api.student
                       ? 'شرحك وتدريبك ومواعيدك، مترتبين على راحتك.'
                       : 'تابع طلابك، جهّز محتواك، ونظّم يومك.',
-                  style: const TextStyle(color: Colors.white70, height: 1.5),
+                  style: const TextStyle(
+                    color: BrandColors.whiteMuted,
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xffdce8ff),
-                    foregroundColor: const Color(0xff1648c4),
+                    backgroundColor: BrandColors.primaryTintFixed,
+                    foregroundColor: BrandColors.primaryHoverFixed,
                   ),
                   onPressed: () => courses(context),
-                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                  icon: const Icon(AppIcons.arrowBackRounded, size: 18),
                   label: Text(
                     api.guardian
                         ? 'متابعة الكورسات'
@@ -462,7 +491,10 @@ class HomePage extends StatelessWidget {
                     () => open(
                       context,
                       Scaffold(
-                        appBar: AppBar(title: const Text('الحصص')),
+                        appBar: AppBar(
+                          flexibleSpace: const BrandHeader(),
+                          title: const Text('الحصص'),
+                        ),
                         body: SessionsPage(api: api),
                       ),
                     ),
@@ -471,7 +503,7 @@ class HomePage extends StatelessWidget {
             ],
           ),
           if (next.isNotEmpty)
-            Card(
+            BrandCard(
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Row(
@@ -484,7 +516,7 @@ class HomePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(
-                        Icons.calendar_month_outlined,
+                        AppIcons.calendarMonthOutlined,
                         color: colors.onSecondaryContainer,
                         size: 28,
                       ),
@@ -516,12 +548,12 @@ class HomePage extends StatelessWidget {
               ),
             )
           else
-            Card(
+            BrandCard(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    const Icon(Icons.event_available_outlined, size: 28),
+                    const Icon(AppIcons.eventAvailableOutlined, size: 28),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(
@@ -551,8 +583,8 @@ class HomePage extends StatelessWidget {
                       ? '${d['attendancePercent'] ?? '—'}٪'
                       : '${d['activeStudents'] ?? 0}',
                   api.student
-                      ? Icons.how_to_reg_outlined
-                      : Icons.groups_outlined,
+                      ? AppIcons.howToRegOutlined
+                      : AppIcons.groupsOutlined,
                 ),
               ),
               const SizedBox(width: 12),
@@ -563,8 +595,8 @@ class HomePage extends StatelessWidget {
                       ? '${d['averageScore'] ?? '—'}'
                       : '${obj(d['sessionsToday'])['total'] ?? 0}',
                   api.student
-                      ? Icons.insights_outlined
-                      : Icons.calendar_today_outlined,
+                      ? AppIcons.insightsOutlined
+                      : AppIcons.calendarTodayOutlined,
                 ),
               ),
             ],
@@ -583,7 +615,7 @@ class HomePage extends StatelessWidget {
                 _HomeAction(
                   title: api.student ? 'كورساتي' : 'محتواي',
                   subtitle: 'تعلم بخطة واضحة',
-                  icon: Icons.auto_stories_outlined,
+                  icon: AppIcons.autoStoriesOutlined,
                   onTap: () => courses(context),
                 ),
                 _HomeAction(
@@ -591,13 +623,16 @@ class HomePage extends StatelessWidget {
                   subtitle: api.student
                       ? 'مواعيدك وحضورك'
                       : 'الجدول وتسجيل الحضور',
-                  icon: Icons.calendar_month_outlined,
+                  icon: AppIcons.calendarMonthOutlined,
                   onTap:
                       onSessions ??
                       () => open(
                         context,
                         Scaffold(
-                          appBar: AppBar(title: const Text('الحصص')),
+                          appBar: AppBar(
+                            flexibleSpace: const BrandHeader(),
+                            title: const Text('الحصص'),
+                          ),
                           body: SessionsPage(api: api),
                         ),
                       ),
@@ -608,27 +643,27 @@ class HomePage extends StatelessWidget {
                     subtitle: api.student
                         ? 'سلّم وراجع ملاحظاتك'
                         : 'التسليمات والتصحيح',
-                    icon: Icons.assignment_outlined,
+                    icon: AppIcons.assignmentOutlined,
                     onTap: () => open(context, AssignmentsPage(api: api)),
                   ),
                 if (api.student && !api.guardian)
                   _HomeAction(
                     title: 'الاختبارات',
                     subtitle: 'اختبر فهمك وتابع نتيجتك',
-                    icon: Icons.quiz_outlined,
+                    icon: AppIcons.quizOutlined,
                     onTap: () => open(
                       context,
                       PageViewList(
                         api: api,
                         path: '/portal/exams',
                         title: 'الاختبارات',
-                        item: (e) => Card(
+                        item: (e) => BrandCard(
                           child: ListTile(
                             title: Text(label(e)),
                             subtitle: Text(
                               'الإغلاق: ${when(e['closesAtUtc'])}',
                             ),
-                            trailing: const Icon(Icons.chevron_left),
+                            trailing: const Icon(AppIcons.chevronLeft),
                             onTap: () => open(
                               context,
                               QuizPage(
@@ -646,7 +681,7 @@ class HomePage extends StatelessWidget {
                   _HomeAction(
                     title: 'مجموعاتي',
                     subtitle: 'طلابك ومتابعة مستواهم',
-                    icon: Icons.groups_outlined,
+                    icon: AppIcons.groupsOutlined,
                     onTap: () => open(context, GroupsPage(api: api)),
                   ),
               ];
@@ -665,13 +700,13 @@ class HomePage extends StatelessWidget {
             },
           ),
           if (api.student)
-            Card(
+            BrandCard(
               child: ListTile(
                 contentPadding: const EdgeInsets.all(18),
-                leading: const Icon(Icons.account_balance_wallet_outlined),
+                leading: const Icon(AppIcons.accountBalanceWalletOutlined),
                 title: const Text('المستحقات الحالية'),
-                subtitle: Text('${obj(d['balance'])['totalDue'] ?? 0} ج.م'),
-                trailing: const Icon(Icons.chevron_left),
+                subtitle: Text(money(obj(d['balance'])['totalDue'] ?? 0)),
+                trailing: const Icon(AppIcons.chevronLeft),
                 onTap: () => open(context, PaymentsPage(api: api)),
               ),
             ),
@@ -692,9 +727,9 @@ class _HomeAction extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) => BrandCard(
     child: InkWell(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -742,11 +777,11 @@ class AccountPage extends StatelessWidget {
   final VoidCallback onTheme;
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
+    padding: const EdgeInsets.all(16),
     children: [
       const CircleAvatar(
         radius: 40,
-        child: Icon(Icons.person_outline, size: 44),
+        child: Icon(AppIcons.personOutline, size: 44),
       ),
       const SizedBox(height: 16),
       Center(
@@ -766,42 +801,42 @@ class AccountPage extends StatelessWidget {
       ),
       const SizedBox(height: 24),
       ListTile(
-        leading: const Icon(Icons.apartment),
+        leading: const Icon(AppIcons.apartment),
         title: const Text('السنتر'),
         subtitle: Text('${obj(api.session?['tenant'])['name'] ?? api.slug}'),
       ),
       ListTile(
-        leading: const Icon(Icons.dark_mode_outlined),
+        leading: const Icon(AppIcons.darkModeOutlined),
         title: const Text('تغيير المظهر'),
         onTap: onTheme,
       ),
       if (!api.guardian)
         ListTile(
-          leading: const Icon(Icons.chat_bubble_outline_rounded),
+          leading: const Icon(AppIcons.chatBubbleOutlineRounded),
           title: const Text('الرسائل'),
           onTap: () => open(context, ThreadsPage(api: api)),
         ),
       if (api.student)
         ListTile(
-          leading: const Icon(Icons.payments_outlined),
+          leading: const Icon(AppIcons.paymentsOutlined),
           title: const Text('المدفوعات والمستحقات'),
           onTap: () => open(context, PaymentsPage(api: api)),
         ),
       if (api.student && !api.guardian)
         ListTile(
-          leading: const Icon(Icons.qr_code),
+          leading: const Icon(AppIcons.qrCode),
           title: const Text('بطاقتي'),
           onTap: () => open(context, StudentCard(api: api)),
         ),
       if (api.student)
         ListTile(
-          leading: const Icon(Icons.swap_horiz_rounded),
+          leading: const Icon(AppIcons.swapHorizRounded),
           title: const Text('تغيير السنتر'),
           subtitle: const Text('أكد رقمك واختار من حساباتك المرتبطة'),
           onTap: () => action(context, api.logout),
         ),
       ListTile(
-        leading: const Icon(Icons.logout),
+        leading: const Icon(AppIcons.logout),
         title: const Text('تسجيل الخروج'),
         onTap: () async {
           if (await confirm(context, 'تسجيل الخروج من الحساب؟') &&
@@ -819,13 +854,16 @@ class StudentCard extends StatelessWidget {
   final Api api;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('بطاقة الطالب')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('بطاقة الطالب'),
+    ),
     body: AsyncPanel(
       load: () => api.get('/portal/card'),
       builder: (data, refresh) {
         final d = obj(data);
         return ListView(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(16),
           children: [
             Text(
               '${d['fullName']}',
@@ -841,7 +879,7 @@ class StudentCard extends StatelessWidget {
             if (d['qrToken'] != null)
               Center(
                 child: Container(
-                  color: Colors.white,
+                  color: BrandColors.white,
                   padding: const EdgeInsets.all(20),
                   child: QrImageView(data: '${d['qrToken']}', size: 240),
                 ),
@@ -897,9 +935,9 @@ class _ContinueLearningState extends State<ContinueLearning> {
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 14),
-          Card(
+          BrandCard(
             child: InkWell(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(20),
               onTap: () => open(
                 context,
                 CoursePage(api: widget.api, id: '${course['id']}'),
@@ -910,7 +948,7 @@ class _ContinueLearningState extends State<ContinueLearning> {
                   children: [
                     const CircleAvatar(
                       radius: 26,
-                      child: Icon(Icons.play_arrow_rounded, size: 32),
+                      child: Icon(AppIcons.playArrowRounded, size: 32),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -925,12 +963,12 @@ class _ContinueLearningState extends State<ContinueLearning> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'أنجزت ${course['progressPercent'] ?? 0}٪ • استكمل من آخر درس',
+                            'أنجزت ${arNumber(course['progressPercent'] ?? 0)}٪ • استكمل من آخر درس',
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_left_rounded),
+                    const Icon(AppIcons.chevronLeftRounded),
                   ],
                 ),
               ),

@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -30,7 +32,7 @@ class CourseCover extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [Color(0xff1648c4), Color(0xff1d5bf0)],
+          colors: [BrandColors.logoBlue, BrandColors.logoCyan],
         ),
       ),
       child: Stack(
@@ -43,7 +45,7 @@ class CourseCover extends StatelessWidget {
               height: 210,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white12, width: 35),
+                border: Border.all(color: BrandColors.whiteSubtle, width: 35),
               ),
             ),
           ),
@@ -51,9 +53,9 @@ class CourseCover extends StatelessWidget {
             left: 28,
             bottom: 24,
             child: Icon(
-              Icons.auto_stories_rounded,
+              AppIcons.autoStoriesRounded,
               size: 70,
-              color: Color(0xffdce8ff),
+              color: BrandColors.primaryTintFixed,
             ),
           ),
           Positioned(
@@ -63,7 +65,7 @@ class CourseCover extends StatelessWidget {
               'SENTRAK',
               textDirection: TextDirection.ltr,
               style: const TextStyle(
-                color: Colors.white70,
+                color: BrandColors.whiteMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 3,
@@ -173,7 +175,7 @@ class _CoursesPageState extends State<CoursesPage> {
                         if (mounted) setState(() => revision++);
                       },
                       tooltip: 'كورس جديد',
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(AppIcons.add),
                     ),
                 ],
               ),
@@ -186,12 +188,12 @@ class _CoursesPageState extends State<CoursesPage> {
                       ButtonSegment(
                         value: false,
                         label: Text('كورساتي'),
-                        icon: Icon(Icons.bookmark_outline),
+                        icon: Icon(AppIcons.bookmarkOutline),
                       ),
                       ButtonSegment(
                         value: true,
                         label: Text('اكتشف كورسات'),
-                        icon: Icon(Icons.explore_outlined),
+                        icon: Icon(AppIcons.exploreOutlined),
                       ),
                     ],
                     selected: {catalog},
@@ -209,7 +211,7 @@ class _CoursesPageState extends State<CoursesPage> {
                 onChanged: searchFor,
                 decoration: const InputDecoration(
                   hintText: 'ابحث باسم الكورس أو المدرس',
-                  prefixIcon: Icon(Icons.search_rounded),
+                  prefixIcon: Icon(AppIcons.searchRounded),
                 ),
               ),
               const SizedBox(height: 12),
@@ -314,7 +316,7 @@ class CourseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = CourseInfo(course), colors = Theme.of(context).colorScheme;
-    return Card(
+    return BrandCard(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -330,10 +332,10 @@ class CourseCard extends StatelessWidget {
                   child: Chip(
                     side: BorderSide.none,
                     backgroundColor: colors.surface,
-                    avatar: const Icon(Icons.auto_stories_outlined, size: 16),
+                    avatar: const Icon(AppIcons.autoStoriesOutlined, size: 16),
                     label: Text(
                       api.student
-                          ? '${c.lessonCount} درس'
+                          ? '${arNumber(c.lessonCount)} درس'
                           : CourseInfo.statusName(course['status']),
                     ),
                   ),
@@ -356,7 +358,7 @@ class CourseCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.person_outline_rounded, size: 18),
+                      const Icon(AppIcons.personOutlineRounded, size: 18),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -381,7 +383,7 @@ class CourseCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${c.progress.round()}٪',
+                          '${arNumber(c.progress.round())}٪',
                           style: TextStyle(
                             color: colors.primary,
                             fontWeight: FontWeight.bold,
@@ -411,7 +413,7 @@ class CourseCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const Icon(Icons.arrow_back_rounded, size: 20),
+                        const Icon(AppIcons.arrowBackRounded, size: 20),
                       ],
                     ),
                   ] else
@@ -421,14 +423,14 @@ class CourseCard extends StatelessWidget {
                           child: Text(
                             (course['price'] as num? ?? 0) == 0
                                 ? 'مجاني'
-                                : '${course['price']} ج.م',
+                                : money(course['price']),
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ),
-                        Text('${c.lessonCount} درس'),
+                        Text('${arNumber(c.lessonCount)} درس'),
                         const SizedBox(width: 8),
-                        const Icon(Icons.arrow_back_rounded, size: 20),
+                        const Icon(AppIcons.arrowBackRounded, size: 20),
                       ],
                     ),
                 ],
@@ -501,7 +503,10 @@ class _CoursePageState extends State<CoursePage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('مساحة الكورس')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('مساحة الكورس'),
+    ),
     body: AsyncPanel(
       load: load,
       builder: (value, refresh) {
@@ -534,7 +539,9 @@ class _CoursePageState extends State<CoursePage> {
                                     : CourseInfo.statusName(c['status']),
                               ),
                             ),
-                            Chip(label: Text('${info.lessonCount} درس')),
+                            Chip(
+                              label: Text('${arNumber(info.lessonCount)} درس'),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -558,10 +565,10 @@ class _CoursePageState extends State<CoursePage> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'أنجزت ${c['completedCount'] ?? 0} من ${info.lessonCount} درس',
+                                  'أنجزت ${arNumber(c['completedCount'] ?? 0)} من ${arNumber(info.lessonCount)} درس',
                                 ),
                               ),
-                              Text('${info.progress.round()}٪'),
+                              Text('${arNumber(info.progress.round())}٪'),
                             ],
                           ),
                           const SizedBox(height: 10),
@@ -601,7 +608,7 @@ class _CoursePageState extends State<CoursePage> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            '${info.sections.length} وحدات • ${info.lessonCount} درس',
+                            '${arNumber(info.sections.length)} وحدات • ${arNumber(info.lessonCount)} درس',
                           ),
                           const SizedBox(height: 16),
                           if (info.sections.isEmpty)
@@ -610,7 +617,7 @@ class _CoursePageState extends State<CoursePage> {
                                   'المنهج قيد الإعداد. سيظهر المحتوى هنا بمجرد إضافته.',
                             ),
                           for (final (index, section) in info.sections.indexed)
-                            Card(
+                            BrandCard(
                               child: ExpansionTile(
                                 tilePadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -644,16 +651,16 @@ class _CoursePageState extends State<CoursePage> {
                                           ),
                                       leading: Icon(
                                         l['status'] == 'Completed'
-                                            ? Icons.check_circle_rounded
+                                            ? AppIcons.checkCircleRounded
                                             : l['status'] == 'Locked'
-                                            ? Icons.lock_outline_rounded
+                                            ? AppIcons.lockOutlineRounded
                                             : l['type'] == 'Video'
-                                            ? Icons.play_circle_outline_rounded
+                                            ? AppIcons.playCircleOutlineRounded
                                             : l['type'] == 'Quiz'
-                                            ? Icons.quiz_outlined
-                                            : Icons.article_outlined,
+                                            ? AppIcons.quizOutlined
+                                            : AppIcons.articleOutlined,
                                         color: l['status'] == 'Completed'
-                                            ? const Color(0xff21816b)
+                                            ? BrandColors.successFixed
                                             : null,
                                       ),
                                       title: Text(label(l)),
@@ -670,7 +677,7 @@ class _CoursePageState extends State<CoursePage> {
                                             .join(' • '),
                                       ),
                                       trailing: const Icon(
-                                        Icons.chevron_left_rounded,
+                                        AppIcons.chevronLeftRounded,
                                       ),
                                       onTap: l['status'] == 'Locked'
                                           ? () => toast(
@@ -698,7 +705,7 @@ class _CoursePageState extends State<CoursePage> {
                                               );
                                               if (mounted) refresh();
                                             },
-                                            icon: const Icon(Icons.add),
+                                            icon: const Icon(AppIcons.add),
                                             label: const Text('درس جديد'),
                                           ),
                                           TextButton.icon(
@@ -715,7 +722,7 @@ class _CoursePageState extends State<CoursePage> {
                                               if (mounted) refresh();
                                             },
                                             icon: const Icon(
-                                              Icons.quiz_outlined,
+                                              AppIcons.quizOutlined,
                                             ),
                                             label: const Text('اختبار'),
                                           ),
@@ -755,7 +762,7 @@ class _CoursePageState extends State<CoursePage> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       const Icon(
-                                        Icons.check_circle_outline,
+                                        AppIcons.checkCircleOutline,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 10),
@@ -773,16 +780,16 @@ class _CoursePageState extends State<CoursePage> {
                         ],
                         if (tab == 2) ...[
                           if (api.student && enrolled)
-                            Card(
+                            BrandCard(
                               child: ListTile(
                                 leading: const Icon(
-                                  Icons.workspace_premium_outlined,
+                                  AppIcons.workspacePremiumOutlined,
                                 ),
                                 title: const Text('التقدم وشهادة الإتمام'),
                                 subtitle: const Text(
                                   'راجع الشروط وتابع إنجازك',
                                 ),
-                                trailing: const Icon(Icons.chevron_left),
+                                trailing: const Icon(AppIcons.chevronLeft),
                                 onTap: () => open(
                                   context,
                                   CertificatePage(
@@ -793,28 +800,28 @@ class _CoursePageState extends State<CoursePage> {
                               ),
                             ),
                           if (!api.student) ...[
-                            Card(
+                            BrandCard(
                               child: ListTile(
-                                leading: const Icon(Icons.image_outlined),
+                                leading: const Icon(AppIcons.imageOutlined),
                                 title: const Text('غلاف الكورس'),
                                 subtitle: const Text(
                                   'صورة واضحة تعبّر عن محتواك • حتى ٣ ميجابايت',
                                 ),
-                                trailing: const Icon(Icons.upload_outlined),
+                                trailing: const Icon(AppIcons.uploadOutlined),
                                 onTap: () => action(context, () async {
                                   await uploadCourseCover(api, c);
                                   if (mounted) refresh();
                                 }),
                               ),
                             ),
-                            Card(
+                            BrandCard(
                               child: ListTile(
-                                leading: const Icon(Icons.reorder_rounded),
+                                leading: const Icon(AppIcons.reorderRounded),
                                 title: const Text('تنظيم المنهج'),
                                 subtitle: const Text(
                                   'رتّب الوحدات والدروس في مسار واضح',
                                 ),
-                                trailing: const Icon(Icons.chevron_left),
+                                trailing: const Icon(AppIcons.chevronLeft),
                                 onTap: () async {
                                   await Navigator.push<void>(
                                     context,
@@ -828,14 +835,14 @@ class _CoursePageState extends State<CoursePage> {
                               ),
                             ),
 
-                            Card(
+                            BrandCard(
                               child: ListTile(
-                                leading: const Icon(Icons.tune_rounded),
+                                leading: const Icon(AppIcons.tuneRounded),
                                 title: const Text('بيانات الكورس وخطة الوصول'),
                                 subtitle: const Text(
                                   'الوصف والأهداف والمتطلبات والسعر',
                                 ),
-                                trailing: const Icon(Icons.chevron_left),
+                                trailing: const Icon(AppIcons.chevronLeft),
                                 onTap: () async {
                                   await Navigator.push<void>(
                                     context,
@@ -848,28 +855,28 @@ class _CoursePageState extends State<CoursePage> {
                                 },
                               ),
                             ),
-                            Card(
+                            BrandCard(
                               child: ListTile(
-                                leading: const Icon(Icons.insights_rounded),
+                                leading: const Icon(AppIcons.insightsRounded),
                                 title: const Text('تقدم الطلاب'),
                                 subtitle: const Text(
                                   'الإنجاز ومتوسط نتائج الاختبارات',
                                 ),
-                                trailing: const Icon(Icons.chevron_left),
+                                trailing: const Icon(AppIcons.chevronLeft),
                                 onTap: () => open(
                                   context,
                                   PageViewList(
                                     api: api,
                                     path: '/courses/${widget.id}/students',
                                     title: 'تقدم الطلاب',
-                                    item: (s) => Card(
+                                    item: (s) => BrandCard(
                                       child: ListTile(
                                         title: Text(label(s)),
                                         subtitle: Text(
                                           'أكمل ${s['completedLessons'] ?? 0} درس • متوسط الاختبارات ${s['quizAverage'] ?? '—'}',
                                         ),
                                         trailing: Text(
-                                          '${s['progressPercent'] ?? 0}٪',
+                                          '${arNumber(s['progressPercent'] ?? 0)}٪',
                                         ),
                                       ),
                                     ),
@@ -894,7 +901,7 @@ class _CoursePageState extends State<CoursePage> {
                                 );
                                 refresh();
                               }),
-                              icon: const Icon(Icons.add),
+                              icon: const Icon(AppIcons.add),
                               label: const Text('إضافة وحدة للمنهج'),
                             ),
                             if (c['status'] == 'Draft')
@@ -913,7 +920,7 @@ class _CoursePageState extends State<CoursePage> {
                                   );
                                   refresh();
                                 }),
-                                icon: const Icon(Icons.publish_outlined),
+                                icon: const Icon(AppIcons.publishOutlined),
                                 label: const Text('نشر الكورس'),
                               ),
                           ],
@@ -958,7 +965,7 @@ class _CoursePageState extends State<CoursePage> {
                                   ? 'انتهت صلاحية الوصول'
                                   : (c['price'] as num? ?? 0) == 0
                                   ? 'ابدأ مجاناً'
-                                  : '${c['price']} ج.م',
+                                  : money(c['price']),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
@@ -966,7 +973,7 @@ class _CoursePageState extends State<CoursePage> {
                             ),
                             Text(
                               canLearn
-                                  ? '${info.progress.round()}٪ من الرحلة'
+                                  ? '${arNumber(info.progress.round())}٪ من الرحلة'
                                   : CourseInfo.accessName(c['accessDuration']),
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
@@ -978,8 +985,8 @@ class _CoursePageState extends State<CoursePage> {
                         child: FilledButton.icon(
                           icon: Icon(
                             canLearn
-                                ? Icons.play_arrow_rounded
-                                : Icons.arrow_back_rounded,
+                                ? AppIcons.playArrowRounded
+                                : AppIcons.arrowBackRounded,
                           ),
                           label: Text(
                             joining
@@ -1066,14 +1073,14 @@ class TeacherProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final photo = '${course['teacherPhotoUrl'] ?? ''}';
     final bio = '${course['teacherBio'] ?? ''}'.trim();
-    return Card(
+    return BrandCard(
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         leading: ClipOval(
           child: photo.isEmpty
               ? const CircleAvatar(
                   radius: 27,
-                  child: Icon(Icons.person_outline_rounded),
+                  child: Icon(AppIcons.personOutlineRounded),
                 )
               : Image.network(
                   api.resolveUrl(photo).toString(),
@@ -1083,7 +1090,7 @@ class TeacherProfileCard extends StatelessWidget {
                   cacheWidth: 160,
                   errorBuilder: (_, error, stack) => const CircleAvatar(
                     radius: 27,
-                    child: Icon(Icons.person_outline_rounded),
+                    child: Icon(AppIcons.personOutlineRounded),
                   ),
                 ),
         ),

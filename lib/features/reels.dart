@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -238,24 +240,24 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
     String title, {
     String? subtitle,
     VoidCallback? retry,
-    String button = 'إعادة المحاولة',
+    String button = 'حاول تاني',
   }) => Center(
     child: SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(
-            Icons.video_collection_outlined,
+            AppIcons.videoCollectionOutlined,
             size: 48,
-            color: Colors.white70,
+            color: BrandColors.whiteMuted,
           ),
           const SizedBox(height: 16),
           Text(
             title,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white,
+              color: BrandColors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -265,7 +267,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70),
+              style: const TextStyle(color: BrandColors.whiteMuted),
             ),
           ],
           if (retry != null) ...[
@@ -279,11 +281,11 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => ColoredBox(
-    color: const Color(0xff07111f),
+    color: BrandColors.night,
     child: feed.items.isEmpty
         ? feed.loading
               ? const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+                  child: CircularProgressIndicator(color: BrandColors.white),
                 )
               : message(
                   feed.error != null
@@ -293,7 +295,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                       ? '${feed.error}'
                       : 'الفيديوهات التي يتيحها المدرس للمعاينة هتظهر هنا.',
                   retry: feed.error != null ? () => feed.loadMore() : refresh,
-                  button: feed.error != null ? 'إعادة المحاولة' : 'تحديث',
+                  button: feed.error != null ? 'حاول تاني' : 'تحديث',
                 )
         : PageView.builder(
             controller: pages,
@@ -310,7 +312,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
               if (i >= feed.items.length) {
                 if (feed.loading) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                    child: CircularProgressIndicator(color: BrandColors.white),
                   );
                 }
                 return message(
@@ -345,7 +347,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
               }
               if (!value.isInitialized) {
                 return const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+                  child: CircularProgressIndicator(color: BrandColors.white),
                 );
               }
               return Semantics(
@@ -369,14 +371,16 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                       if (!value.isPlaying)
                         const Center(
                           child: Icon(
-                            Icons.play_circle_fill_rounded,
+                            AppIcons.playCircleFillRounded,
                             size: 64,
-                            color: Colors.white70,
+                            color: BrandColors.whiteMuted,
                           ),
                         ),
                       if (value.isBuffering)
                         const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
+                          child: CircularProgressIndicator(
+                            color: BrandColors.white,
+                          ),
                         ),
                     ],
                   ),
@@ -385,7 +389,9 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
             },
           )
         else if (current && busy)
-          const Center(child: CircularProgressIndicator(color: Colors.white))
+          const Center(
+            child: CircularProgressIndicator(color: BrandColors.white),
+          )
         else if (current && error != null)
           message('$error', retry: schedule)
         else if (current && ['youtube', 'vimeo'].contains(video['kind']))
@@ -396,9 +402,9 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
         else
           const Center(
             child: Icon(
-              Icons.play_circle_outline_rounded,
+              AppIcons.playCircleOutlineRounded,
               size: 64,
-              color: Colors.white38,
+              color: BrandColors.whiteFaint,
             ),
           ),
         const Positioned.fill(
@@ -410,10 +416,10 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                   end: Alignment.bottomCenter,
                   stops: [0, .3, .55, 1],
                   colors: [
-                    Colors.black54,
-                    Colors.transparent,
-                    Colors.transparent,
-                    Colors.black87,
+                    BrandColors.nightOverlay,
+                    BrandColors.transparent,
+                    BrandColors.transparent,
+                    BrandColors.nightDense,
                   ],
                 ),
               ),
@@ -432,13 +438,13 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .14),
-                  borderRadius: BorderRadius.circular(30),
+                  color: BrandColors.white.withValues(alpha: .14),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: const Text(
                   'دروس مفتوحة',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: BrandColors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -455,8 +461,10 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                     );
                   },
                   icon: Icon(
-                    muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                    color: Colors.white,
+                    muted
+                        ? AppIcons.volumeOffRounded
+                        : AppIcons.volumeUpRounded,
+                    color: BrandColors.white,
                   ),
                 ),
             ],
@@ -470,7 +478,10 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
             child: IgnorePointer(
               child: Text(
                 '${video['watermarkText']}',
-                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                style: const TextStyle(
+                  color: BrandColors.whiteMuted,
+                  fontSize: 11,
+                ),
               ),
             ),
           ),
@@ -486,7 +497,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: BrandColors.white,
                   fontSize: 23,
                   height: 1.4,
                   fontWeight: FontWeight.bold,
@@ -500,27 +511,33 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                 ].where((s) => s.isNotEmpty).join(' • '),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white70, height: 1.4),
+                style: const TextStyle(
+                  color: BrandColors.whiteMuted,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 14),
               Row(
                 children: [
                   FilledButton.tonalIcon(
                     onPressed: () => goToCourse(reel),
-                    icon: const Icon(Icons.auto_stories_outlined, size: 18),
+                    icon: const Icon(AppIcons.autoStoriesOutlined, size: 18),
                     label: const Text('افتح الكورس'),
                   ),
                   const Spacer(),
                   const Icon(
-                    Icons.swipe_up_rounded,
+                    AppIcons.swipeUpRounded,
                     size: 20,
-                    color: Colors.white70,
+                    color: BrandColors.whiteMuted,
                   ),
                   const SizedBox(width: 6),
                   const Flexible(
                     child: Text(
                       'اسحب للمزيد',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      style: TextStyle(
+                        color: BrandColors.whiteMuted,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],

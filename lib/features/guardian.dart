@@ -1,3 +1,4 @@
+import '../core/app_icons.dart';
 import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/widgets.dart';
@@ -45,7 +46,7 @@ class _GuardianPortalState extends State<GuardianPortal> {
                   initialValue: '${selected['id']}',
                   decoration: const InputDecoration(
                     labelText: 'متابعة الطالب',
-                    prefixIcon: Icon(Icons.family_restroom_outlined),
+                    prefixIcon: Icon(AppIcons.familyRestroomOutlined),
                   ),
                   items: students
                       .map(

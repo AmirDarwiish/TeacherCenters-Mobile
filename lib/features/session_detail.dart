@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../core/api.dart';
@@ -49,7 +51,10 @@ class StudentSessionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('تفاصيل الحصة')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('تفاصيل الحصة'),
+    ),
     body: AsyncPanel(
       load: load,
       builder: (value, refresh) {
@@ -83,7 +88,7 @@ class StudentSessionPage extends StatelessWidget {
                   end: Alignment.bottomLeft,
                   colors: [colors.primaryContainer, colors.secondaryContainer],
                 ),
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(24),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,8 +100,8 @@ class StudentSessionPage extends StatelessWidget {
                       Chip(
                         avatar: Icon(
                           cancelled
-                              ? Icons.event_busy_outlined
-                              : Icons.schedule_outlined,
+                              ? AppIcons.eventBusyOutlined
+                              : AppIcons.scheduleOutlined,
                           size: 18,
                         ),
                         label: Text(sessionStatus(status)),
@@ -126,7 +131,7 @@ class StudentSessionPage extends StatelessWidget {
                         : DateFormat(
                             'EEEE، d MMMM y',
                             'ar',
-                          ).format(start.toLocal()),
+                          ).format(cairoDate(start)),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
@@ -136,13 +141,13 @@ class StudentSessionPage extends StatelessWidget {
                     children: [
                       if (start != null)
                         Text(
-                          'البداية ${DateFormat('h:mm a', 'ar').format(start.toLocal())}',
+                          'البداية ${arDigits(DateFormat('h:mm a', 'ar_EG').format(cairoDate(start)))}',
                         ),
                       if (end != null)
                         Text(
-                          'النهاية ${DateFormat('h:mm a', 'ar').format(end.toLocal())}',
+                          'النهاية ${arDigits(DateFormat('h:mm a', 'ar_EG').format(cairoDate(end)))}',
                         ),
-                      if (duration > 0) Text('$duration دقيقة'),
+                      if (duration > 0) Text('${arNumber(duration)} دقيقة'),
                     ],
                   ),
                 ],
@@ -154,7 +159,7 @@ class StudentSessionPage extends StatelessWidget {
               'حضورك في الحصة',
               'تابع حالتك وسجّل وجودك عند الوصول للسنتر',
             ),
-            Card(
+            BrandCard(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -166,14 +171,22 @@ class StudentSessionPage extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: colors.primaryContainer,
+                            color: attended || approved
+                                ? context.brand.successTint
+                                : pending
+                                ? context.brand.warningTint
+                                : context.brand.primaryTint,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Icon(
                             attended || approved
-                                ? Icons.check_circle_outline
-                                : Icons.fact_check_outlined,
-                            color: colors.primary,
+                                ? AppIcons.checkCircleOutline
+                                : AppIcons.factCheckOutlined,
+                            color: attended || approved
+                                ? context.brand.success
+                                : pending
+                                ? context.brand.warning
+                                : context.brand.primary,
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -234,7 +247,7 @@ class StudentSessionPage extends StatelessWidget {
                           );
                           if (context.mounted) refresh();
                         },
-                        icon: const Icon(Icons.pin_drop_outlined),
+                        icon: const Icon(AppIcons.pinDropOutlined),
                         label: const Text('تسجيل حضوري بالموقع والصورة'),
                       ),
                     ],
@@ -246,7 +259,7 @@ class StudentSessionPage extends StatelessWidget {
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
                         onPressed: () => open(context, StudentCard(api: api)),
-                        icon: const Icon(Icons.qr_code_rounded),
+                        icon: const Icon(AppIcons.qrCodeRounded),
                         label: const Text('اعرض بطاقة الحضور'),
                       ),
                     ],
@@ -260,45 +273,45 @@ class StudentSessionPage extends StatelessWidget {
               'الميعاد والمكان',
               'كل التفاصيل التي تحتاجها قبل الوصول',
             ),
-            Card(
+            BrandCard(
               child: Column(
                 children: [
                   if (s['teacherName'] != null)
                     _row(
-                      Icons.school_outlined,
+                      AppIcons.schoolOutlined,
                       'المدرس',
                       '${s['teacherName']}',
                     ),
                   if (s['gradeName'] != null)
                     _row(
-                      Icons.menu_book_outlined,
+                      AppIcons.menuBookOutlined,
                       'الصف الدراسي',
                       '${s['gradeName']}',
                     ),
                   _row(
-                    Icons.location_on_outlined,
+                    AppIcons.locationOnOutlined,
                     'الفرع',
                     '${s['branchName'] ?? 'لم يُحدد الفرع بعد'}',
                   ),
                   _row(
-                    Icons.meeting_room_outlined,
+                    AppIcons.meetingRoomOutlined,
                     'القاعة',
                     '${s['hallName'] ?? 'لم يحدد السنتر قاعة للعرض بعد'}',
                   ),
                   if (s['branchAddress'] != null)
                     _row(
-                      Icons.map_outlined,
+                      AppIcons.mapOutlined,
                       'العنوان',
                       '${s['branchAddress']}',
                     ),
                   _row(
-                    Icons.calendar_month_outlined,
+                    AppIcons.calendarMonthOutlined,
                     'بداية الحصة',
                     when(s['startsAtUtc']),
                   ),
                   if (end != null)
                     _row(
-                      Icons.schedule_outlined,
+                      AppIcons.scheduleOutlined,
                       'نهاية الحصة',
                       when(end.toIso8601String()),
                     ),
@@ -313,7 +326,7 @@ class StudentSessionPage extends StatelessWidget {
                 'عن الحصة',
                 'موضوع الحصة والتعليمات المتاحة لك',
               ),
-              Card(
+              BrandCard(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -343,12 +356,12 @@ class StudentSessionPage extends StatelessWidget {
               'النتائج المنشورة من المدرس لهذه الحصة',
             ),
             if (grades.isEmpty)
-              const Card(
+              const BrandCard(
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      Icon(Icons.assignment_outlined, size: 32),
+                      Icon(AppIcons.assignmentOutlined, size: 32),
                       SizedBox(height: 12),
                       Text(
                         'لا توجد نتائج منشورة حتى الآن',
@@ -364,12 +377,12 @@ class StudentSessionPage extends StatelessWidget {
                 ),
               ),
             for (final q in grades)
-              Card(
+              BrandCard(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Row(
                     children: [
-                      Icon(Icons.quiz_outlined, color: colors.primary),
+                      Icon(AppIcons.quizOutlined, color: colors.primary),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
@@ -382,7 +395,7 @@ class StudentSessionPage extends StatelessWidget {
                         child: Text(
                           q['score'] == null
                               ? 'لم تُنشر درجتك'
-                              : '${q['score']} / ${q['maxScore'] ?? '—'}',
+                              : '${arNumber(q['score'])} / ${arNumber(q['maxScore'])}',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),

@@ -1,15 +1,13 @@
+import 'brand.dart';
+import 'app_icons.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'format.dart';
+export 'format.dart';
 
 import 'api.dart';
 
-String when(dynamic value) {
-  final date = DateTime.tryParse('$value');
-  return date == null
-      ? '—'
-      : DateFormat('EEE d MMM · h:mm a', 'ar').format(date.toLocal());
-}
+String when(dynamic value) => cairoWhen(value);
 
 void open(BuildContext context, Widget child) =>
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => child));
@@ -96,7 +94,7 @@ class _AsyncPanelState extends State<AsyncPanel> {
     builder: (context, s) {
       void refresh() => setState(reload);
       if (s.connectionState != ConnectionState.done) {
-        return const Center(child: CircularProgressIndicator());
+        return const BrandLoading();
       }
       if (s.hasError) {
         return Center(
@@ -105,13 +103,13 @@ class _AsyncPanelState extends State<AsyncPanel> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.cloud_off_rounded, size: 48),
+                const Icon(AppIcons.cloudOffRounded, size: 48),
                 const SizedBox(height: 16),
                 Text('${s.error}', textAlign: TextAlign.center),
                 const SizedBox(height: 12),
                 FilledButton.tonal(
                   onPressed: refresh,
-                  child: const Text('إعادة المحاولة'),
+                  child: const Text('حاول تاني'),
                 ),
               ],
             ),
@@ -129,17 +127,65 @@ class _AsyncPanelState extends State<AsyncPanel> {
   );
 }
 
+class BrandLoading extends StatelessWidget {
+  const BrandLoading({super.key});
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'جارٍ تحميل المحتوى',
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final height in [40.0, 120.0, 120.0, 80.0])
+              Container(
+                height: height,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: context.brand.skeleton,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class Empty extends StatelessWidget {
-  const Empty({super.key, this.text = 'لا توجد بيانات لعرضها حالياً'});
-  final String text;
+  const Empty({
+    super.key,
+    this.text = 'مفيش بيانات لعرضها دلوقتي',
+    this.onAction,
+    this.actionLabel = 'تحديث',
+  });
+  final String text, actionLabel;
+  final VoidCallback? onAction;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(36),
+    padding: const EdgeInsets.all(24),
     child: Column(
       children: [
-        const Icon(Icons.inbox_outlined, size: 48),
-        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: context.brand.primaryTint,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Icon(
+            AppIcons.inboxOutlined,
+            size: 64,
+            color: context.brand.primary,
+          ),
+        ),
+        const SizedBox(height: 16),
         Text(text, textAlign: TextAlign.center),
+        if (onAction != null) ...[
+          const SizedBox(height: 16),
+          FilledButton(onPressed: onAction, child: Text(actionLabel)),
+        ],
       ],
     ),
   );
@@ -150,7 +196,7 @@ class Metric extends StatelessWidget {
   final String title, value;
   final IconData icon;
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) => BrandCard(
     child: Padding(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -158,7 +204,12 @@ class Metric extends StatelessWidget {
         children: [
           Icon(icon, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 12),
-          Text(value, style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            arNumber(value),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
           Text(title),
         ],
       ),
@@ -181,7 +232,7 @@ class PageViewList extends StatelessWidget {
   final Widget Function(Json) item;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
+    appBar: AppBar(flexibleSpace: const BrandHeader(), title: Text(title)),
     body: PagedList(api: api, path: path, query: query, item: item),
   );
 }
@@ -282,7 +333,8 @@ class _PagedListState extends State<PagedList> {
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         ...items.map(widget.item),
-        if (!busy && items.isEmpty && error == null) const Empty(),
+        if (!busy && items.isEmpty && error == null)
+          Empty(onAction: () => fetch(reset: true)),
         if (error != null)
           Padding(padding: const EdgeInsets.all(16), child: Text('$error')),
         if (busy)
@@ -295,7 +347,7 @@ class _PagedListState extends State<PagedList> {
         if (!busy && (more || error != null))
           TextButton(
             onPressed: fetch,
-            child: Text(error != null ? 'إعادة المحاولة' : 'عرض المزيد'),
+            child: Text(error != null ? 'حاول تاني' : 'عرض المزيد'),
           ),
       ],
     ),
@@ -343,7 +395,31 @@ class DetailFields extends StatelessWidget {
                           'Late': 'متأخر',
                         }[e.value] ??
                         '${e.value}')
+                  : [
+                      'phone',
+                      'email',
+                      'code',
+                      'receiptNumber',
+                      'kioskReference',
+                      'certificateNumber',
+                      'serialNumber',
+                    ].contains(e.key)
+                  ? '${e.value}'
+                  : e.value is num
+                  ? arNumber(e.value)
                   : '${e.value}',
+              textDirection:
+                  [
+                    'phone',
+                    'email',
+                    'code',
+                    'receiptNumber',
+                    'kioskReference',
+                    'certificateNumber',
+                    'serialNumber',
+                  ].contains(e.key)
+                  ? TextDirection.ltr
+                  : TextDirection.rtl,
             ),
           ),
         )

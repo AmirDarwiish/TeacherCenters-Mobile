@@ -1,4 +1,5 @@
 import 'api.dart';
+import 'format.dart';
 
 /// Presentation rules shared by library, course detail and tests.
 class CourseInfo {
@@ -46,7 +47,9 @@ class CourseInfo {
   static String duration(dynamic seconds) {
     final n = (seconds as num? ?? 0).toInt();
     if (n <= 0) return '';
-    return n < 60 ? '$n ثانية' : '${(n / 60).ceil()} دقيقة';
+    return n < 60
+        ? '${arNumber(n)} ثانية'
+        : '${arNumber((n / 60).ceil())} دقيقة';
   }
 
   static String accessName(dynamic value) =>

@@ -1,17 +1,18 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 
 import '../core/api.dart';
 import '../core/widgets.dart';
 import 'courses.dart';
 
-String money(dynamic amount) =>
-    '${NumberFormat('#,##0.##', 'ar').format(amount is num ? amount : 0)} ج.م';
+export '../core/format.dart' show money;
+
 String paymentMethod(String value) =>
     const {
       'Card': 'بطاقة بنكية',
@@ -54,7 +55,10 @@ class _PaymentsPageState extends State<PaymentsPage> {
   String filter = 'غير المسددة';
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('حسابي المالي')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('حسابي المالي'),
+    ),
     body: AsyncPanel(
       load: () async {
         final id = await portalPayer(widget.api);
@@ -99,14 +103,14 @@ class _PaymentsPageState extends State<PaymentsPage> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: colors.primary,
-                      borderRadius: BorderRadius.circular(26),
+                      borderRadius: BorderRadius.circular(24),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +154,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                         studentId: '${root['studentId']}',
                       ),
                     ),
-                    icon: const Icon(Icons.receipt_long_outlined),
+                    icon: const Icon(AppIcons.receiptLongOutlined),
                     label: const Text('سجل عمليات الدفع'),
                   ),
                   const SizedBox(height: 20),
@@ -205,7 +209,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                           : 'لا توجد بنود في هذا القسم.',
                     ),
                   for (final c in visible)
-                    Card(
+                    BrandCard(
                       child: Padding(
                         padding: const EdgeInsets.all(18),
                         child: Column(
@@ -305,7 +309,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                                 );
                                 if (context.mounted) refresh();
                               },
-                        icon: const Icon(Icons.lock_outline),
+                        icon: const Icon(AppIcons.lockOutline),
                         label: const Text('سداد المحدد'),
                       ),
                     ],
@@ -341,13 +345,13 @@ class PaymentHistoryPage extends StatelessWidget {
     path: '/portal/payments',
     query: {'studentId': studentId},
     title: 'سجل عمليات الدفع',
-    item: (p) => Card(
+    item: (p) => BrandCard(
       child: ListTile(
         contentPadding: const EdgeInsets.all(18),
         leading: Icon(
           p['status'] == 'Paid'
-              ? Icons.check_circle_outline
-              : Icons.receipt_long_outlined,
+              ? AppIcons.checkCircleOutline
+              : AppIcons.receiptLongOutlined,
         ),
         title: Text(
           money(p['amount']),
@@ -356,7 +360,7 @@ class PaymentHistoryPage extends StatelessWidget {
         subtitle: Text(
           '${paymentState(p['status'])} • ${paymentMethod('${p['method']}')}\n${when(p['createdAt'])}',
         ),
-        trailing: const Icon(Icons.chevron_left),
+        trailing: const Icon(AppIcons.chevronLeft),
         onTap: () =>
             open(context, PaymentStatusPage(api: api, id: '${p['id']}')),
       ),
@@ -423,7 +427,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget build(BuildContext context) => PopScope(
     canPop: !busy,
     child: Scaffold(
-      appBar: AppBar(title: const Text('مراجعة الدفع')),
+      appBar: AppBar(
+        flexibleSpace: const BrandHeader(),
+        title: const Text('مراجعة الدفع'),
+      ),
       body: AsyncPanel(
         load: load,
         builder: (data, refresh) {
@@ -443,7 +450,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 )
               : detail['price'] as num? ?? 0;
           return ListView(
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.all(16),
             children: [
               Text(
                 'راجع طلبك قبل الدفع',
@@ -456,7 +463,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 'اختر وسيلة مناسبة ليك. تقدر تراجع حالة العملية لما ترجع للتطبيق.',
               ),
               const SizedBox(height: 22),
-              Card(
+              BrandCard(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -512,14 +519,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
                 const SizedBox(height: 12),
                 for (final m in methods)
-                  Card(
+                  BrandCard(
                     child: ListTile(
                       leading: Icon(
                         m == 'Card'
-                            ? Icons.credit_card
+                            ? AppIcons.creditCard
                             : m == 'Wallet'
-                            ? Icons.account_balance_wallet_outlined
-                            : Icons.qr_code_rounded,
+                            ? AppIcons.accountBalanceWalletOutlined
+                            : AppIcons.qrCodeRounded,
                       ),
                       title: Text(paymentMethod(m)),
                       subtitle: Text(
@@ -531,8 +538,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       ),
                       trailing: Icon(
                         method == m
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_off,
+                            ? AppIcons.radioButtonChecked
+                            : AppIcons.radioButtonOff,
                         color: method == m
                             ? Theme.of(context).colorScheme.primary
                             : null,
@@ -563,7 +570,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   onPressed: busy || method == null
                       ? null
                       : () => checkout(root),
-                  icon: const Icon(Icons.lock_outline_rounded),
+                  icon: const Icon(AppIcons.lockOutlineRounded),
                   label: Text(busy ? 'جارٍ تجهيز العملية…' : 'المتابعة للدفع'),
                 ),
               ],
@@ -703,30 +710,37 @@ class _PaymentStatusPageState extends State<PaymentStatusPage>
         colors = Theme.of(context).colorScheme;
     final expiry = DateTime.tryParse('${p['expiresAt']}');
     return Scaffold(
-      appBar: AppBar(title: const Text('متابعة عملية الدفع')),
+      appBar: AppBar(
+        flexibleSpace: const BrandHeader(),
+        title: const Text('متابعة عملية الدفع'),
+      ),
       body: payment == null && fetching
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               children: [
                 Container(
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
                     color: success
-                        ? colors.primaryContainer
+                        ? context.brand.successTint
                         : colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(26),
+                    borderRadius: BorderRadius.circular(24),
                   ),
                   child: Column(
                     children: [
                       Icon(
                         success
-                            ? Icons.check_circle_rounded
+                            ? AppIcons.checkCircleRounded
                             : terminal
-                            ? Icons.info_outline_rounded
-                            : Icons.hourglass_top_rounded,
+                            ? AppIcons.infoOutlineRounded
+                            : AppIcons.hourglassTopRounded,
                         size: 65,
-                        color: colors.primary,
+                        color: success
+                            ? context.brand.success
+                            : terminal
+                            ? context.brand.danger
+                            : context.brand.warning,
                       ),
                       const SizedBox(height: 20),
                       Text(
@@ -756,7 +770,7 @@ class _PaymentStatusPageState extends State<PaymentStatusPage>
                 ),
                 const SizedBox(height: 20),
                 if (error != null)
-                  Card(
+                  BrandCard(
                     child: Padding(
                       padding: const EdgeInsets.all(18),
                       child: Text('$error'),
@@ -764,24 +778,25 @@ class _PaymentStatusPageState extends State<PaymentStatusPage>
                   ),
                 if (p['method'] != null)
                   ListTile(
-                    leading: const Icon(Icons.payments_outlined),
+                    leading: const Icon(AppIcons.paymentsOutlined),
                     title: const Text('وسيلة الدفع'),
                     subtitle: Text(paymentMethod('${p['method']}')),
                   ),
                 if (p['receiptNumber'] != null)
                   ListTile(
-                    leading: const Icon(Icons.receipt_long_outlined),
+                    leading: const Icon(AppIcons.receiptLongOutlined),
                     title: const Text('رقم الإيصال'),
                     subtitle: SelectableText('${p['receiptNumber']}'),
                   ),
                 if (p['kioskReference'] != null)
-                  Card(
+                  BrandCard(
                     child: ListTile(
-                      leading: const Icon(Icons.qr_code_rounded),
+                      leading: const Icon(AppIcons.qrCodeRounded),
                       title: const Text('كود السداد'),
                       subtitle: SelectableText(
                         '${p['kioskReference']}',
                         style: const TextStyle(
+                          fontFamily: 'Alexandria',
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
@@ -791,18 +806,18 @@ class _PaymentStatusPageState extends State<PaymentStatusPage>
                         onPressed: () => Clipboard.setData(
                           ClipboardData(text: '${p['kioskReference']}'),
                         ),
-                        icon: const Icon(Icons.copy),
+                        icon: const Icon(AppIcons.copy),
                       ),
                     ),
                   ),
                 if (expiry != null)
                   ListTile(
-                    leading: const Icon(Icons.schedule_outlined),
+                    leading: const Icon(AppIcons.scheduleOutlined),
                     title: const Text('مهلة الدفع'),
                     subtitle: Text(when(p['expiresAt'])),
                   ),
                 if (p['failureReason'] != null)
-                  Card(
+                  BrandCard(
                     child: Padding(
                       padding: const EdgeInsets.all(18),
                       child: Text('${p['failureReason']}'),
@@ -816,13 +831,13 @@ class _PaymentStatusPageState extends State<PaymentStatusPage>
                       context,
                       () => launchResource(widget.api, widget.checkoutUrl!),
                     ),
-                    icon: const Icon(Icons.open_in_new),
+                    icon: const Icon(AppIcons.openInNew),
                     label: const Text('فتح صفحة الدفع'),
                   ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: fetching ? null : refresh,
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(AppIcons.refresh),
                   label: Text(
                     fetching ? 'جارٍ التحديث…' : 'تحديث حالة العملية',
                   ),

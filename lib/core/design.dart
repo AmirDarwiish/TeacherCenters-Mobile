@@ -1,110 +1,250 @@
 import 'package:flutter/material.dart';
+import 'brand.dart';
+import 'app_icons.dart';
+export 'brand.dart';
 
-/// Shared visual language. Semantic colors keep contrast in both themes.
 ThemeData appTheme(Brightness brightness) {
-  final dark = brightness == Brightness.dark;
-  final colors = ColorScheme.fromSeed(
-    seedColor: const Color(0xff1d5bf0),
+  final b = brightness == Brightness.dark
+      ? BrandColors.dark
+      : BrandColors.light;
+  final colors = ColorScheme(
     brightness: brightness,
-    primary: dark ? const Color(0xff9abaff) : const Color(0xff1d5bf0),
-    surface: dark ? const Color(0xff102438) : Colors.white,
+    primary: b.primary,
+    onPrimary: b.primaryInk,
+    primaryContainer: b.primaryTint,
+    onPrimaryContainer: b.ink,
+    secondary: b.cyanDeep,
+    onSecondary: b.primaryInk,
+    secondaryContainer: b.cyanTint,
+    onSecondaryContainer: b.cyanDeep,
+    tertiary: b.success,
+    onTertiary: b.primaryInk,
+    tertiaryContainer: b.successTint,
+    onTertiaryContainer: b.success,
+    error: b.danger,
+    onError: b.primaryInk,
+    errorContainer: b.dangerTint,
+    onErrorContainer: b.danger,
+    surface: b.surface,
+    onSurface: b.ink,
+    onSurfaceVariant: b.muted,
+    outline: b.line,
+    outlineVariant: b.line,
+    shadow: BrandColors.night,
+    scrim: b.overlay,
+    surfaceTint: b.surface,
+    surfaceContainerLowest: b.bg,
+    surfaceContainerLow: b.bg,
+    surfaceContainer: b.surface,
+    surfaceContainerHigh: b.primaryTint,
+    surfaceContainerHighest: b.skeleton,
   );
-  final base = ThemeData(
-    useMaterial3: true,
-    fontFamily: 'Tajawal',
-    colorScheme: colors,
-    brightness: brightness,
+  const heading = TextStyle(
+    fontFamily: 'Alexandria',
+    fontWeight: FontWeight.w700,
+    fontSize: 24,
+    height: 1.25,
   );
-  return base.copyWith(
-    scaffoldBackgroundColor: dark
-        ? const Color(0xff081827)
-        : const Color(0xfff4f7fc),
-    textTheme: base.textTheme.apply(
-      bodyColor: dark ? const Color(0xffe6eef7) : const Color(0xff0b2540),
-      displayColor: dark ? const Color(0xffe6eef7) : const Color(0xff0b2540),
+  const section = TextStyle(
+    fontFamily: 'Alexandria',
+    fontWeight: FontWeight.w600,
+    fontSize: 18,
+    height: 1.25,
+  );
+  const body = TextStyle(
+    fontFamily: 'IBM Plex Sans Arabic',
+    fontFeatures: [FontFeature.tabularFigures()],
+    fontWeight: FontWeight.w400,
+    fontSize: 16,
+    height: 1.5,
+  );
+  const small = TextStyle(
+    fontFamily: 'IBM Plex Sans Arabic',
+    fontWeight: FontWeight.w500,
+    fontSize: 14,
+    height: 1.5,
+  );
+  const hint = TextStyle(
+    fontFamily: 'IBM Plex Sans Arabic',
+    fontWeight: FontWeight.w500,
+    fontSize: 12,
+    height: 1.5,
+  );
+  final text = TextTheme(
+    displayLarge: heading,
+    displayMedium: heading,
+    displaySmall: heading,
+    headlineLarge: heading,
+    headlineMedium: heading,
+    headlineSmall: heading,
+    titleLarge: section,
+    titleMedium: section,
+    titleSmall: small.copyWith(fontWeight: FontWeight.w600),
+    bodyLarge: body,
+    bodyMedium: body,
+    bodySmall: hint,
+    labelLarge: small,
+    labelMedium: hint,
+    labelSmall: hint,
+  ).apply(bodyColor: b.ink, displayColor: b.ink);
+  final border = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(16),
+    borderSide: BorderSide(color: b.line),
+  );
+  final button = ButtonStyle(
+    minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
+    padding: const WidgetStatePropertyAll(
+      EdgeInsets.symmetric(horizontal: 20, vertical: 12),
     ),
+    shape: WidgetStatePropertyAll(
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+    textStyle: const WidgetStatePropertyAll(small),
+    animationDuration: const Duration(milliseconds: 150),
+    mouseCursor: WidgetStateProperty.resolveWith(
+      (s) => s.contains(WidgetState.disabled)
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
+    ),
+  );
+  return ThemeData(
+    useMaterial3: true,
+    brightness: brightness,
+    colorScheme: colors,
+    extensions: [b],
+    actionIconTheme: ActionIconThemeData(
+      backButtonIconBuilder: (context) => const Icon(AppIcons.arrowBackRounded),
+      closeButtonIconBuilder: (_) => const Icon(AppIcons.close),
+      drawerButtonIconBuilder: (_) => const Icon(AppIcons.menu),
+      endDrawerButtonIconBuilder: (_) => const Icon(AppIcons.menu),
+    ),
+    fontFamily: 'IBM Plex Sans Arabic',
+    textTheme: text,
+    scaffoldBackgroundColor: b.bg,
+    canvasColor: b.surface,
+    disabledColor: b.muted.withValues(alpha: .55),
+    iconTheme: IconThemeData(size: 20, color: b.muted),
+    primaryIconTheme: IconThemeData(size: 20, color: b.primaryInk),
+    dividerTheme: DividerThemeData(color: b.line, thickness: 1),
     appBarTheme: AppBarTheme(
-      backgroundColor: dark ? const Color(0xff081827) : const Color(0xfff4f7fc),
-      centerTitle: false,
+      backgroundColor: b.glass,
+      foregroundColor: b.ink,
       scrolledUnderElevation: 0,
-      titleTextStyle: TextStyle(
-        fontFamily: 'Tajawal',
-        fontSize: 21,
-        fontWeight: FontWeight.bold,
-        color: colors.onSurface,
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: heading.copyWith(color: b.ink),
+      iconTheme: IconThemeData(size: 20, color: b.muted),
+    ),
+    cardTheme: CardThemeData(
+      color: b.surface,
+      surfaceTintColor: b.surface,
+      elevation: 1,
+      shadowColor: BrandColors.night.withValues(alpha: .06),
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: b.line),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: colors.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: colors.outlineVariant),
+      fillColor: b.surface,
+      contentPadding: const EdgeInsetsDirectional.symmetric(
+        horizontal: 16,
+        vertical: 12,
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: colors.outlineVariant.withValues(alpha: .5),
-        ),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: border.copyWith(
+        borderSide: BorderSide(color: b.primary, width: 2),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: colors.primary, width: 1.5),
+      errorBorder: border.copyWith(borderSide: BorderSide(color: b.danger)),
+      focusedErrorBorder: border.copyWith(
+        borderSide: BorderSide(color: b.danger, width: 2),
       ),
-    ),
-    cardTheme: CardThemeData(
-      color: colors.surface,
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: colors.outlineVariant.withValues(alpha: .35)),
-      ),
-    ),
-    chipTheme: base.chipTheme.copyWith(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      side: BorderSide.none,
-    ),
-    dividerTheme: DividerThemeData(
-      color: colors.outlineVariant.withValues(alpha: .5),
-    ),
-    navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: colors.surface,
-      elevation: 0,
-      indicatorColor: colors.primaryContainer,
-      height: 76,
-      labelTextStyle: WidgetStateProperty.resolveWith(
-        (states) => TextStyle(
-          fontFamily: 'Tajawal',
-          fontSize: 12,
-          fontWeight: states.contains(WidgetState.selected)
-              ? FontWeight.bold
-              : FontWeight.normal,
-        ),
-      ),
+      disabledBorder: border,
+      hintStyle: body.copyWith(color: b.muted.withValues(alpha: .7)),
+      errorStyle: hint.copyWith(color: b.danger),
+      labelStyle: small.copyWith(color: b.muted),
+      floatingLabelBehavior: FloatingLabelBehavior.always,
     ),
     filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(48, 50),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        textStyle: const TextStyle(
-          fontFamily: 'Tajawal',
-          fontSize: 15,
-          fontWeight: FontWeight.bold,
+      style: button.copyWith(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.disabled)
+              ? b.primary.withValues(alpha: .55)
+              : s.contains(WidgetState.pressed)
+              ? b.primaryHover
+              : b.primary,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        foregroundColor: WidgetStatePropertyAll(b.primaryInk),
+        elevation: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.pressed) ? 2 : 0,
+        ),
+        shadowColor: WidgetStatePropertyAll(b.primary.withValues(alpha: .16)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(48, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      style: button.copyWith(
+        foregroundColor: WidgetStatePropertyAll(b.ink),
+        side: WidgetStateProperty.resolveWith(
+          (s) => BorderSide(
+            color: s.contains(WidgetState.pressed) ? b.cyan : b.line,
+          ),
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: button.copyWith(foregroundColor: WidgetStatePropertyAll(b.muted)),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        minimumSize: const Size(44, 44),
+        iconSize: 20,
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: b.primaryTint,
+      selectedColor: b.primaryTint,
+      labelStyle: hint.copyWith(color: b.primary),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      side: BorderSide.none,
+      shape: const StadiumBorder(),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      selectedIcon: const Icon(AppIcons.check),
+    ),
+    tabBarTheme: TabBarThemeData(
+      labelColor: b.primary,
+      unselectedLabelColor: b.muted,
+      labelStyle: small,
+      unselectedLabelStyle: small,
+      indicator: BoxDecoration(
+        color: b.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      indicatorSize: TabBarIndicatorSize.tab,
+      dividerColor: b.line,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: b.surface,
+      barrierColor: b.overlay,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: b.surface,
+      modalBarrierColor: b.overlay,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      backgroundColor: b.ink,
+      contentTextStyle: small.copyWith(color: b.surface),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
+    tooltipTheme: TooltipThemeData(textStyle: hint.copyWith(color: b.surface)),
+    materialTapTargetSize: MaterialTapTargetSize.padded,
   );
 }

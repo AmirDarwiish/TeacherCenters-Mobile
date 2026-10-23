@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -28,7 +30,7 @@ abstract class AttendanceDevice {
   Future<void> openCamera() async {}
   Future<void> closeCamera() async {}
   Widget cameraPreview() =>
-      const Center(child: Icon(Icons.camera_alt_outlined));
+      const Center(child: Icon(AppIcons.cameraAltOutlined));
   Future<AttendanceLocation> locate();
   Future<Uint8List?> photograph();
 }
@@ -454,11 +456,14 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
   Widget build(BuildContext context) => PopScope(
     canPop: !working && !cameraBusy,
     child: Scaffold(
-      appBar: AppBar(title: const Text('تسجيل حضوري')),
+      appBar: AppBar(
+        flexibleSpace: const BrandHeader(),
+        title: const Text('تسجيل حضوري'),
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(22),
+              padding: const EdgeInsets.all(16),
               children: [
                 Text(
                   'أكد وجودك في السنتر',
@@ -472,12 +477,12 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                 ),
                 const SizedBox(height: 20),
                 if (submitted)
-                  Card(
+                  BrandCard(
                     child: Padding(
                       padding: const EdgeInsets.all(22),
                       child: Column(
                         children: [
-                          const Icon(Icons.fact_check_outlined, size: 48),
+                          const Icon(AppIcons.factCheckOutlined, size: 48),
                           const SizedBox(height: 12),
                           Text(
                             verification['status'] == 'Approved'
@@ -494,9 +499,9 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                     ),
                   ),
                 if (!submitted && policy != null) ...[
-                  Card(
+                  BrandCard(
                     child: ListTile(
-                      leading: const Icon(Icons.location_on_outlined),
+                      leading: const Icon(AppIcons.locationOnOutlined),
                       title: Text('${center['name'] ?? 'فرع الحصة'}'),
                       subtitle: Text(
                         ready
@@ -512,7 +517,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                   const SizedBox(height: 18),
                   OutlinedButton.icon(
                     onPressed: !ready || working ? null : () => capture(true),
-                    icon: const Icon(Icons.my_location),
+                    icon: const Icon(AppIcons.myLocation),
                     label: Text(
                       location == null
                           ? '١. تحديد موقعي الحالي'
@@ -520,12 +525,12 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                     ),
                   ),
                   if (location != null)
-                    Card(
+                    BrandCard(
                       child: ListTile(
                         leading: Icon(
                           locationValid
-                              ? Icons.check_circle_outline
-                              : Icons.info_outline,
+                              ? AppIcons.checkCircleOutline
+                              : AppIcons.infoOutline,
                         ),
                         title: Text(
                           location!.isMocked
@@ -568,7 +573,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(
-                                      Icons.camera_alt_outlined,
+                                      AppIcons.cameraAltOutlined,
                                       size: 42,
                                     ),
                                     const SizedBox(height: 12),
@@ -595,7 +600,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                         ? () => capture(false)
                         : openCamera,
                     icon: Icon(
-                      cameraOpen ? Icons.camera : Icons.camera_alt_outlined,
+                      cameraOpen ? AppIcons.camera : AppIcons.cameraAltOutlined,
                     ),
                     label: Text(
                       cameraOpen
@@ -607,6 +612,10 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: context.brand.success,
+                      foregroundColor: BrandColors.white,
+                    ),
                     onPressed:
                         !ready ||
                             working ||
@@ -615,14 +624,14 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                             photo == null
                         ? null
                         : submit,
-                    icon: const Icon(Icons.send_outlined),
+                    icon: const Icon(AppIcons.sendOutlined),
                     label: Text(
                       working ? 'جارٍ تجهيز طلبك…' : '٣. إرسال وتأكيد الحضور',
                     ),
                   ),
                 ],
                 if (error != null)
-                  Card(
+                  BrandCard(
                     child: Padding(
                       padding: const EdgeInsets.all(18),
                       child: Text(
@@ -635,7 +644,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                   ),
                 TextButton.icon(
                   onPressed: working || cameraBusy ? null : load,
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(AppIcons.refresh),
                   label: const Text('تحديث حالة الطلب'),
                 ),
               ],

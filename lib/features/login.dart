@@ -1,8 +1,11 @@
+import '../core/app_icons.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
+import '../core/brand.dart';
+import '../core/brand_logo.dart';
 import '../core/otp_field.dart';
 
 class LoginPage extends StatefulWidget {
@@ -163,7 +166,7 @@ class _LoginPageState extends State<LoginPage> {
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(16),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
             child: Form(
@@ -174,38 +177,19 @@ class _LoginPageState extends State<LoginPage> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xff1648c4),
-                      borderRadius: BorderRadius.circular(28),
+                      color: BrandColors.night,
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Row(
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Color(0xffdce8ff),
-                          child: Icon(
-                            Icons.auto_stories_rounded,
-                            color: Color(0xff1648c4),
-                            size: 30,
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'سنترك',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'تعلّمك أقرب. يومك أوضح.',
-                                style: TextStyle(color: Colors.white70),
-                              ),
-                            ],
+                        SentrakLogo(inverse: true),
+                        SizedBox(height: 16),
+                        Text(
+                          'إدارة السنتر كلها من مكان واحد',
+                          style: TextStyle(
+                            color: BrandColors.white,
+                            height: 1.5,
                           ),
                         ),
                       ],
@@ -230,17 +214,17 @@ class _LoginPageState extends State<LoginPage> {
                       ButtonSegment(
                         value: 'student',
                         label: Text('طالب'),
-                        icon: Icon(Icons.school_outlined),
+                        icon: Icon(AppIcons.schoolOutlined),
                       ),
                       ButtonSegment(
                         value: 'guardian',
                         label: Text('ولي أمر'),
-                        icon: Icon(Icons.family_restroom_outlined),
+                        icon: Icon(AppIcons.familyRestroomOutlined),
                       ),
                       ButtonSegment(
                         value: 'teacher',
                         label: Text('مدرس'),
-                        icon: Icon(Icons.co_present_outlined),
+                        icon: Icon(AppIcons.coPresentOutlined),
                       ),
                     ],
                     selected: {
@@ -268,7 +252,7 @@ class _LoginPageState extends State<LoginPage> {
                     autofillHints: const [AutofillHints.telephoneNumber],
                     decoration: const InputDecoration(
                       labelText: 'رقم الموبايل',
-                      prefixIcon: Icon(Icons.phone_outlined),
+                      prefixIcon: Icon(AppIcons.phoneOutlined),
                     ),
                     validator: (v) =>
                         (v?.replaceAll(RegExp(r'\D'), '').length ?? 0) >= 10
@@ -283,7 +267,7 @@ class _LoginPageState extends State<LoginPage> {
                       autofillHints: const [AutofillHints.password],
                       decoration: const InputDecoration(
                         labelText: 'كلمة المرور',
-                        prefixIcon: Icon(Icons.lock_outline),
+                        prefixIcon: Icon(AppIcons.lockOutline),
                       ),
                       validator: (v) =>
                           v?.isNotEmpty == true ? null : 'اكتب كلمة المرور',
@@ -312,12 +296,12 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 14),
                     for (final c in rows(centerSelection!['centers']))
-                      Card(
+                      BrandCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             ListTile(
-                              leading: const Icon(Icons.apartment_rounded),
+                              leading: const Icon(AppIcons.apartmentRounded),
                               title: Text(
                                 '${c['name']}',
                                 style: const TextStyle(
@@ -328,7 +312,7 @@ class _LoginPageState extends State<LoginPage> {
                             for (final account in rows(c['accounts']))
                               ListTile(
                                 title: Text('${account['fullName']}'),
-                                trailing: const Icon(Icons.arrow_back_rounded),
+                                trailing: const Icon(AppIcons.arrowBackRounded),
                                 enabled: !busy,
                                 onTap: () => selectCenter(c, account),
                               ),

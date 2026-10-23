@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -166,7 +168,10 @@ class _QuizPageState extends State<QuizPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('الاختبار')),
+        appBar: AppBar(
+          flexibleSpace: const BrandHeader(),
+          title: const Text('الاختبار'),
+        ),
         body: attempt == null
             ? Center(
                 child: error == null
@@ -177,13 +182,13 @@ class _QuizPageState extends State<QuizPage> {
                           Text('$error'),
                           FilledButton(
                             onPressed: start,
-                            child: const Text('إعادة المحاولة'),
+                            child: const Text('حاول تاني'),
                           ),
                         ],
                       ),
               )
             : ListView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 children: [
                   if (left != null)
                     Text(
@@ -285,7 +290,7 @@ class _QuestionEditorState extends State<QuestionEditor> {
     final q = widget.question;
     final type = q['type'];
     final options = rows(q['options']);
-    return Card(
+    return BrandCard(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -302,8 +307,8 @@ class _QuestionEditorState extends State<QuestionEditor> {
                 (o) => ListTile(
                   leading: Icon(
                     answer['label'] == o['label']
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off,
+                        ? AppIcons.radioButtonChecked
+                        : AppIcons.radioButtonOff,
                   ),
                   title: Text('${o['text'] ?? o['label']}'),
                   onTap: widget.enabled
@@ -415,7 +420,7 @@ class _QuestionEditorState extends State<QuestionEditor> {
                                 ordering.insert(e.key - 1, v);
                               })
                             : null,
-                        icon: const Icon(Icons.arrow_upward),
+                        icon: const Icon(AppIcons.arrowUpward),
                       ),
                       IconButton(
                         onPressed: widget.enabled && e.key < ordering.length - 1
@@ -424,7 +429,7 @@ class _QuestionEditorState extends State<QuestionEditor> {
                                 ordering.insert(e.key + 1, v);
                               })
                             : null,
-                        icon: const Icon(Icons.arrow_downward),
+                        icon: const Icon(AppIcons.arrowDownward),
                       ),
                     ],
                   ),
@@ -458,7 +463,10 @@ class ResultPage extends StatelessWidget {
   final bool legacy;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('نتيجة الاختبار')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('نتيجة الاختبار'),
+    ),
     body: AsyncPanel(
       load: () => api.get(
         teacher
@@ -468,9 +476,9 @@ class ResultPage extends StatelessWidget {
       builder: (data, refresh) {
         final d = obj(data);
         return ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           children: [
-            const Icon(Icons.insights, size: 64),
+            const Icon(AppIcons.insights, size: 64),
             DetailFields({
               for (final k in [
                 'status',
@@ -482,7 +490,7 @@ class ResultPage extends StatelessWidget {
                 k: d[k],
             }),
             ...rows(d['items']).map(
-              (q) => Card(
+              (q) => BrandCard(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(

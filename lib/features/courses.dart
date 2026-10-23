@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -73,7 +75,10 @@ class _LessonPageState extends State<LessonPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('مساحة التعلم')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('مساحة التعلم'),
+    ),
     body: AsyncPanel(
       load: () => widget.api.get('/portal/lessons/${widget.id}'),
       builder: (data, refresh) {
@@ -82,7 +87,7 @@ class _LessonPageState extends State<LessonPage> {
             v = obj(obj(data)['video']),
             q = obj(obj(data)['quiz']);
         return ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             if (v.isNotEmpty && !['youtube', 'vimeo'].contains(v['kind']))
@@ -100,12 +105,12 @@ class _LessonPageState extends State<LessonPage> {
                 ),
               )
             else if (v['url'] != null)
-              Card(
+              BrandCard(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      const Icon(Icons.smart_display_outlined, size: 54),
+                      const Icon(AppIcons.smartDisplayOutlined, size: 54),
                       const SizedBox(height: 16),
                       const Text('شاهد الشرح على منصة الفيديو'),
                       const SizedBox(height: 12),
@@ -114,7 +119,7 @@ class _LessonPageState extends State<LessonPage> {
                           context,
                           () => launchResource(widget.api, '${v['url']}'),
                         ),
-                        icon: const Icon(Icons.open_in_new),
+                        icon: const Icon(AppIcons.openInNew),
                         label: const Text('فتح الفيديو'),
                       ),
                     ],
@@ -140,7 +145,7 @@ class _LessonPageState extends State<LessonPage> {
             ),
             const SizedBox(height: 22),
             if (l['body'] != null)
-              Card(
+              BrandCard(
                 child: Padding(
                   padding: const EdgeInsets.all(22),
                   child: SelectableText(
@@ -150,13 +155,13 @@ class _LessonPageState extends State<LessonPage> {
                 ),
               ),
             if (l['fileUrl'] != null)
-              Card(
+              BrandCard(
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(18),
-                  leading: const Icon(Icons.picture_as_pdf_outlined, size: 34),
+                  leading: const Icon(AppIcons.pictureAsPdfOutlined, size: 34),
                   title: const Text('المادة العلمية للدرس'),
                   subtitle: const Text('افتح الملف للمذاكرة والمراجعة'),
-                  trailing: const Icon(Icons.open_in_new),
+                  trailing: const Icon(AppIcons.openInNew),
                   onTap: () => action(
                     context,
                     () => launchResource(widget.api, '${l['fileUrl']}'),
@@ -164,13 +169,13 @@ class _LessonPageState extends State<LessonPage> {
                 ),
               ),
             if (q['quizId'] != null)
-              Card(
+              BrandCard(
                 child: Padding(
                   padding: const EdgeInsets.all(22),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.quiz_outlined, size: 34),
+                      const Icon(AppIcons.quizOutlined, size: 34),
                       const SizedBox(height: 12),
                       Text(
                         '${q['title'] ?? 'اختبر فهمك'}',
@@ -181,11 +186,11 @@ class _LessonPageState extends State<LessonPage> {
                         spacing: 12,
                         runSpacing: 8,
                         children: [
-                          Text('${q['questionsCount'] ?? 0} سؤال'),
+                          Text('${arNumber(q['questionsCount'] ?? 0)} سؤال'),
                           if (q['timeLimitMinutes'] != null)
-                            Text('${q['timeLimitMinutes']} دقيقة'),
+                            Text('${arNumber(q['timeLimitMinutes'])} دقيقة'),
                           Text(
-                            '${q['attemptsLeft'] ?? 'غير محدودة'} محاولة متبقية',
+                            '${arNumber(q['attemptsLeft'] ?? 'غير محدودة')} محاولة متبقية',
                           ),
                         ],
                       ),
@@ -208,7 +213,7 @@ class _LessonPageState extends State<LessonPage> {
                                     quizId: '${q['quizId']}',
                                   ),
                                 ),
-                          icon: const Icon(Icons.arrow_back),
+                          icon: const Icon(AppIcons.arrowBack),
                           label: const Text('ابدأ أو استكمل الاختبار'),
                         ),
                       ),
@@ -242,7 +247,7 @@ class _LessonPageState extends State<LessonPage> {
                         }, success: 'خطوة جديدة! تم حفظ إكمال الدرس');
                         if (mounted) setState(() => completing = false);
                       },
-                icon: Icon(completed ? Icons.check_circle : Icons.task_alt),
+                icon: Icon(completed ? AppIcons.checkCircle : AppIcons.taskAlt),
                 label: Text(
                   completing
                       ? 'جارٍ حفظ تقدمك…'
@@ -273,8 +278,8 @@ class _LessonPageState extends State<LessonPage> {
                       onPressed: () => navigate('${l['prevLessonId']}'),
                       icon: Icon(
                         rtl
-                            ? Icons.arrow_forward_rounded
-                            : Icons.arrow_back_rounded,
+                            ? AppIcons.arrowForwardRounded
+                            : AppIcons.arrowBackRounded,
                         textDirection: TextDirection.ltr,
                       ),
                       label: const Text('السابق'),
@@ -289,8 +294,8 @@ class _LessonPageState extends State<LessonPage> {
                       iconAlignment: IconAlignment.end,
                       icon: Icon(
                         rtl
-                            ? Icons.arrow_back_rounded
-                            : Icons.arrow_forward_rounded,
+                            ? AppIcons.arrowBackRounded
+                            : AppIcons.arrowForwardRounded,
                         textDirection: TextDirection.ltr,
                       ),
                       label: const Text('الدرس التالي'),
@@ -427,8 +432,8 @@ class _LessonPlayerState extends State<LessonPlayer>
               ),
               TextButton.icon(
                 onPressed: widget.onRetry,
-                icon: const Icon(Icons.refresh),
-                label: const Text('إعادة المحاولة'),
+                icon: const Icon(AppIcons.refresh),
+                label: const Text('حاول تاني'),
               ),
             ],
           ),
@@ -443,11 +448,14 @@ class _LessonPlayerState extends State<LessonPlayer>
             ),
             if (widget.video['watermarkText'] != null)
               Container(
-                color: Colors.black54,
+                color: BrandColors.nightOverlay,
                 padding: const EdgeInsets.all(6),
                 child: Text(
                   '${widget.video['watermarkText']}',
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                  style: const TextStyle(
+                    color: BrandColors.white,
+                    fontSize: 11,
+                  ),
                 ),
               ),
           ],
@@ -471,14 +479,14 @@ class _LessonPlayerState extends State<LessonPlayer>
                     watermark: widget.video['watermarkText'],
                   ),
                 ),
-                icon: const Icon(Icons.fullscreen),
+                icon: const Icon(AppIcons.fullscreen),
               ),
               IconButton(
                 tooltip: 'رجوع 10 ثواني',
                 onPressed: () => controller.seekTo(
                   value.position - const Duration(seconds: 10),
                 ),
-                icon: const Icon(Icons.replay_10),
+                icon: const Icon(AppIcons.replay_10),
               ),
               IconButton(
                 tooltip: 'تشغيل أو إيقاف',
@@ -486,7 +494,7 @@ class _LessonPlayerState extends State<LessonPlayer>
                   value.isPlaying ? controller.pause() : controller.play();
                 },
                 icon: Icon(
-                  value.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                  value.isPlaying ? AppIcons.pauseCircle : AppIcons.playCircle,
                 ),
                 iconSize: 42,
               ),
@@ -495,7 +503,7 @@ class _LessonPlayerState extends State<LessonPlayer>
                 onPressed: () => controller.seekTo(
                   value.position + const Duration(seconds: 10),
                 ),
-                icon: const Icon(Icons.forward_10),
+                icon: const Icon(AppIcons.forward_10),
               ),
             ],
           ),
@@ -533,15 +541,18 @@ class CertificatePage extends StatelessWidget {
   final String courseId;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('الشهادة')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('الشهادة'),
+    ),
     body: AsyncPanel(
       load: () => api.get('/portal/courses/$courseId/certificate'),
       builder: (data, refresh) {
         final d = obj(data);
         return ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(16),
           children: [
-            const Icon(Icons.workspace_premium, size: 80),
+            const Icon(AppIcons.workspacePremium, size: 80),
             DetailFields(d),
             if (!api.guardian &&
                 d['eligible'] == true &&
@@ -570,9 +581,12 @@ class TeacherLessonPage extends StatelessWidget {
   final Json lesson;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(label(lesson))),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: Text(label(lesson)),
+    ),
     body: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
         if (lesson['type'] != 'Quiz')
           OutlinedButton.icon(
@@ -584,7 +598,7 @@ class TeacherLessonPage extends StatelessWidget {
                 existing: lesson,
               ),
             ),
-            icon: const Icon(Icons.edit_outlined),
+            icon: const Icon(AppIcons.editOutlined),
             label: const Text('تعديل محتوى الدرس وإعداداته'),
           ),
         Text('${lesson['body'] ?? ''}'),
@@ -602,7 +616,7 @@ class TeacherLessonPage extends StatelessWidget {
             child: PagedList(
               api: api,
               path: '/course-quizzes/${lesson['quizId']}/results',
-              item: (s) => Card(
+              item: (s) => BrandCard(
                 child: ListTile(
                   title: Text(label(s)),
                   subtitle: Text(
@@ -698,7 +712,7 @@ class _NewLessonPageState extends State<NewLessonPage> {
       title: Text(widget.existing == null ? 'إضافة درس' : 'تعديل الدرس'),
     ),
     body: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
         TextField(
           maxLength: 150,
@@ -846,10 +860,10 @@ class FullscreenVideo extends StatelessWidget {
   final dynamic watermark;
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
+    backgroundColor: BrandColors.night,
     appBar: AppBar(
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
+      backgroundColor: BrandColors.night,
+      foregroundColor: BrandColors.white,
       title: const Text('المشاهدة'),
     ),
     body: SafeArea(
@@ -866,12 +880,12 @@ class FullscreenVideo extends StatelessWidget {
                   ),
                   if (watermark != null)
                     Container(
-                      color: Colors.black54,
+                      color: BrandColors.nightOverlay,
                       padding: const EdgeInsets.all(8),
                       child: Text(
                         '$watermark',
                         style: const TextStyle(
-                          color: Colors.white70,
+                          color: BrandColors.whiteMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -888,12 +902,12 @@ class FullscreenVideo extends StatelessWidget {
             valueListenable: controller,
             builder: (_, value, child) => IconButton(
               tooltip: 'تشغيل أو إيقاف',
-              color: Colors.white,
+              color: BrandColors.white,
               iconSize: 52,
               onPressed: () =>
                   value.isPlaying ? controller.pause() : controller.play(),
               icon: Icon(
-                value.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                value.isPlaying ? AppIcons.pauseCircle : AppIcons.playCircle,
               ),
             ),
           ),

@@ -1,3 +1,4 @@
+import 'package:teacher_centers_mobile/core/app_icons.dart';
 import 'dart:async';
 
 import 'package:dio/dio.dart';
@@ -57,7 +58,7 @@ class TestPlayback implements ReelPlayback {
   Widget get view => const ColoredBox(
     color: Color(0xff173a58),
     child: Center(
-      child: Icon(Icons.school_rounded, size: 100, color: Colors.white38),
+      child: Icon(AppIcons.schoolOutlined, size: 100, color: Colors.white38),
     ),
   );
   @override
@@ -374,14 +375,14 @@ void main() {
                 find.descendant(of: previous, matching: find.byType(Icon)),
               )
               .icon,
-          rtl ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
+          rtl ? AppIcons.arrowForwardRounded : AppIcons.arrowBackRounded,
         );
         final nextIcon = tester.widget<Icon>(
           find.descendant(of: next, matching: find.byType(Icon)),
         );
         expect(
           nextIcon.icon,
-          rtl ? Icons.arrow_back_rounded : Icons.arrow_forward_rounded,
+          rtl ? AppIcons.arrowBackRounded : AppIcons.arrowForwardRounded,
         );
         expect(nextIcon.textDirection, TextDirection.ltr);
         await tester.ensureVisible(next);

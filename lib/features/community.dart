@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -11,14 +13,14 @@ class ThreadsPage extends StatelessWidget {
   Widget build(BuildContext context) => PagedList(
     api: api,
     path: api.student ? '/portal/threads' : '/threads',
-    item: (t) => Card(
+    item: (t) => BrandCard(
       child: ListTile(
-        leading: const CircleAvatar(child: Icon(Icons.chat_bubble_outline)),
+        leading: const CircleAvatar(child: Icon(AppIcons.chatBubbleOutline)),
         title: Text(label(t)),
         subtitle: Text(
           '${api.student ? t['teacherName'] : t['studentName']} · ${t['status']}',
         ),
-        trailing: const Icon(Icons.chevron_left),
+        trailing: const Icon(AppIcons.chevronLeft),
         onTap: () => open(context, ConversationPage(api: api, thread: t)),
       ),
     ),
@@ -54,7 +56,10 @@ class _ConversationPageState extends State<ConversationPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(label(widget.thread))),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: Text(label(widget.thread)),
+    ),
     body: Column(
       children: [
         Expanded(
@@ -131,7 +136,7 @@ class _ConversationPageState extends State<ConversationPage> {
                             });
                             if (mounted) setState(() => sending = false);
                           },
-                    icon: const Icon(Icons.send_rounded),
+                    icon: const Icon(AppIcons.sendRounded),
                   ),
                 ],
               ),
@@ -154,6 +159,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
       title: const Text('الإشعارات'),
       actions: [
         TextButton(
@@ -169,12 +175,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
       key: ValueKey(revision),
       api: widget.api,
       path: '/notifications',
-      item: (n) => Card(
+      item: (n) => BrandCard(
         child: ListTile(
           leading: Icon(
             n['isRead'] == true
-                ? Icons.notifications_none
-                : Icons.notifications_active_outlined,
+                ? AppIcons.notificationsNone
+                : AppIcons.notificationsActiveOutlined,
           ),
           title: Text(label(n)),
           subtitle: Text(
@@ -198,9 +204,9 @@ class AssignmentsPage extends StatelessWidget {
     api: api,
     path: api.student ? '/portal/assignments' : '/assignments',
     title: 'الواجبات',
-    item: (a) => Card(
+    item: (a) => BrandCard(
       child: ListTile(
-        leading: const Icon(Icons.assignment_outlined),
+        leading: const Icon(AppIcons.assignmentOutlined),
         title: Text(label(a)),
         subtitle: Text(
           'التسليم: ${when(a['dueAtUtc'])}\n${a['effectiveStatus'] ?? a['status'] ?? ''}',
@@ -263,10 +269,10 @@ class _AssignmentPageState extends State<AssignmentPage> {
   Widget build(BuildContext context) {
     final a = widget.assignment;
     return Scaffold(
-      appBar: AppBar(title: Text(label(a))),
+      appBar: AppBar(flexibleSpace: const BrandHeader(), title: Text(label(a))),
       body: widget.api.student
           ? ListView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               children: [
                 Text('${a['description'] ?? ''}'),
                 Text('آخر موعد: ${when(a['dueAtUtc'])}'),
@@ -316,7 +322,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
           : PagedList(
               api: widget.api,
               path: '/assignments/${a['id']}/submissions',
-              item: (s) => Card(
+              item: (s) => BrandCard(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(

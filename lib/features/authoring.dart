@@ -1,3 +1,5 @@
+import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/widgets.dart';
@@ -118,12 +120,13 @@ class _NewCoursePageState extends State<NewCoursePage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
       title: Text(widget.existing == null ? 'صمّم كورسك' : 'إعدادات الكورس'),
     ),
     body: Form(
       key: form,
       child: ListView(
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(16),
         children: [
           heading('١', 'أول انطباع يفرق', 'عرّف الطالب بالكورس وما سيحققه منه'),
           field('title', 'اسم الكورس', max: 150, required: true),
@@ -163,7 +166,7 @@ class _NewCoursePageState extends State<NewCoursePage> {
             max: 9,
             required: true,
           ),
-          Card(
+          BrandCard(
             child: Padding(
               padding: const EdgeInsets.all(18),
               child: Text(
@@ -175,7 +178,7 @@ class _NewCoursePageState extends State<NewCoursePage> {
           ),
           FilledButton.icon(
             onPressed: busy ? null : save,
-            icon: const Icon(Icons.check_rounded),
+            icon: const Icon(AppIcons.checkRounded),
             label: Text(
               busy
                   ? 'جارٍ الحفظ…'
@@ -270,7 +273,10 @@ class _NewQuizPageState extends State<NewQuizPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('إضافة امتحان من بنك الأسئلة')),
+    appBar: AppBar(
+      flexibleSpace: const BrandHeader(),
+      title: const Text('إضافة امتحان من بنك الأسئلة'),
+    ),
     body: Column(
       children: [
         Padding(
@@ -313,7 +319,7 @@ class _NewQuizPageState extends State<NewQuizPage> {
           child: PagedList(
             api: widget.api,
             path: '/questions',
-            item: (q) => Card(
+            item: (q) => BrandCard(
               child: CheckboxListTile(
                 title: Text('${q['text'] ?? q['title'] ?? ''}'),
                 subtitle: Text('${q['type'] ?? ''}'),

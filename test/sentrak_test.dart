@@ -1,3 +1,4 @@
+import 'package:teacher_centers_mobile/core/app_icons.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -135,7 +136,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('وسيلة الدفع'), findsOneWidget);
       expect(find.textContaining('الدفع الإلكتروني مش متاح'), findsNothing);
-      expect(find.byIcon(Icons.credit_card), findsOneWidget);
+      expect(find.byIcon(AppIcons.creditCard), findsOneWidget);
       if (objectMethods) await screenshot(tester, 'checkout-blue');
       expect(tester.takeException(), isNull);
     });
@@ -227,9 +228,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('قاعة ٢'), findsOneWidget);
     expect(find.text('حاضر'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('18 / 20'), 300);
+    await tester.scrollUntilVisible(find.text('١٨ / ٢٠'), 300);
     await tester.pumpAndSettle();
-    expect(find.text('18 / 20'), findsOneWidget);
+    expect(find.text('١٨ / ٢٠'), findsOneWidget);
     await screenshot(tester, 'session-detail');
     expect(tester.takeException(), isNull);
   });
