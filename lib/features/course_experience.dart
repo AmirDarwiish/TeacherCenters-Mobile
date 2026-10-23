@@ -133,38 +133,18 @@ class _CoursesPageState extends State<CoursesPage> {
   @override
   Widget build(BuildContext context) {
     final api = widget.api;
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          api.student
-                              ? 'رحلتك تبدأ من هنا'
-                              : 'محتوى يصنع الفرق',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          api.student
-                              ? 'تعلم على مهلك. وكمل من مكان ما وقفت.'
-                              : 'نظّم كورساتك وتابع تجربة طلابك.',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!api.student)
-                    IconButton.filled(
+    return NestedScrollView(
+      headerSliverBuilder: (context, innerBoxIsScrolled) => [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!api.student)
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: TextButton.icon(
                       onPressed: () async {
                         await Navigator.push<void>(
                           context,
@@ -174,129 +154,130 @@ class _CoursesPageState extends State<CoursesPage> {
                         );
                         if (mounted) setState(() => revision++);
                       },
-                      tooltip: 'كورس جديد',
                       icon: const Icon(AppIcons.add),
+                      label: const Text('كورس جديد'),
                     ),
+                  ),
+                if (api.student && !widget.catalog) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(
+                          value: false,
+                          label: Text('كورساتي'),
+                          icon: Icon(AppIcons.bookmarkOutline),
+                        ),
+                        ButtonSegment(
+                          value: true,
+                          label: Text('اكتشف كورسات'),
+                          icon: Icon(AppIcons.exploreOutlined),
+                        ),
+                      ],
+                      selected: {catalog},
+                      onSelectionChanged: (v) => setState(() {
+                        catalog = v.first;
+                        filter = 'الكل';
+                        search = '';
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                 ],
-              ),
-              const SizedBox(height: 18),
-              if (api.student && !widget.catalog) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<bool>(
-                    segments: const [
-                      ButtonSegment(
-                        value: false,
-                        label: Text('كورساتي'),
-                        icon: Icon(AppIcons.bookmarkOutline),
-                      ),
-                      ButtonSegment(
-                        value: true,
-                        label: Text('اكتشف كورسات'),
-                        icon: Icon(AppIcons.exploreOutlined),
-                      ),
-                    ],
-                    selected: {catalog},
-                    onSelectionChanged: (v) => setState(() {
-                      catalog = v.first;
-                      filter = 'الكل';
-                      search = '';
-                    }),
+                TextField(
+                  key: ValueKey(catalog),
+                  onChanged: searchFor,
+                  decoration: const InputDecoration(
+                    hintText: 'ابحث باسم الكورس أو المدرس',
+                    prefixIcon: Icon(AppIcons.searchRounded),
                   ),
                 ),
-                const SizedBox(height: 14),
-              ],
-              TextField(
-                key: ValueKey(catalog),
-                onChanged: searchFor,
-                decoration: const InputDecoration(
-                  hintText: 'ابحث باسم الكورس أو المدرس',
-                  prefixIcon: Icon(AppIcons.searchRounded),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children:
-                      (api.student
-                              ? (catalog
-                                    ? ['الكل', 'مجاني', 'مدفوع']
-                                    : ['الكل', 'قيد التعلم', 'مكتمل'])
-                              : ['الكل', 'منشور', 'مسودة', 'مؤرشف'])
-                          .map(
-                            (v) => Padding(
-                              padding: const EdgeInsetsDirectional.only(end: 8),
-                              child: ChoiceChip(
-                                label: Text(v),
-                                selected: filter == v,
-                                onSelected: (_) => setState(() => filter = v),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children:
+                        (api.student
+                                ? (catalog
+                                      ? ['الكل', 'مجاني', 'مدفوع']
+                                      : ['الكل', 'قيد التعلم', 'مكتمل'])
+                                : ['الكل', 'منشور', 'مسودة', 'مؤرشف'])
+                            .map(
+                              (v) => Padding(
+                                padding: const EdgeInsetsDirectional.only(
+                                  end: 8,
+                                ),
+                                child: ChoiceChip(
+                                  label: Text(v),
+                                  selected: filter == v,
+                                  onSelected: (_) => setState(() => filter = v),
+                                ),
                               ),
-                            ),
-                          )
-                          .toList(),
+                            )
+                            .toList(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-        Expanded(
-          child: api.student
-              ? AsyncPanel(
-                  key: ValueKey('$catalog-$revision'),
-                  load: () =>
-                      api.get(catalog ? '/portal/catalog' : '/portal/courses'),
-                  builder: (data, refresh) {
-                    final courses = rows(data).where((c) {
-                      final info = CourseInfo(c);
-                      final match = '${label(c)} ${c['teacherName'] ?? ''}'
-                          .toLowerCase()
-                          .contains(search);
-                      return match &&
-                          switch (filter) {
-                            'قيد التعلم' => info.progress < 100,
-                            'مكتمل' => info.progress >= 100,
-                            'مجاني' => (c['price'] as num? ?? 0) == 0,
-                            'مدفوع' => (c['price'] as num? ?? 0) > 0,
-                            _ => true,
-                          };
-                    }).toList();
-                    return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      itemCount: courses.isEmpty ? 1 : courses.length + 1,
-                      itemBuilder: (_, i) => courses.isEmpty
-                          ? const Empty(
-                              text:
-                                  'لا توجد كورسات مطابقة. جرّب بحثاً مختلفاً أو غيّر الفلتر.',
-                            )
-                          : i == 0
-                          ? Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: Text('${courses.length} كورس في مساحتك'),
-                            )
-                          : card(courses[i - 1]),
-                    );
-                  },
-                )
-              : PagedList(
-                  key: ValueKey(revision),
-                  api: api,
-                  path: '/courses',
-                  query: {
-                    'includeInactive': true,
-                    if (search.isNotEmpty) 'search': search,
-                    if (filter != 'الكل')
-                      'status': {
-                        'منشور': 'Published',
-                        'مسودة': 'Draft',
-                        'مؤرشف': 'Archived',
-                      }[filter],
-                  },
-                  item: card,
-                ),
-        ),
       ],
+      body: api.student
+          ? AsyncPanel(
+              key: ValueKey('$catalog-$revision'),
+              load: () =>
+                  api.get(catalog ? '/portal/catalog' : '/portal/courses'),
+              builder: (data, refresh) {
+                final courses = rows(data).where((c) {
+                  final info = CourseInfo(c);
+                  final match = '${label(c)} ${c['teacherName'] ?? ''}'
+                      .toLowerCase()
+                      .contains(search);
+                  return match &&
+                      switch (filter) {
+                        'قيد التعلم' => info.progress < 100,
+                        'مكتمل' => info.progress >= 100,
+                        'مجاني' => (c['price'] as num? ?? 0) == 0,
+                        'مدفوع' => (c['price'] as num? ?? 0) > 0,
+                        _ => true,
+                      };
+                }).toList();
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: courses.isEmpty ? 1 : courses.length + 1,
+                  itemBuilder: (_, i) => courses.isEmpty
+                      ? const Empty(
+                          text:
+                              'لا توجد كورسات مطابقة. جرّب بحثاً مختلفاً أو غيّر الفلتر.',
+                        )
+                      : i == 0
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Text(
+                            '${arNumber(courses.length)} كورس في مساحتك',
+                          ),
+                        )
+                      : card(courses[i - 1]),
+                );
+              },
+            )
+          : PagedList(
+              key: ValueKey(revision),
+              api: api,
+              path: '/courses',
+              query: {
+                'includeInactive': true,
+                if (search.isNotEmpty) 'search': search,
+                if (filter != 'الكل')
+                  'status': {
+                    'منشور': 'Published',
+                    'مسودة': 'Draft',
+                    'مؤرشف': 'Archived',
+                  }[filter],
+              },
+              item: card,
+            ),
     );
   }
 }

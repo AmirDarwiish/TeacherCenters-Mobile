@@ -40,32 +40,32 @@ ThemeData appTheme(Brightness brightness) {
     surfaceContainerHighest: b.skeleton,
   );
   const heading = TextStyle(
-    fontFamily: 'Alexandria',
+    fontFamily: 'Tajawal',
     fontWeight: FontWeight.w700,
     fontSize: 24,
     height: 1.25,
   );
   const section = TextStyle(
-    fontFamily: 'Alexandria',
+    fontFamily: 'Tajawal',
     fontWeight: FontWeight.w600,
     fontSize: 18,
     height: 1.25,
   );
   const body = TextStyle(
-    fontFamily: 'IBM Plex Sans Arabic',
+    fontFamily: 'Tajawal',
     fontFeatures: [FontFeature.tabularFigures()],
     fontWeight: FontWeight.w400,
     fontSize: 16,
     height: 1.5,
   );
   const small = TextStyle(
-    fontFamily: 'IBM Plex Sans Arabic',
+    fontFamily: 'Tajawal',
     fontWeight: FontWeight.w500,
     fontSize: 14,
     height: 1.5,
   );
   const hint = TextStyle(
-    fontFamily: 'IBM Plex Sans Arabic',
+    fontFamily: 'Tajawal',
     fontWeight: FontWeight.w500,
     fontSize: 12,
     height: 1.5,
@@ -118,7 +118,7 @@ ThemeData appTheme(Brightness brightness) {
       drawerButtonIconBuilder: (_) => const Icon(AppIcons.menu),
       endDrawerButtonIconBuilder: (_) => const Icon(AppIcons.menu),
     ),
-    fontFamily: 'IBM Plex Sans Arabic',
+    fontFamily: 'Tajawal',
     textTheme: text,
     scaffoldBackgroundColor: b.bg,
     canvasColor: b.surface,
@@ -132,7 +132,9 @@ ThemeData appTheme(Brightness brightness) {
       scrolledUnderElevation: 0,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: heading.copyWith(color: b.ink),
+      toolbarHeight: 48,
+      titleSpacing: 16,
+      titleTextStyle: section.copyWith(color: b.ink, fontSize: 18),
       iconTheme: IconThemeData(size: 20, color: b.muted),
     ),
     cardTheme: CardThemeData(

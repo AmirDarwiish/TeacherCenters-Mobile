@@ -1,5 +1,6 @@
 import 'package:teacher_centers_mobile/core/app_icons.dart';
 import 'dart:async';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -103,7 +104,7 @@ void main() {
   setUpAll(loadTestFonts);
 
   test(
-    'legacy catalog is fetched once and only explicit preview videos are batched without duplicates',
+    'authorized previews shuffle without duplicates per round and continue beyond catalog end',
     () async {
       var requests = 0;
       final c = catalogCourse('course');
@@ -126,7 +127,7 @@ void main() {
           {...catalogCourse('draft'), 'status': 'Draft'},
         ]);
       });
-      final feed = ReelsFeed(api);
+      final feed = ReelsFeed(api, random: Random(7));
       await feed.loadMore();
       expect(feed.items.length, 12);
       expect(feed.hasMore, isTrue);
@@ -134,14 +135,30 @@ void main() {
       await feed.loadMore();
       expect(feed.items.length, 26);
       expect(feed.items.map((e) => e.lessonId).toSet().length, 26);
-      expect(feed.hasMore, isFalse);
+      expect(feed.hasMore, isTrue);
+      final firstRound = feed.items.map((e) => e.lessonId).toList();
+      expect(firstRound, isNot(List.generate(26, (i) => 'course-$i')));
+      for (var i = 0; i < 8; i++) {
+        await feed.loadMore();
+      }
+      expect(feed.items.length, greaterThan(100));
+      final secondRound = feed.items
+          .skip(26)
+          .take(26)
+          .map((e) => e.lessonId)
+          .toList();
+      expect(secondRound.toSet().length, 26);
+      expect(secondRound, isNot(firstRound));
+      for (var i = 1; i < feed.items.length; i++) {
+        expect(feed.items[i].lessonId, isNot(feed.items[i - 1].lessonId));
+      }
       expect(requests, 1);
       feed.dispose();
     },
   );
 
   test(
-    'paginated catalog skips empty preview pages, preserves retry page and stops at end',
+    'paginated catalog skips empty pages, retries failures and continues after remote end',
     () async {
       final requested = <int>[];
       var failed = false;
@@ -179,8 +196,32 @@ void main() {
       await feed.loadMore();
       expect(requested, [1, 2, 3, 3]);
       expect(feed.items.length, 2);
-      expect(feed.hasMore, isFalse);
+      expect(feed.hasMore, isTrue);
+      await feed.loadMore();
+      expect(feed.items.length, 4);
+      expect(requested, [1, 2, 3, 3]);
       feed.dispose();
+    },
+  );
+
+  test(
+    'empty catalog stops safely; one preview remains swipeable without more requests',
+    () async {
+      for (final count in [0, 1]) {
+        var requests = 0;
+        final api = await apiWith((_) async {
+          requests++;
+          return response(200, [catalogCourse('single', count: count)]);
+        });
+        final feed = ReelsFeed(api);
+        for (var i = 0; i < 30; i++) {
+          await feed.loadMore();
+        }
+        expect(requests, 1);
+        expect(feed.items.length, count == 0 ? 0 : 30);
+        expect(feed.hasMore, count == 1);
+        feed.dispose();
+      }
     },
   );
 
@@ -227,11 +268,12 @@ void main() {
       await tester.tap(find.byTooltip('كتم الصوت'));
       await tester.pumpAndSettle();
       expect(players.last.volume, 0);
-      for (var i = 0; i < 14; i++) {
+      for (var i = 0; i < 40; i++) {
         await tester.drag(find.byType(PageView), const Offset(0, -750));
         await settleReel(tester);
       }
-      expect(signed.any((p) => p.endsWith('/open-14')), isTrue);
+      expect(players.length, 41);
+      expect(signed.toSet().length, 26);
       expect(peak, 1);
       await tester.pumpWidget(view(false));
       await tester.pumpAndSettle();
@@ -258,11 +300,12 @@ void main() {
   ) async {
     final delayed = Completer<ResponseBody>();
     final players = <TestPlayback>[];
+    var playbackRequests = 0;
     final api = await apiWith((r) async {
       if (r.path.endsWith('/catalog')) {
         return response(200, [catalogCourse('open', count: 2)]);
       }
-      if (r.path.endsWith('/open-0')) return delayed.future;
+      if (playbackRequests++ == 0) return delayed.future;
       return response(200, {
         'video': {'kind': 'mp4', 'url': '/second.mp4'},
       });

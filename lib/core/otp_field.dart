@@ -159,7 +159,7 @@ class _OtpCodeFieldState extends State<OtpCodeField> {
                                     child: Text(
                                       index < value.length ? value[index] : '—',
                                       style: TextStyle(
-                                        fontFamily: 'IBM Plex Sans Arabic',
+                                        fontFamily: 'Tajawal',
                                         fontSize: 25,
                                         fontWeight: FontWeight.bold,
                                         color: index < value.length

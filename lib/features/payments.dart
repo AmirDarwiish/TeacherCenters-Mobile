@@ -796,7 +796,7 @@ class _PaymentStatusPageState extends State<PaymentStatusPage>
                       subtitle: SelectableText(
                         '${p['kioskReference']}',
                         style: const TextStyle(
-                          fontFamily: 'Alexandria',
+                          fontFamily: 'Tajawal',
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),

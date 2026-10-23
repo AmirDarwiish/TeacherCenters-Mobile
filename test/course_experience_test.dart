@@ -139,16 +139,9 @@ Future<void> screenshot(WidgetTester tester, String name) async {
 
 Future<void> loadTestFonts() async {
   if (!const bool.fromEnvironment('SCREENSHOTS')) return;
-  await (FontLoader(
-    'Alexandria',
-  )..addFont(rootBundle.load('assets/fonts/Alexandria.ttf'))).load();
-  await (FontLoader('IBM Plex Sans Arabic')
-        ..addFont(rootBundle.load('assets/fonts/IBMPlexSansArabic-Regular.ttf'))
-        ..addFont(rootBundle.load('assets/fonts/IBMPlexSansArabic-Medium.ttf'))
-        ..addFont(
-          rootBundle.load('assets/fonts/IBMPlexSansArabic-SemiBold.ttf'),
-        )
-        ..addFont(rootBundle.load('assets/fonts/IBMPlexSansArabic-Bold.ttf')))
+  await (FontLoader('Tajawal')
+        ..addFont(rootBundle.load('assets/fonts/Tajawal-Regular.ttf'))
+        ..addFont(rootBundle.load('assets/fonts/Tajawal-Bold.ttf')))
       .load();
   await (FontLoader('packages/lucide_icons_flutter/Lucide')..addFont(
         rootBundle.load('packages/lucide_icons_flutter/assets/lucide.ttf'),

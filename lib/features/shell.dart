@@ -93,7 +93,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           1 => CoursesPage(api: api),
           2 => SessionsPage(api: api),
           3 when hasReels => SessionsPage(api: api),
-          3 => ThreadsPage(api: api),
+          3 => ThreadsPage(api: api, embedded: true),
           _ => AccountPage(api: api, onTheme: widget.onTheme),
         },
       );
@@ -107,7 +107,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         titleTextStyle: immersive
             ? Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(color: BrandColors.white)
+              ).textTheme.titleLarge?.copyWith(color: BrandColors.white)
             : null,
         actionsIconTheme: immersive
             ? const IconThemeData(color: BrandColors.white, size: 20)
@@ -237,7 +237,7 @@ class SentrakNavigationBar extends StatelessWidget {
                           onTap: () => onSelected(i),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(
-                              minHeight: 64,
+                              minHeight: 56,
                               minWidth: 44,
                             ),
                             child: Column(
@@ -248,11 +248,11 @@ class SentrakNavigationBar extends StatelessWidget {
                                   curve: BrandMotion.curve,
                                   transform: Matrix4.translationValues(
                                     0,
-                                    active ? -6 : 0,
+                                    active ? -2 : 0,
                                     0,
                                   ),
-                                  width: 40,
-                                  height: 36,
+                                  width: 36,
+                                  height: 32,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(12),
                                     gradient: active
@@ -282,7 +282,7 @@ class SentrakNavigationBar extends StatelessWidget {
                                     color: active ? BrandColors.white : b.muted,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 2),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 3,
@@ -293,7 +293,7 @@ class SentrakNavigationBar extends StatelessWidget {
                                       labels[i],
                                       maxLines: 1,
                                       style: TextStyle(
-                                        fontFamily: 'IBM Plex Sans Arabic',
+                                        fontFamily: 'Tajawal',
                                         fontSize: 12,
                                         color: active ? b.primary : b.muted,
                                         fontWeight: active
@@ -435,7 +435,7 @@ class HomePage extends StatelessWidget {
                       ? 'فهم أعمق.\nوثقة في اللي جاي.'
                       : 'وقت أكتر للتدريس.\nوتفاصيل تحت السيطرة.',
                   style: const TextStyle(
-                    fontFamily: 'Alexandria',
+                    fontFamily: 'Tajawal',
                     fontSize: 27,
                     color: BrandColors.white,
                     fontWeight: FontWeight.bold,

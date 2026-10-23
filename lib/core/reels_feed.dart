@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 
 import 'api.dart';
@@ -16,11 +18,13 @@ class CourseReel {
 /// Only explicit preview video lessons returned by the authorized catalog qualify.
 /// Supports today's complete-list response and a paginated catalog response.
 class ReelsFeed extends ChangeNotifier {
-  ReelsFeed(this.api, {this.batchSize = 12});
+  ReelsFeed(this.api, {this.batchSize = 12, Random? random})
+    : _random = random ?? Random();
+  final Random _random;
   final Api api;
   final int batchSize;
   final List<CourseReel> items = [];
-  final List<CourseReel> _pending = [];
+  final List<CourseReel> _pending = [], _pool = [];
   final Set<String> _seen = {}, _pages = {};
   bool loading = false, hasMore = true, _remoteMore = true, _disposed = false;
   Object? error;
@@ -74,7 +78,9 @@ class ReelsFeed extends ChangeNotifier {
           _remoteMore = false;
           break;
         }
-        _pending.addAll(_extract(response));
+        final discovered = _extract(response).toList()..shuffle(_random);
+        _pool.addAll(discovered);
+        _pending.addAll(discovered);
         final metadata = obj(response);
         final total = metadata['totalCount'];
         _remoteMore =
@@ -86,10 +92,21 @@ class ReelsFeed extends ChangeNotifier {
                 : courses.length >= pageSize);
         _page++;
       }
+      // A new shuffled round keeps the feed swipeable after all authorized
+      // previews have been seen, without refetching the same catalog pages.
+      if (_pending.isEmpty && !_remoteMore && _pool.isNotEmpty) {
+        _pending.addAll(_pool.toList()..shuffle(_random));
+        if (_pending.length > 1 &&
+            items.isNotEmpty &&
+            _pending.first.lessonId == items.last.lessonId) {
+          final first = _pending.removeAt(0);
+          _pending.add(first);
+        }
+      }
       final count = _pending.length < batchSize ? _pending.length : batchSize;
       items.addAll(_pending.take(count));
       _pending.removeRange(0, count);
-      hasMore = _pending.isNotEmpty || _remoteMore;
+      hasMore = _pool.isNotEmpty || _remoteMore;
     } catch (e) {
       error = e;
     } finally {

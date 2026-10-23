@@ -7,24 +7,35 @@ import '../core/widgets.dart';
 import 'teaching.dart';
 
 class ThreadsPage extends StatelessWidget {
-  const ThreadsPage({super.key, required this.api});
+  const ThreadsPage({super.key, required this.api, this.embedded = false});
+  final bool embedded;
   final Api api;
   @override
-  Widget build(BuildContext context) => PagedList(
-    api: api,
-    path: api.student ? '/portal/threads' : '/threads',
-    item: (t) => BrandCard(
-      child: ListTile(
-        leading: const CircleAvatar(child: Icon(AppIcons.chatBubbleOutline)),
-        title: Text(label(t)),
-        subtitle: Text(
-          '${api.student ? t['teacherName'] : t['studentName']} · ${t['status']}',
+  Widget build(BuildContext context) {
+    final list = PagedList(
+      api: api,
+      path: api.student ? '/portal/threads' : '/threads',
+      item: (t) => BrandCard(
+        child: ListTile(
+          leading: const CircleAvatar(child: Icon(AppIcons.chatBubbleOutline)),
+          title: Text(label(t)),
+          subtitle: Text(
+            '${api.student ? t['teacherName'] : t['studentName']} · ${t['status']}',
+          ),
+          trailing: const Icon(AppIcons.chevronLeft),
+          onTap: () => open(context, ConversationPage(api: api, thread: t)),
         ),
-        trailing: const Icon(AppIcons.chevronLeft),
-        onTap: () => open(context, ConversationPage(api: api, thread: t)),
       ),
-    ),
-  );
+    );
+    if (embedded) return list;
+    return Scaffold(
+      appBar: AppBar(
+        flexibleSpace: const BrandHeader(),
+        title: const Text('الرسائل'),
+      ),
+      body: list,
+    );
+  }
 }
 
 class ConversationPage extends StatefulWidget {

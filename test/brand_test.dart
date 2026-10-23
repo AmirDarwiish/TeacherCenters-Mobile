@@ -14,10 +14,12 @@ void main() {
       expect(light.scaffoldBackgroundColor, const Color(0xfff4f8fc));
       expect(dark.colorScheme.primary, const Color(0xff4c82f7));
       expect(dark.colorScheme.surface, const Color(0xff0e1b2c));
-      expect(light.textTheme.headlineSmall!.fontFamily, 'Alexandria');
+      expect(light.textTheme.headlineSmall!.fontFamily, 'Tajawal');
       expect(light.textTheme.headlineSmall!.fontSize, 24);
-      expect(light.textTheme.bodyMedium!.fontFamily, 'IBM Plex Sans Arabic');
+      expect(light.textTheme.bodyMedium!.fontFamily, 'Tajawal');
       expect(light.textTheme.bodyMedium!.fontSize, 16);
+      expect(light.appBarTheme.toolbarHeight, 48);
+      expect(light.appBarTheme.titleTextStyle!.fontSize, 18);
       expect(light.extension<BrandColors>()!.cyan, const Color(0xff13b5d6));
     },
   );

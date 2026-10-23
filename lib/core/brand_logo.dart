@@ -27,7 +27,7 @@ class SentrakLogo extends StatelessWidget {
             child: Text(
               'سنترك',
               style: TextStyle(
-                fontFamily: 'Alexandria',
+                fontFamily: 'Tajawal',
                 fontWeight: FontWeight.w700,
                 fontSize: 24,
                 height: 1.25,
