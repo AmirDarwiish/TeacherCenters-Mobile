@@ -17,6 +17,7 @@ String sessionStatus(dynamic value) =>
       'Canceled': 'ملغاة',
       'Upcoming': 'قادمة',
       'Ended': 'انتهت',
+      'Postponed': 'مؤجلة',
     }[value] ??
     'مجدولة';
 String attendanceStatus(dynamic value) =>
@@ -57,12 +58,19 @@ class StudentSessionPage extends StatelessWidget {
     ),
     body: AsyncPanel(
       load: load,
+      changes: api.live.events.where(
+        (event) => [
+          'AttendanceChanged',
+          'CheckInChanged',
+          'Reconnected',
+        ].contains(event),
+      ),
       builder: (value, refresh) {
         final s = {...session, ...obj(value)},
             colors = Theme.of(context).colorScheme;
-        final start = DateTime.tryParse('${s['startsAtUtc']}');
+        final start = apiUtc(s['startsAtUtc']);
         final end =
-            DateTime.tryParse('${s['endsAtUtc']}') ??
+            apiUtc(s['endsAtUtc']) ??
             start?.add(
               Duration(minutes: (s['durationMinutes'] as num? ?? 0).toInt()),
             );

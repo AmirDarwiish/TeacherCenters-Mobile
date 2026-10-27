@@ -7,6 +7,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/api.dart';
 import '../core/widgets.dart';
+import '../core/session_schedule.dart';
+import 'session_detail.dart';
+import 'current_session_attendance.dart';
 import 'courses.dart';
 import 'teaching.dart';
 import 'community.dart';
@@ -327,6 +330,13 @@ class HomePage extends StatelessWidget {
         );
   @override
   Widget build(BuildContext context) => AsyncPanel(
+    changes: api.live.events.where(
+      (event) => [
+        'AttendanceChanged',
+        'CheckInChanged',
+        'Reconnected',
+      ].contains(event),
+    ),
     load: () async {
       if (!api.student) return api.get('/dashboard/summary');
       final me = obj(await api.get('/portal/me'));
@@ -339,10 +349,49 @@ class HomePage extends StatelessWidget {
               .where((s) => '${s['id']}' == api.portalStudentId)
               .firstOrNull ??
           students.first;
-      return api.get('/portal/students/${student['id']}/overview');
+      final overview = obj(
+        await api.get('/portal/students/${student['id']}/overview'),
+      );
+      final day = cairoDate(DateTime.now());
+      try {
+        final sessions = await loadSessionRange(
+          api,
+          studentId: '${student['id']}',
+          from: cairoMidnightUtc(DateTime(day.year, day.month, day.day - 1)),
+          to: cairoMidnightUtc(DateTime(day.year, day.month, day.day + 2)),
+        );
+        return {
+          ...overview,
+          '_studentId': student['id'],
+          '_sessions': sessions,
+        };
+      } catch (e) {
+        return {
+          ...overview,
+          '_studentId': student['id'],
+          '_sessionsError': '$e',
+        };
+      }
     },
     builder: (data, refresh) {
-      final d = obj(data), next = obj(d['nextSession']);
+      final d = obj(data);
+      final sessions = rows(d['_sessions']);
+      final upcoming = obj(d['nextSession']);
+      if (upcoming.isNotEmpty &&
+          !sessions.any((s) => s['id'] == upcoming['id'])) {
+        sessions.add(upcoming);
+      }
+      final now = scheduleNow(sessions);
+      final visible = orderedSessions(
+        sessions.where(
+          (s) =>
+              sessionRunning(s, now) ||
+              (!sessionInactive(s) && (sessionStart(s)?.isAfter(now) ?? false)),
+        ),
+        now,
+      );
+      final next =
+          visible.firstOrNull ?? (api.student ? <String, dynamic>{} : upcoming);
       final colors = Theme.of(context).colorScheme;
       final name =
           '${api.profile['name'] ?? api.profile['fullName'] ?? (api.student ? 'صديقنا' : 'أستاذنا')}';
@@ -458,15 +507,14 @@ class HomePage extends StatelessWidget {
             ),
           ),
           if (api.student) ...[
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(double.infinity, 56),
+            if (api.role == 'Student') ...[
+              const SizedBox(height: 12),
+              CurrentSessionAttendance(
+                api: api,
+                studentId: '${d['_studentId']}',
+                onChanged: refresh,
               ),
-              onPressed: () => open(context, StudentCard(api: api)),
-              icon: const Icon(AppIcons.qrCode),
-              label: const Text('اعرض كود الحضور'),
-            ),
+            ],
             const SizedBox(height: 12),
             ContinueLearning(api: api),
           ],
@@ -475,7 +523,11 @@ class HomePage extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  api.student ? 'موعدك الجاي' : 'الجدول والحصص',
+                  api.student
+                      ? (sessionRunning(next, now)
+                            ? 'حصتك دلوقتي'
+                            : 'موعدك الجاي')
+                      : 'الجدول والحصص',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -498,48 +550,67 @@ class HomePage extends StatelessWidget {
               ),
             ],
           ),
+          if (d['_sessionsError'] != null)
+            Text(
+              'تعذر تحديث الحصة الحالية: ${d['_sessionsError']}',
+              style: TextStyle(color: colors.error),
+            ),
           if (next.isNotEmpty)
             BrandCard(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        color: colors.secondaryContainer,
-                        borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                onTap: () => open(
+                  context,
+                  api.student
+                      ? StudentSessionPage(
+                          api: api,
+                          studentId: '${d['_studentId']}',
+                          session: next,
+                        )
+                      : AttendancePage(api: api, session: next),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          color: colors.secondaryContainer,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          AppIcons.calendarMonthOutlined,
+                          color: colors.onSecondaryContainer,
+                          size: 28,
+                        ),
                       ),
-                      child: Icon(
-                        AppIcons.calendarMonthOutlined,
-                        color: colors.onSecondaryContainer,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${next['topic'] ?? next['groupName'] ?? 'الحصة القادمة'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 17,
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          Text(when(next['startsAtUtc'])),
-                          if (next['groupName'] != null)
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              '${next['groupName']}',
-                              style: Theme.of(context).textTheme.bodySmall,
+                              '${next['topic'] ?? next['groupName'] ?? 'الحصة القادمة'}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
                             ),
-                        ],
+                            const SizedBox(height: 7),
+                            Text(when(next['startsAtUtc'])),
+                            if (next['groupName'] != null)
+                              Text(
+                                '${next['groupName']}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      const Icon(AppIcons.chevronLeft),
+                    ],
+                  ),
                 ),
               ),
             )

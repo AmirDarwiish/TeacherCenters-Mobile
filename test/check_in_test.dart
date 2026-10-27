@@ -204,7 +204,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('لم يُفعّل'), findsOneWidget);
+    expect(find.byType(OutlinedButton), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
     expect(device.locations, 0);
     expect(device.photos, 0);
   });

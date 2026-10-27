@@ -1,6 +1,7 @@
 import '../core/brand.dart';
 import '../core/app_icons.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -56,7 +57,11 @@ class NativeAttendanceDevice extends AttendanceDevice {
     _camera = controller;
     try {
       await controller.initialize();
-      await controller.setFlashMode(FlashMode.off);
+      try {
+        await controller.setFlashMode(FlashMode.off);
+      } on CameraException {
+        if (controller.value.hasError) rethrow;
+      }
     } catch (_) {
       if (identical(_camera, controller)) await closeCamera();
       rethrow;
@@ -82,7 +87,10 @@ class NativeAttendanceDevice extends AttendanceDevice {
   @override
   Future<AttendanceLocation> locate() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
-      throw ApiFailure('شغّل خدمة الموقع في الموبايل ثم حاول مرة أخرى.');
+      throw ApiFailure(
+        'شغّل خدمة الموقع في الموبايل ثم حاول مرة أخرى.',
+        code: 'location-disabled',
+      );
     }
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -94,14 +102,31 @@ class NativeAttendanceDevice extends AttendanceDevice {
     ].contains(permission)) {
       throw ApiFailure(
         'اسمح بالموقع الدقيق أثناء استخدام التطبيق من إعدادات الموبايل.',
+        code: 'location-permission',
       );
     }
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        timeLimit: Duration(seconds: 25),
-      ),
-    );
+    final position =
+        await Geolocator.getCurrentPosition(
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.best,
+                timeLimit: Duration(seconds: 25),
+              ),
+            )
+            .onError<TimeoutException>(
+              (_, _) => throw ApiFailure(
+                'تعذر الوصول لموقع دقيق. جرّب مكان أوضح وحدّد موقعك تاني.',
+                code: 'location-timeout',
+              ),
+            )
+            .timeout(
+              const Duration(seconds: 30),
+              onTimeout: () {
+                throw ApiFailure(
+                  'الموقع بياخد وقت أطول. جرّب مكان أوضح وحدّد موقعك تاني.',
+                  code: 'location-timeout',
+                );
+              },
+            );
     return AttendanceLocation(
       position.latitude,
       position.longitude,
@@ -169,6 +194,25 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
   int cameraEpoch = 0;
   Future<void> cameraTask = Future.value();
 
+  Object deviceError(Object value) {
+    if (value is! CameraException) return value;
+    final code = value.code.toLowerCase();
+    final denied = code.contains('denied') || code.contains('restricted');
+    return ApiFailure(
+      denied
+          ? 'اسمح باستخدام الكاميرا من إعدادات التطبيق، وبعدها حاول تاني.'
+          : 'الكاميرا مش جاهزة دلوقتي. اقفل أي تطبيق بيستخدمها وحاول تاني.',
+      code: denied ? 'camera-permission' : 'camera-unavailable',
+    );
+  }
+
+  void notifyError(Object value) {
+    if (!mounted) return;
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text('$value')));
+  }
+
   Future<void> stopCamera() {
     cameraTask = cameraTask.then(
       (_) => device.closeCamera(),
@@ -201,13 +245,8 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
       // Keep the operation queue usable after a denied permission or device error.
       cameraTask = Future.value();
       if (mounted) {
-        setState(
-          () => error = e is CameraException
-              ? ApiFailure(
-                  'تعذر تشغيل الكاميرا. اسمح باستخدامها من إعدادات التطبيق ثم أعد المحاولة.',
-                )
-              : e,
-        );
+        setState(() => error = deviceError(e));
+        notifyError(error ?? e);
       }
     } finally {
       if (mounted) setState(() => cameraBusy = false);
@@ -216,6 +255,12 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Android permission dialogs are transient inactive states, not backgrounding.
+    if (state == AppLifecycleState.inactive &&
+        !cameraOpen &&
+        (cameraBusy || working)) {
+      return;
+    }
     foreground = state == AppLifecycleState.resumed;
     if (!foreground) {
       cameraEpoch++;
@@ -233,6 +278,21 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
   }
 
   Json? policy, challenge;
+  DateTime? serverTime;
+  final serverClock = Stopwatch();
+  DateTime get now =>
+      serverTime?.add(serverClock.elapsed) ?? DateTime.now().toUtc();
+  bool evidenceSent = false;
+  AttendanceLocation normalizedLocation(AttendanceLocation value) =>
+      AttendanceLocation(
+        value.latitude,
+        value.longitude,
+        value.accuracyMeters,
+        now.subtract(
+          DateTime.now().toUtc().difference(value.capturedAt.toUtc()),
+        ),
+        isMocked: value.isMocked,
+      );
   AttendanceLocation? location;
   Uint8List? photo;
   DateTime? photoAt;
@@ -247,7 +307,8 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
   Json get center => obj(policy?['center']);
   Json get verification => obj(policy?['verification']);
   bool get submitted =>
-      ['PendingReview', 'Approved'].contains(verification['status']);
+      ['PendingReview', 'Approved'].contains(verification['status']) ||
+      ['Present', 'Late'].contains(policy?['attendance']);
   double? get distance =>
       location == null ||
           center['latitude'] is! num ||
@@ -270,13 +331,23 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
       center['longitude'] is num &&
       radius > 0 &&
       maxAccuracy > 0;
-  bool get locationValid =>
+  bool get locationAccurate =>
       location != null &&
       !location!.isMocked &&
+      location!.latitude.isFinite &&
+      location!.longitude.isFinite &&
+      location!.latitude.abs() <= 90 &&
+      location!.longitude.abs() <= 180 &&
+      location!.accuracyMeters.isFinite &&
       location!.accuracyMeters > 0 &&
-      location!.accuracyMeters <= maxAccuracy &&
+      location!.accuracyMeters <= maxAccuracy;
+  bool get insideRadius =>
+      locationAccurate &&
       distance != null &&
       distance! + location!.accuracyMeters <= radius;
+  bool get locationValid =>
+      locationAccurate &&
+      (insideRadius || policy?['reviewOutsideRadius'] == true);
   @override
   void initState() {
     super.initState();
@@ -298,11 +369,20 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
         throw ApiFailure('تسجيل الحضور متاح من حساب الطالب فقط.');
       }
       final data = obj(await widget.api.get(path));
-      if (mounted) setState(() => policy = data);
+      if (mounted) {
+        setState(() {
+          final time = apiUtc(data['serverNowUtc']);
+          serverTime = time;
+          serverClock
+            ..reset()
+            ..start();
+          policy = data;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(
-          () => error = e is ApiFailure && [404, 501].contains(e.status)
+          () => error = e is ApiFailure && e.status == 501
               ? ApiFailure(
                   'تسجيل الحضور بالموقع والصورة لم يُفعّل في السنتر بعد. استخدم بطاقة الحضور مؤقتًا.',
                 )
@@ -315,10 +395,8 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
   }
 
   Future<void> ensureChallenge() async {
-    final expires = DateTime.tryParse('${challenge?['expiresAtUtc']}');
-    if (challenge != null &&
-        expires != null &&
-        expires.isAfter(DateTime.now().toUtc())) {
+    final expires = apiUtc(challenge?['expiresAtUtc']);
+    if (challenge != null && expires != null && expires.isAfter(now)) {
       return;
     }
     final value = obj(await widget.api.call('POST', '$path/challenge'));
@@ -326,6 +404,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
       throw ApiFailure('تعذر تجهيز طلب الحضور. حاول مرة أخرى.');
     }
     challenge = value;
+    evidenceSent = false;
     key = newKey();
     location = null;
     photo = null;
@@ -343,9 +422,10 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
       await ensureChallenge();
       if (gps) {
         final next = await device.locate();
-        if (mounted) {
+        if (mounted && foreground) {
           setState(() {
-            location = next;
+            location = normalizedLocation(next);
+            evidenceSent = false;
             key = newKey();
           });
         }
@@ -363,7 +443,8 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
           if (mounted) {
             setState(() {
               photo = bytes;
-              photoAt = DateTime.now().toUtc();
+              photoAt = now;
+              evidenceSent = false;
               key = newKey();
               cameraOpen = false;
             });
@@ -372,7 +453,8 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
         }
       }
     } catch (e) {
-      if (mounted) setState(() => error = e);
+      if (mounted) setState(() => error = deviceError(e));
+      notifyError(error ?? e);
     } finally {
       if (mounted) setState(() => working = false);
     }
@@ -387,20 +469,37 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
       error = null;
     });
     try {
-      final now = DateTime.now().toUtc();
-      final expires = DateTime.tryParse('${challenge?['expiresAtUtc']}');
-      if (expires == null || !expires.isAfter(now)) {
-        throw ApiFailure('انتهت مهلة التصوير. حدّث الموقع والتقط صورة جديدة.');
-      }
-      if (now.difference(location!.capturedAt).inSeconds.abs() > 60) {
+      final expires = apiUtc(challenge?['expiresAtUtc']);
+      if (!evidenceSent && (expires == null || !expires.isAfter(now))) {
         throw ApiFailure(
-          'حدّث موقعك قبل الإرسال؛ آخر قراءة مرّ عليها أكثر من دقيقة.',
+          'انتهت مهلة التصوير. حدّث الموقع والتقط صورة جديدة.',
+          code: 'capture-expired',
         );
       }
-      if (photoAt == null || now.difference(photoAt!).inMinutes >= 5) {
-        throw ApiFailure('التقط صورة جديدة قبل الإرسال.');
+      if (!evidenceSent &&
+          now.difference(location!.capturedAt).inSeconds >= 45) {
+        final fresh = normalizedLocation(await device.locate());
+        if (!mounted || !foreground) return;
+        setState(() {
+          location = fresh;
+          key = newKey();
+        });
+        if (!locationValid ||
+            now.difference(fresh.capturedAt).inSeconds.abs() > 45) {
+          throw ApiFailure(
+            'الموقع الحالي مش دقيق كفاية. حدّد موقعك تاني قبل الإرسال.',
+          );
+        }
+      }
+      if (!evidenceSent &&
+          (photoAt == null || now.difference(photoAt!).inMinutes >= 5)) {
+        throw ApiFailure(
+          'التقط صورة جديدة قبل الإرسال.',
+          code: 'capture-expired',
+        );
       }
       final mime = attendancePhotoMime(photo!)!;
+      evidenceSent = true;
       final response = obj(
         await widget.api.call(
           'POST',
@@ -434,6 +533,7 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
         );
       }
       if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
       setState(() {
         policy = {
           ...?policy,
@@ -446,7 +546,22 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
         location = null;
       });
     } catch (e) {
-      if (mounted) setState(() => error = e);
+      if (mounted) {
+        setState(() {
+          error = e;
+          if (e is ApiFailure && e.code == 'capture-expired') {
+            challenge = null;
+            location = null;
+            photo = null;
+            photoAt = null;
+            evidenceSent = false;
+          } else if (e is ApiFailure && e.code == 'location-inaccurate') {
+            location = null;
+            evidenceSent = false;
+          }
+        });
+        notifyError(e);
+      }
     } finally {
       if (mounted) setState(() => working = false);
     }
@@ -476,6 +591,45 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                   'بنستخدم موقعك وقت تسجيل الحضور فقط. صوّر علامة مميزة زي لافتة القاعة أو شعار السنتر، وتجنب تصوير أشخاص أو أوراق فيها بيانات شخصية.',
                 ),
                 const SizedBox(height: 20),
+                if (error != null)
+                  BrandCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            '$error',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                          if (error is ApiFailure &&
+                              [
+                                'location-disabled',
+                                'location-permission',
+                                'camera-permission',
+                              ].contains((error as ApiFailure).code))
+                            TextButton(
+                              onPressed: () async {
+                                if ((error as ApiFailure).code ==
+                                    'location-disabled') {
+                                  await Geolocator.openLocationSettings();
+                                } else {
+                                  await Geolocator.openAppSettings();
+                                }
+                              },
+                              child: Text(
+                                (error as ApiFailure).code ==
+                                        'location-disabled'
+                                    ? 'افتح إعدادات الموقع'
+                                    : 'افتح صلاحيات التطبيق',
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (submitted)
                   BrandCard(
                     child: Padding(
@@ -485,7 +639,11 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                           const Icon(AppIcons.factCheckOutlined, size: 48),
                           const SizedBox(height: 12),
                           Text(
-                            verification['status'] == 'Approved'
+                            (verification['status'] == 'Approved' ||
+                                    [
+                                      'Present',
+                                      'Late',
+                                    ].contains(policy?['attendance']))
                                 ? 'تم تأكيد حضورك'
                                 : 'تم إرسال طلبك لمراجعة السنتر',
                           ),
@@ -515,133 +673,134 @@ class _SessionCheckInPageState extends State<SessionCheckInPage>
                   if (policy?['closesAtUtc'] != null)
                     Text('آخر موعد: ${when(policy?['closesAtUtc'])}'),
                   const SizedBox(height: 18),
-                  OutlinedButton.icon(
-                    onPressed: !ready || working ? null : () => capture(true),
-                    icon: const Icon(AppIcons.myLocation),
-                    label: Text(
-                      location == null
-                          ? '١. تحديد موقعي الحالي'
-                          : 'تحديث موقعي',
-                    ),
-                  ),
-                  if (location != null)
-                    BrandCard(
-                      child: ListTile(
-                        leading: Icon(
-                          locationValid
-                              ? AppIcons.checkCircleOutline
-                              : AppIcons.infoOutline,
-                        ),
-                        title: Text(
-                          location!.isMocked
-                              ? 'موقع تجريبي غير مقبول'
-                              : locationValid
-                              ? 'أنت داخل نطاق السنتر'
-                              : 'لم يتأكد وجودك داخل النطاق',
-                        ),
-                        subtitle: Text(
-                          'المسافة ${distance?.round() ?? '—'} متر • دقة الموقع ${location!.accuracyMeters.round()} متر\n${location!.accuracyMeters > maxAccuracy ? 'فعّل الموقع الدقيق أو انتقل لمكان أوضح ثم حدّث الموقع.' : 'المسافة تقديرية؛ السنتر يؤكد نتيجة التسجيل.'}',
-                        ),
+                  if (ready) ...[
+                    OutlinedButton.icon(
+                      onPressed: !ready || working ? null : () => capture(true),
+                      icon: const Icon(AppIcons.myLocation),
+                      label: Text(
+                        location == null
+                            ? '١. تحديد موقعي الحالي'
+                            : 'تحديث موقعي',
                       ),
                     ),
-                  const SizedBox(height: 14),
-                  Text(
-                    '٢. صورة من داخل السنتر',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    if (location != null)
+                      BrandCard(
+                        child: ListTile(
+                          leading: Icon(
+                            locationValid
+                                ? AppIcons.checkCircleOutline
+                                : AppIcons.infoOutline,
+                          ),
+                          title: Text(
+                            location!.isMocked
+                                ? 'موقع تجريبي غير مقبول'
+                                : insideRadius
+                                ? 'أنت داخل نطاق السنتر'
+                                : locationAccurate &&
+                                      policy?['reviewOutsideRadius'] == true
+                                ? 'موقعك خارج النطاق؛ الطلب هيتراجع من الموظف'
+                                : 'لم يتأكد وجودك داخل النطاق',
+                          ),
+                          subtitle: Text(
+                            'المسافة ${distance?.round() ?? '—'} متر • دقة الموقع ${location!.accuracyMeters.round()} متر\n${location!.accuracyMeters > maxAccuracy ? 'فعّل الموقع الدقيق أو انتقل لمكان أوضح ثم حدّث الموقع.' : 'المسافة تقديرية؛ السنتر يؤكد نتيجة التسجيل.'}',
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 14),
+                    Text(
+                      '٢. صورة من داخل السنتر',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${policy?['landmarkPrompt'] ?? 'وجّه الكاميرا للافتة القاعة أو علامة مميزة في السنتر.'}',
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: ColoredBox(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        child: photo != null
-                            ? Image.memory(photo!, fit: BoxFit.contain)
-                            : cameraOpen
-                            ? device.cameraPreview()
-                            : Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      AppIcons.cameraAltOutlined,
-                                      size: 42,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      cameraBusy
-                                          ? 'جارٍ فتح الكاميرا…'
-                                          : 'الكاميرا المباشرة داخل التطبيق',
-                                    ),
-                                    const SizedBox(height: 8),
-                                    const Text(
-                                      'التقاط جديد فقط • لا يمكن رفع صورة',
-                                    ),
-                                  ],
+                    const SizedBox(height: 8),
+                    Text(
+                      '${policy?['landmarkPrompt'] ?? 'وجّه الكاميرا للافتة القاعة أو علامة مميزة في السنتر.'}',
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: ColoredBox(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          child: photo != null
+                              ? Image.memory(photo!, fit: BoxFit.contain)
+                              : cameraOpen
+                              ? device.cameraPreview()
+                              : Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        AppIcons.cameraAltOutlined,
+                                        size: 42,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        cameraBusy
+                                            ? 'جارٍ فتح الكاميرا…'
+                                            : 'الكاميرا المباشرة داخل التطبيق',
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        'التقاط جديد فقط • لا يمكن رفع صورة',
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: !ready || working || cameraBusy
-                        ? null
-                        : cameraOpen
-                        ? () => capture(false)
-                        : openCamera,
-                    icon: Icon(
-                      cameraOpen ? AppIcons.camera : AppIcons.cameraAltOutlined,
-                    ),
-                    label: Text(
-                      cameraOpen
-                          ? 'التقاط الصورة الآن'
-                          : photo == null
-                          ? '٢. تصوير علامة مميزة بالكاميرا'
-                          : 'إعادة التقاط الصورة',
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: context.brand.success,
-                      foregroundColor: context.brand.primaryInk,
-                    ),
-                    onPressed:
-                        !ready ||
-                            working ||
-                            cameraBusy ||
-                            !locationValid ||
-                            photo == null
-                        ? null
-                        : submit,
-                    icon: const Icon(AppIcons.sendOutlined),
-                    label: Text(
-                      working ? 'جارٍ تجهيز طلبك…' : '٣. إرسال وتأكيد الحضور',
-                    ),
-                  ),
-                ],
-                if (error != null)
-                  BrandCard(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Text(
-                        '$error',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
                         ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: !ready || working || cameraBusy
+                          ? null
+                          : cameraOpen
+                          ? () => capture(false)
+                          : openCamera,
+                      icon: Icon(
+                        cameraOpen
+                            ? AppIcons.camera
+                            : AppIcons.cameraAltOutlined,
+                      ),
+                      label: Text(
+                        cameraOpen
+                            ? 'التقاط الصورة الآن'
+                            : photo == null
+                            ? '٢. تصوير علامة مميزة بالكاميرا'
+                            : 'إعادة التقاط الصورة',
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: context.brand.success,
+                        foregroundColor: context.brand.primaryInk,
+                      ),
+                      onPressed:
+                          !ready ||
+                              working ||
+                              cameraBusy ||
+                              !locationValid ||
+                              photo == null
+                          ? null
+                          : submit,
+                      icon: const Icon(AppIcons.sendOutlined),
+                      label: Text(
+                        working
+                            ? 'جارٍ تجهيز طلبك…'
+                            : locationAccurate &&
+                                  !insideRadius &&
+                                  policy?['reviewOutsideRadius'] == true
+                            ? '٣. إرسال طلب الحضور للمراجعة'
+                            : '٣. إرسال وتأكيد الحضور',
+                      ),
+                    ),
+                  ],
+                ],
                 TextButton.icon(
                   onPressed: working || cameraBusy ? null : load,
                   icon: const Icon(AppIcons.refresh),

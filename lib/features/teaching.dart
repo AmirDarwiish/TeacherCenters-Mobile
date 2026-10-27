@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api.dart';
 import '../core/widgets.dart';
+import '../core/session_schedule.dart';
 import 'session_detail.dart';
 
 class GroupsPage extends StatelessWidget {
@@ -154,8 +155,8 @@ class SessionsPage extends StatefulWidget {
 }
 
 class _SessionsPageState extends State<SessionsPage> {
-  DateTime start = DateTime.now().subtract(const Duration(days: 7));
-  DateTime end = DateTime.now().add(const Duration(days: 30));
+  DateTime start = cairoDate(DateTime.now()).subtract(const Duration(days: 7));
+  DateTime end = cairoDate(DateTime.now()).add(const Duration(days: 30));
   String? studentId;
   Future<dynamic> load() async {
     if (widget.api.student && studentId == null) {
@@ -164,7 +165,13 @@ class _SessionsPageState extends State<SessionsPage> {
       if (list.isEmpty) throw ApiFailure('لا يوجد طالب نشط مرتبط بالحساب.');
       studentId = widget.api.portalStudentId ?? '${list.first['id']}';
     }
-    return studentId;
+    return loadSessionRange(
+      widget.api,
+      studentId: studentId,
+      groupId: widget.groupId,
+      from: cairoMidnightUtc(start),
+      to: cairoMidnightUtc(DateTime(end.year, end.month, end.day + 1)),
+    );
   }
 
   @override
@@ -204,45 +211,52 @@ class _SessionsPageState extends State<SessionsPage> {
         ),
         Expanded(
           child: AsyncPanel(
+            key: ValueKey(
+              '$start$end${widget.groupId}${widget.api.portalStudentId}',
+            ),
             load: load,
-            builder: (_, refresh) => PagedList(
-              key: ValueKey('$start$end$studentId'),
-              api: widget.api,
-              path: widget.api.student
-                  ? '/portal/students/$studentId/sessions'
-                  : '/sessions',
-              query: {
-                'from': start.toIso8601String().substring(0, 10),
-                'to': end.toIso8601String().substring(0, 10),
-                if (widget.groupId != null) 'groupId': widget.groupId,
-              },
-              item: (s) => BrandCard(
-                child: ListTile(
-                  leading: Icon(
-                    widget.api.student
-                        ? AppIcons.eventOutlined
-                        : AppIcons.factCheckOutlined,
+            changes: widget.api.live.events.where(
+              (e) => [
+                'AttendanceChanged',
+                'CheckInChanged',
+                'Reconnected',
+              ].contains(e),
+            ),
+            builder: (data, refresh) => ListView(
+              padding: const EdgeInsets.all(16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                if (rows(data).isEmpty)
+                  const Empty(text: 'مفيش حصص في الفترة دي.'),
+                for (final s in rows(data))
+                  BrandCard(
+                    child: ListTile(
+                      leading: Icon(
+                        widget.api.student
+                            ? AppIcons.eventOutlined
+                            : AppIcons.factCheckOutlined,
+                      ),
+                      title: Text(
+                        '${s['topic'] ?? s['groupName'] ?? 'حصة دراسية'}',
+                      ),
+                      subtitle: Text(
+                        '${when(s['startsAtUtc'])}\n${s['hallName'] ?? ''} · ${sessionStatus(s['effectiveStatus'] ?? s['status'])}${s['attendance'] == null ? '' : '\nالحضور: ${attendanceStatus(s['attendance'])}'}',
+                      ),
+                      isThreeLine: true,
+                      trailing: const Icon(AppIcons.chevronLeft),
+                      onTap: () => open(
+                        context,
+                        widget.api.student
+                            ? StudentSessionPage(
+                                api: widget.api,
+                                studentId: studentId!,
+                                session: s,
+                              )
+                            : AttendancePage(api: widget.api, session: s),
+                      ),
+                    ),
                   ),
-                  title: Text(
-                    '${s['topic'] ?? s['groupName'] ?? 'حصة دراسية'}',
-                  ),
-                  subtitle: Text(
-                    '${when(s['startsAtUtc'])}\n${s['hallName'] ?? ''} · ${sessionStatus(s['effectiveStatus'] ?? s['status'])}${s['attendance'] == null ? '' : '\nالحضور: ${attendanceStatus(s['attendance'])}'}',
-                  ),
-                  isThreeLine: true,
-                  trailing: const Icon(AppIcons.chevronLeft),
-                  onTap: () => open(
-                    context,
-                    widget.api.student
-                        ? StudentSessionPage(
-                            api: widget.api,
-                            studentId: studentId!,
-                            session: s,
-                          )
-                        : AttendancePage(api: widget.api, session: s),
-                  ),
-                ),
-              ),
+              ],
             ),
           ),
         ),

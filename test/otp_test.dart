@@ -46,8 +46,13 @@ Future<Api> loginApi(List<RequestOptions> requests) async {
         'attendancePercent': 94,
         'averageScore': 88,
         'nextSession': {
+          'id': 'session-next',
           'topic': 'تطبيقات قوانين نيوتن',
-          'startsAtUtc': '2026-10-22T16:00:00Z',
+          'startsAtUtc': DateTime.now()
+              .toUtc()
+              .add(const Duration(hours: 1))
+              .toIso8601String(),
+          'durationMinutes': 90,
         },
         'balance': {'totalDue': 0},
       });
@@ -221,7 +226,7 @@ void main() {
           .first;
       final attendanceCode = find.widgetWithText(
         FilledButton,
-        'اعرض كود الحضور',
+        'سجّل حضوري للحصة الحالية',
       );
       expect(
         tester.getTopLeft(attendanceCode).dy - tester.getBottomLeft(banner).dy,
