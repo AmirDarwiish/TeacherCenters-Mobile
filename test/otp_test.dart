@@ -213,7 +213,33 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('كمّل رحلتك'), findsOneWidget);
       expect(find.text('تطبيقات قوانين نيوتن'), findsOneWidget);
+      final banner = find
+          .ancestor(
+            of: find.text('فهم أعمق.\nوثقة في اللي جاي.'),
+            matching: find.byType(Container),
+          )
+          .first;
+      final attendanceCode = find.widgetWithText(
+        FilledButton,
+        'اعرض كود الحضور',
+      );
+      expect(
+        tester.getTopLeft(attendanceCode).dy - tester.getBottomLeft(banner).dy,
+        greaterThanOrEqualTo(12),
+      );
       await screenshot(tester, 'home-student');
+      await tester.binding.setSurfaceSize(const Size(390, 690));
+      await tester.pumpAndSettle();
+      await Scrollable.ensureVisible(
+        tester.element(attendanceCode),
+        alignment: 1,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.getTopLeft(attendanceCode).dy - tester.getBottomLeft(banner).dy,
+        greaterThanOrEqualTo(12),
+      );
+      await screenshot(tester, 'home-student-compact');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },

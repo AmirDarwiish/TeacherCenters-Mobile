@@ -458,6 +458,7 @@ class HomePage extends StatelessWidget {
             ),
           ),
           if (api.student) ...[
+            const SizedBox(height: 12),
             FilledButton.icon(
               style: FilledButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),
