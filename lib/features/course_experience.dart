@@ -1,5 +1,6 @@
 import '../core/brand.dart';
 import '../core/app_icons.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -32,7 +33,7 @@ class CourseCover extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [BrandColors.logoBlue, BrandColors.logoCyan],
+          colors: [BrandColors.night, BrandColors.navyDoor],
         ),
       ),
       child: Stack(
@@ -40,13 +41,9 @@ class CourseCover extends StatelessWidget {
           Positioned(
             left: -30,
             top: -55,
-            child: Container(
-              width: 210,
-              height: 210,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: BrandColors.whiteSubtle, width: 35),
-              ),
+            child: CustomPaint(
+              size: const Size(210, 260),
+              painter: const BrandArchPainter(color: BrandColors.whiteSubtle),
             ),
           ),
           const Positioned(
@@ -61,15 +58,13 @@ class CourseCover extends StatelessWidget {
           Positioned(
             right: 22,
             top: 24,
-            child: Text(
-              'SENTRAK',
-              textDirection: TextDirection.ltr,
-              style: const TextStyle(
-                color: BrandColors.whiteMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 3,
-              ),
+            child: Image.asset(
+              'assets/brand/rewaq-wordmark-reverse-1024.png',
+              width: 104,
+              height: 64,
+              fit: BoxFit.contain,
+              semanticLabel: 'رواق',
+              matchTextDirection: false,
             ),
           ),
         ],

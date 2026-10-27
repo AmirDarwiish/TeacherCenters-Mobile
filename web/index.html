@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -18,21 +18,33 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="رواق — إدارة دروسك كلها من مكان واحد.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="teacher_centers_mobile">
+  <meta name="apple-mobile-web-app-title" content="رواق">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>teacher_centers_mobile</title>
+  <title>رواق</title>
+  <meta name="theme-color" content="#0b2540">
   <link rel="manifest" href="manifest.json">
 </head>
-<body>
+<body style="margin:0;background:#0b2540">
+  <div id="rewaq-loading" role="status" aria-label="بنجهّز رواق"
+       style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;box-sizing:border-box;color:#bcd0fb;text-align:center">
+    <img src="assets/assets/brand/rewaq-logo-stacked-reverse-1024.png"
+         alt="رواق" width="116" height="240" style="object-fit:contain;margin:24px">
+    <p>إدارة دروسك كلها من مكان واحد</p>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      document.getElementById('rewaq-loading')?.remove();
+    });
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

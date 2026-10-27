@@ -5,19 +5,19 @@ import 'package:teacher_centers_mobile/core/format.dart';
 import 'package:teacher_centers_mobile/core/brand_logo.dart';
 
 void main() {
-  test('theme preserves light branding and uses the refined dark palette', () {
+  test('theme follows the Rewaq palette and typography', () {
     final light = appTheme(Brightness.light), dark = appTheme(Brightness.dark);
-    expect(light.colorScheme.primary, const Color(0xff1d5bf0));
+    expect(light.colorScheme.primary, const Color(0xff0b2540));
     expect(light.scaffoldBackgroundColor, const Color(0xfff4f8fc));
-    expect(dark.colorScheme.primary, const Color(0xff82a8ff));
-    expect(dark.colorScheme.surface, const Color(0xff1a2737));
-    expect(light.textTheme.headlineSmall!.fontFamily, 'Tajawal');
+    expect(dark.colorScheme.primary, const Color(0xffc9a24a));
+    expect(dark.colorScheme.surface, const Color(0xff0e1b2c));
+    expect(light.textTheme.headlineSmall!.fontFamily, 'Alexandria');
     expect(light.textTheme.headlineSmall!.fontSize, 24);
-    expect(light.textTheme.bodyMedium!.fontFamily, 'Tajawal');
+    expect(light.textTheme.bodyMedium!.fontFamily, 'IBMPlexSansArabic');
     expect(light.textTheme.bodyMedium!.fontSize, 16);
     expect(light.appBarTheme.toolbarHeight, 48);
     expect(light.appBarTheme.titleTextStyle!.fontSize, 18);
-    expect(light.extension<BrandColors>()!.cyan, const Color(0xff13b5d6));
+    expect(light.extension<BrandColors>()!.accent, const Color(0xffc9a24a));
   });
   test('dark text and semantic button labels have readable contrast', () {
     final b = BrandColors.dark;
@@ -54,7 +54,7 @@ void main() {
             child: Builder(
               builder: (context) {
                 duration = BrandMotion.duration(context, 400);
-                return const Scaffold(body: Center(child: SentrakLogo()));
+                return const Scaffold(body: Center(child: RewaqLogo()));
               },
             ),
           ),
@@ -62,11 +62,35 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(duration, Duration.zero);
-      final painter = find.byWidgetPredicate(
-        (w) => w is CustomPaint && w.painter is SentrakLogoPainter,
+      final logo = tester.widget<Image>(find.byType(Image));
+      expect(
+        (logo.image as AssetImage).assetName,
+        'assets/brand/rewaq-logo-horizontal-primary-1024.png',
       );
-      expect(tester.getSize(painter), const Size(40, 40));
+      expect(logo.matchTextDirection, isFalse);
+      final size = tester.getSize(find.byType(Image));
+      expect(size.width / size.height, closeTo(1024 / 546, .01));
+      expect(size.width, greaterThanOrEqualTo(120));
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('dark theme uses original reverse artwork with a brand label', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(Brightness.dark),
+        home: const Scaffold(body: RewaqLogo()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final logo = tester.widget<Image>(find.byType(Image));
+    expect(
+      (logo.image as AssetImage).assetName,
+      'assets/brand/rewaq-logo-horizontal-reverse-1024.png',
+    );
+    expect(find.bySemanticsLabel('رواق'), findsOneWidget);
+    semantics.dispose();
+  });
 }

@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/api.dart';
 import 'core/app_viewport.dart';
 import 'core/design.dart';
+import 'core/brand_logo.dart';
 import 'features/login.dart';
 import 'features/shell.dart';
 import 'features/guardian.dart';
@@ -60,7 +61,7 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
-    title: 'سنترك',
+    title: 'رواق',
     locale: const Locale('ar', 'EG'),
     supportedLocales: const [Locale('ar', 'EG'), Locale('en')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -72,7 +73,7 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
     // Replacing the keyed Navigator removes all private detail routes on logout.
     key: ValueKey(sessionEpoch),
     home: !ready
-        ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+        ? const RewaqSplash()
         : startupError != null
         ? Scaffold(
             body: Center(
@@ -114,5 +115,40 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
                   ),
                 )
         : LoginPage(api: widget.api),
+  );
+}
+
+class RewaqSplash extends StatelessWidget {
+  const RewaqSplash({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: BrandColors.night,
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const RewaqLogo(inverse: true, stacked: true, size: 240),
+              const SizedBox(height: 24),
+              Text(
+                'إدارة دروسك كلها من مكان واحد',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: BrandColors.onNavyMuted,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const CircularProgressIndicator(
+                color: BrandColors.gold,
+                semanticsLabel: 'بنجهّز رواق',
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
   );
 }

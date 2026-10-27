@@ -1,6 +1,7 @@
 import '../core/brand.dart';
 import '../core/brand_logo.dart';
 import '../core/app_icons.dart';
+
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -106,9 +107,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           ? null
           : AppBar(
               flexibleSpace: const BrandHeader(),
-              title: index == 0
-                  ? const SentrakLogo(size: 32)
-                  : Text(titles[index]),
+              toolbarHeight: index == 0 ? 80 : 48,
+              title: index == 0 ? const RewaqLogo() : Text(titles[index]),
               actions: [
                 if (!api.guardian)
                   IconButton(
@@ -142,7 +142,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           ),
         ),
       ),
-      bottomNavigationBar: SentrakNavigationBar(
+      bottomNavigationBar: RewaqNavigationBar(
         selectedIndex: index,
         hasReels: hasReels,
         onSelected: (i) => setState(() {
@@ -157,8 +157,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   }
 }
 
-class SentrakNavigationBar extends StatelessWidget {
-  const SentrakNavigationBar({
+class RewaqNavigationBar extends StatelessWidget {
+  const RewaqNavigationBar({
     super.key,
     required this.selectedIndex,
     required this.onSelected,
@@ -192,7 +192,7 @@ class SentrakNavigationBar extends StatelessWidget {
       child: Container(
         margin: const EdgeInsetsDirectional.fromSTEB(8, 8, 8, 8),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
               color: BrandColors.night.withValues(alpha: .04),
@@ -200,7 +200,7 @@ class SentrakNavigationBar extends StatelessWidget {
               offset: const Offset(0, 2),
             ),
             BoxShadow(
-              color: BrandColors.logoBlue.withValues(alpha: .16),
+              color: BrandColors.night.withValues(alpha: .16),
               blurRadius: 40,
               offset: const Offset(0, 18),
             ),
@@ -210,7 +210,7 @@ class SentrakNavigationBar extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(color: b.line),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(28),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -248,20 +248,11 @@ class SentrakNavigationBar extends StatelessWidget {
                                   height: 32,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(12),
-                                    gradient: active
-                                        ? const LinearGradient(
-                                            begin: Alignment.topRight,
-                                            end: Alignment.bottomLeft,
-                                            colors: [
-                                              BrandColors.navStart,
-                                              BrandColors.navEnd,
-                                            ],
-                                          )
-                                        : null,
+                                    color: active ? b.primary : null,
                                     boxShadow: active
                                         ? [
                                             BoxShadow(
-                                              color: BrandColors.logoBlue
+                                              color: BrandColors.night
                                                   .withValues(alpha: .16),
                                               blurRadius: 12,
                                               offset: const Offset(0, 4),
@@ -272,7 +263,7 @@ class SentrakNavigationBar extends StatelessWidget {
                                   child: Icon(
                                     icons[i],
                                     size: 20,
-                                    color: active ? BrandColors.white : b.muted,
+                                    color: active ? b.primaryInk : b.muted,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -286,7 +277,7 @@ class SentrakNavigationBar extends StatelessWidget {
                                       labels[i],
                                       maxLines: 1,
                                       style: TextStyle(
-                                        fontFamily: 'Tajawal',
+                                        fontFamily: 'IBMPlexSansArabic',
                                         fontSize: 12,
                                         color: active ? b.primary : b.muted,
                                         fontWeight: active
@@ -396,11 +387,11 @@ class HomePage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(28),
               gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [BrandColors.logoBlue, BrandColors.logoCyan],
+                colors: [BrandColors.night, BrandColors.navyDoor],
               ),
             ),
             child: Column(
@@ -428,7 +419,7 @@ class HomePage extends StatelessWidget {
                       ? 'فهم أعمق.\nوثقة في اللي جاي.'
                       : 'وقت أكتر للتدريس.\nوتفاصيل تحت السيطرة.',
                   style: const TextStyle(
-                    fontFamily: 'Tajawal',
+                    fontFamily: 'Alexandria',
                     fontSize: 27,
                     color: BrandColors.white,
                     fontWeight: FontWeight.bold,
@@ -466,7 +457,18 @@ class HomePage extends StatelessWidget {
               ],
             ),
           ),
-          if (api.student) ContinueLearning(api: api),
+          if (api.student) ...[
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(double.infinity, 56),
+              ),
+              onPressed: () => open(context, StudentCard(api: api)),
+              icon: const Icon(AppIcons.qrCode),
+              label: const Text('اعرض كود الحضور'),
+            ),
+            const SizedBox(height: 12),
+            ContinueLearning(api: api),
+          ],
           const SizedBox(height: 24),
           Row(
             children: [
@@ -697,7 +699,7 @@ class HomePage extends StatelessWidget {
               child: ListTile(
                 contentPadding: const EdgeInsets.all(18),
                 leading: const Icon(AppIcons.accountBalanceWalletOutlined),
-                title: const Text('المستحقات الحالية'),
+                title: const Text('الفلوس المطلوبة'),
                 subtitle: Text(money(obj(d['balance'])['totalDue'] ?? 0)),
                 trailing: const Icon(AppIcons.chevronLeft),
                 onTap: () => open(context, PaymentsPage(api: api)),
@@ -812,7 +814,7 @@ class AccountPage extends StatelessWidget {
       if (api.student)
         ListTile(
           leading: const Icon(AppIcons.paymentsOutlined),
-          title: const Text('المدفوعات والمستحقات'),
+          title: const Text('الفلوس والمدفوعات'),
           onTap: () => open(context, PaymentsPage(api: api)),
         ),
       if (api.student && !api.guardian)

@@ -1,5 +1,5 @@
 name: teacher_centers_mobile
-description: TeacherCenters mobile client for teachers and students.
+description: Rewaq — lessons, groups, attendance and payments.
 publish_to: none
 version: 1.4.0+6
 environment:
@@ -28,10 +28,22 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 flutter:
   uses-material-design: true
+  assets:
+    - assets/brand/
   fonts:
-    - family: Tajawal
+    - family: Alexandria
       fonts:
-        - asset: assets/fonts/Tajawal-Regular.ttf
+        - asset: assets/fonts/Alexandria.ttf
+          weight: 600
+        - asset: assets/fonts/Alexandria.ttf
+          weight: 700
+    - family: IBMPlexSansArabic
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
           weight: 400
-        - asset: assets/fonts/Tajawal-Bold.ttf
+        - asset: assets/fonts/IBMPlexSansArabic-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
           weight: 700

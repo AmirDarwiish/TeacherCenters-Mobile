@@ -1,4 +1,5 @@
 import 'brand.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -168,7 +169,7 @@ class _OtpCodeFieldState extends State<OtpCodeField> {
                                     child: Text(
                                       index < value.length ? value[index] : '—',
                                       style: TextStyle(
-                                        fontFamily: 'Tajawal',
+                                        fontFamily: 'IBMPlexSansArabic',
                                         fontSize: 25,
                                         fontWeight: FontWeight.bold,
                                         color: index < value.length

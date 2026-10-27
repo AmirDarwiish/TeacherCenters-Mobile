@@ -114,7 +114,11 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('١. تحديد موقعي الحالي'));
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('٢. تصوير علامة مميزة بالكاميرا'));
+        // Locate lazy list children after the larger Arabic text reflows.
+        await tester.scrollUntilVisible(
+          find.text('٢. تصوير علامة مميزة بالكاميرا'),
+          160,
+        );
         await tester.pumpAndSettle();
         await tester.tap(find.text('٢. تصوير علامة مميزة بالكاميرا'));
         await tester.pumpAndSettle();
@@ -133,7 +137,11 @@ void main() {
           AppLifecycleState.resumed,
         );
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('٢. تصوير علامة مميزة بالكاميرا'));
+        // Locate lazy list children after the larger Arabic text reflows.
+        await tester.scrollUntilVisible(
+          find.text('٢. تصوير علامة مميزة بالكاميرا'),
+          160,
+        );
         await tester.pumpAndSettle();
         await tester.tap(find.text('٢. تصوير علامة مميزة بالكاميرا'));
         await tester.pumpAndSettle();

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -12,6 +13,7 @@ import 'package:teacher_centers_mobile/core/design.dart';
 import 'package:teacher_centers_mobile/features/courses.dart';
 import 'package:teacher_centers_mobile/features/authoring.dart';
 import 'package:teacher_centers_mobile/features/course_management.dart';
+
 import 'api_test.dart' show MemoryStore, FakeAdapter, response, session;
 
 final course = <String, dynamic>{
@@ -139,14 +141,20 @@ Future<void> screenshot(WidgetTester tester, String name) async {
 
 Future<void> loadTestFonts() async {
   if (!const bool.fromEnvironment('SCREENSHOTS')) return;
-  await (FontLoader('Tajawal')
-        ..addFont(rootBundle.load('assets/fonts/Tajawal-Regular.ttf'))
-        ..addFont(rootBundle.load('assets/fonts/Tajawal-Bold.ttf')))
-      .load();
   await (FontLoader('packages/lucide_icons_flutter/Lucide')..addFont(
         rootBundle.load('packages/lucide_icons_flutter/assets/lucide.ttf'),
       ))
       .load();
+  await (FontLoader('IBMPlexSansArabic')
+        ..addFont(rootBundle.load('assets/fonts/IBMPlexSansArabic-Regular.ttf'))
+        ..addFont(rootBundle.load('assets/fonts/IBMPlexSansArabic-Medium.ttf'))
+        ..addFont(
+          rootBundle.load('assets/fonts/IBMPlexSansArabic-SemiBold.ttf'),
+        ))
+      .load();
+  await (FontLoader(
+    'Alexandria',
+  )..addFont(rootBundle.load('assets/fonts/Alexandria.ttf'))).load();
 }
 
 void main() {

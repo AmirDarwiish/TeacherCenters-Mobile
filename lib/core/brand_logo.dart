@@ -1,85 +1,49 @@
 import 'package:flutter/material.dart';
-import 'brand.dart';
 
-class SentrakLogo extends StatelessWidget {
-  const SentrakLogo({
+/// Original supplied artwork; never typeset, redraw or mirror the wordmark.
+class RewaqLogo extends StatelessWidget {
+  const RewaqLogo({
     super.key,
-    this.size = 40,
+    this.size = 64,
     this.wordmark = true,
     this.inverse = false,
+    this.stacked = false,
   });
+
   final double size;
-  final bool wordmark, inverse;
+  final bool wordmark, inverse, stacked;
+
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: 'سنترك',
-    image: true,
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        CustomPaint(
-          size: Size.square(size),
-          painter: SentrakLogoPainter(inverse: inverse),
+  Widget build(BuildContext context) {
+    final reversed = inverse || Theme.of(context).brightness == Brightness.dark;
+    final variant = reversed ? 'reverse' : 'primary';
+    final layout = stacked ? 'stacked' : 'horizontal';
+    final small = !wordmark && size < 40;
+    final asset = wordmark
+        ? 'rewaq-logo-$layout-$variant-1024.png'
+        : small && !reversed
+        ? 'rewaq-mark-small-128.png'
+        : 'rewaq-mark-$variant-512.png';
+    // The horizontal lockup must be at least 120px wide.
+    final height = wordmark && !stacked && size < 64 ? 64.0 : size;
+    final ratio = wordmark
+        ? (stacked ? 1024 / 2117 : 1024 / 546)
+        : (small && !reversed ? 32 / 41 : 512 / 663);
+    return Semantics(
+      label: 'رواق',
+      image: true,
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Image.asset(
+          'assets/brand/$asset',
+          height: height,
+          width: height * ratio,
+          fit: BoxFit.contain,
+          matchTextDirection: false,
+          excludeFromSemantics: true,
         ),
-        if (wordmark) ...[
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              'سنترك',
-              style: TextStyle(
-                fontFamily: 'Tajawal',
-                fontWeight: FontWeight.w700,
-                fontSize: 24,
-                height: 1.25,
-                color: inverse ? BrandColors.white : context.brand.ink,
-              ),
-            ),
-          ),
-        ],
-      ],
-    ),
-  );
-}
-
-class SentrakLogoPainter extends CustomPainter {
-  const SentrakLogoPainter({this.inverse = false});
-  final bool inverse;
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.scale(size.width / 40, size.height / 40);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(0, 0, 40, 40),
-        const Radius.circular(12),
       ),
-      Paint()..color = inverse ? BrandColors.white : BrandColors.logoBlue,
     );
-    final arc = Path()
-      ..moveTo(27.5, 12.5)
-      ..arcToPoint(
-        const Offset(30.5, 20),
-        radius: const Radius.circular(10.5),
-        largeArc: true,
-        clockwise: false,
-      );
-    canvas.drawPath(
-      arc,
-      Paint()
-        ..color = inverse ? BrandColors.logoBlue : BrandColors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.2
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawCircle(
-      const Offset(20, 20),
-      4,
-      Paint()..color = BrandColors.logoCyan,
-    );
-    canvas.restore();
   }
-
-  @override
-  bool shouldRepaint(covariant SentrakLogoPainter oldDelegate) =>
-      inverse != oldDelegate.inverse;
 }
