@@ -1,5 +1,6 @@
 import '../core/brand.dart';
 import '../core/app_icons.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -44,8 +45,9 @@ String chargeTitle(Json charge) =>
     '${charge['title'] ?? (charge['period'] == 'course' ? 'اشتراك كورس' : 'مستحقات دراسية')}';
 
 class PaymentsPage extends StatefulWidget {
-  const PaymentsPage({super.key, required this.api});
+  const PaymentsPage({super.key, required this.api, this.embedded = false});
   final Api api;
+  final bool embedded;
   @override
   State<PaymentsPage> createState() => _PaymentsPageState();
 }
@@ -55,10 +57,12 @@ class _PaymentsPageState extends State<PaymentsPage> {
   String filter = 'غير المسددة';
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      flexibleSpace: const BrandHeader(),
-      title: const Text('حسابي المالي'),
-    ),
+    appBar: widget.embedded
+        ? null
+        : AppBar(
+            flexibleSpace: const BrandHeader(),
+            title: const Text('حسابي المالي'),
+          ),
     body: AsyncPanel(
       load: () async {
         final id = await portalPayer(widget.api);
@@ -106,6 +110,14 @@ class _PaymentsPageState extends State<PaymentsPage> {
                 padding: const EdgeInsets.all(16),
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
+                  if (widget.api.guardian)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'مستحقات ${label(obj(overview['student']))}',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -400,6 +412,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Future<Json> load() async {
     final student = widget.studentId ?? await portalPayer(widget.api);
     final config = await widget.api.get('/portal/payments/config');
+    final family = widget.api.guardian
+        ? rows(obj(await widget.api.get('/portal/me'))['students'])
+        : <Json>[];
+    final payerName = label(
+      family.where((s) => '${s['id']}' == student).firstOrNull ?? {},
+    );
     final detail = obj(
       await widget.api.get(
         widget.courseId == null
@@ -417,6 +435,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         .toList();
     return {
       'studentId': student,
+      'studentName': payerName.isEmpty ? null : payerName,
       'config': config,
       'detail': detail,
       'charges': charges,
@@ -457,6 +476,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
+              ),
+              if (root['studentName'] != null)
+                Text('للطالب: ${root['studentName']}'),
+              Text(
+                'السنتر: ${obj(widget.api.session?['tenant'])['name'] ?? widget.api.slug}',
               ),
               const SizedBox(height: 10),
               const Text(

@@ -6,6 +6,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 class AppIcons {
   const AppIcons._();
   static const IconData close = LucideIcons.x;
+  static const IconData history = LucideIcons.history;
+  static const IconData settingsOutlined = LucideIcons.settings;
   static const IconData menu = LucideIcons.menu;
   static const IconData accountBalanceWalletOutlined = LucideIcons.wallet;
   static const IconData add = LucideIcons.plus;
