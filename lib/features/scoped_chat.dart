@@ -688,10 +688,10 @@ class _ChatConversationPageState extends State<ChatConversationPage>
       } else {
         failure(e);
         if (mounted && !denied) {
-          toast(
-            context,
-            'تعذر تأكيد الإرسال. رسالتك محفوظة في خانة الكتابة؛ حاول مرة أخرى.',
-          );
+          setState(() {
+            error =
+                'تعذر تأكيد الإرسال. رسالتك محفوظة في خانة الكتابة؛ حاول مرة أخرى.';
+          });
         }
       }
     } finally {

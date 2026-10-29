@@ -112,16 +112,23 @@ Future<Api> fakeApi({
 }
 
 final shotKey = GlobalKey();
-Widget host(Widget child, {bool dark = false, double scale = 1}) => MaterialApp(
+Widget host(
+  Widget child, {
+  bool dark = false,
+  double scale = 1,
+  bool captureNavigator = false,
+}) => MaterialApp(
   locale: const Locale('ar'),
   supportedLocales: const [Locale('ar')],
   localizationsDelegates: GlobalMaterialLocalizations.delegates,
   theme: appTheme(dark ? Brightness.dark : Brightness.light),
   builder: (context, child) => MediaQuery(
     data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
-    child: child!,
+    child: captureNavigator
+        ? RepaintBoundary(key: shotKey, child: child!)
+        : child!,
   ),
-  home: RepaintBoundary(key: shotKey, child: child),
+  home: captureNavigator ? child : RepaintBoundary(key: shotKey, child: child),
 );
 Future<void> screenshot(WidgetTester tester, String name) async {
   if (!const bool.fromEnvironment('SCREENSHOTS')) return;

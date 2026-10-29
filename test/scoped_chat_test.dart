@@ -7,6 +7,9 @@ import 'api_test.dart' show response;
 import 'workspaces_test.dart' show workspaceApi;
 import 'course_experience_test.dart' show host, loadTestFonts, screenshot;
 
+Widget chatHost(Widget child, {bool dark = false}) =>
+    host(child, dark: dark, captureNavigator: true);
+
 Json conversation({
   bool group = false,
   bool send = true,
@@ -69,7 +72,7 @@ void main() {
         return response(200, {'items': [], 'totalCount': 0});
       });
       await t.pumpWidget(
-        host(Scaffold(body: ThreadsPage(api: api, embedded: true))),
+        chatHost(Scaffold(body: ThreadsPage(api: api, embedded: true))),
       );
       await t.pumpAndSettle();
       await t.tap(find.text('بدء محادثة'));
@@ -112,7 +115,7 @@ void main() {
         return response(200, conversation());
       });
       api.portalStudentId = 'b';
-      await t.pumpWidget(host(StartChatPage(api: api, studentId: 'a')));
+      await t.pumpWidget(chatHost(StartChatPage(api: api, studentId: 'a')));
       await t.pumpAndSettle();
       expect(find.text('جروب حصة'), findsNothing);
       expect(find.text('أولياء الأمور'), findsNothing);
@@ -157,7 +160,7 @@ void main() {
           }
           return response(200, conversation(group: true, manage: true));
         });
-        await t.pumpWidget(host(StartChatPage(api: api), dark: dark));
+        await t.pumpWidget(chatHost(StartChatPage(api: api), dark: dark));
         await t.pumpAndSettle();
         await t.tap(find.text('جروب حصة'));
         await t.pumpAndSettle();
@@ -193,7 +196,7 @@ void main() {
             : response(200, conversation(group: true, send: false)),
       );
       await t.pumpWidget(
-        host(
+        chatHost(
           ChatConversationPage(
             api: api,
             conversation: conversation(group: true, send: false),
@@ -231,7 +234,7 @@ void main() {
         return response(200, conversation());
       });
       await t.pumpWidget(
-        host(
+        chatHost(
           ChatConversationPage(
             api: api,
             conversation: conversation(),
@@ -272,7 +275,7 @@ void main() {
         return response(200, conversation(group: true));
       });
       await t.pumpWidget(
-        host(
+        chatHost(
           ChatConversationPage(
             api: api,
             conversation: conversation(group: true),
@@ -312,7 +315,7 @@ void main() {
         return response(200, conversation(group: true, send: !announce));
       });
       await t.pumpWidget(
-        host(
+        chatHost(
           ChatConversationPage(
             api: api,
             conversation: conversation(group: true),
@@ -360,7 +363,7 @@ void main() {
       return response(200, conversation());
     });
     await t.pumpWidget(
-      host(
+      chatHost(
         ChatConversationPage(
           api: api,
           conversation: conversation(),
