@@ -139,7 +139,7 @@ class _TeacherCentersAppState extends State<TeacherCentersApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) push.sync();
+    push.setActive(state == AppLifecycleState.resumed);
   }
 
   @override

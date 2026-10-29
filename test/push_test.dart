@@ -35,6 +35,7 @@ Future<Api> signedApi(List<RequestOptions> requests) async {
 
 class FakePush implements PushTransport {
   bool available = true;
+  Object? initializationError, tokenError;
   PushPermission allowed = PushPermission.unknown;
   int permissionRequests = 0, deletions = 0;
   String currentToken = 'fake-device-token-for-testing';
@@ -45,7 +46,11 @@ class FakePush implements PushTransport {
   @override
   String get platform => 'android';
   @override
-  Future<bool> initialize() async => available;
+  Future<bool> initialize() async {
+    if (initializationError != null) throw initializationError!;
+    return available;
+  }
+
   @override
   Future<PushPermission> permission({bool request = false}) async {
     if (request) permissionRequests++;
@@ -53,7 +58,11 @@ class FakePush implements PushTransport {
   }
 
   @override
-  Future<String?> token() async => currentToken;
+  Future<String?> token() async {
+    if (tokenError != null) throw tokenError!;
+    return currentToken;
+  }
+
   @override
   Future<void> deleteToken() async {
     deletions++;
@@ -76,6 +85,84 @@ class FakePush implements PushTransport {
 
 Future<void> settle() => Future<void>.delayed(Duration.zero);
 void main() {
+  test(
+    'failed Google services setup has an actionable status and can retry without restarting',
+    () async {
+      final calls = <RequestOptions>[];
+      final api = await signedApi(calls),
+          native = FakePush()
+            ..initializationError = const PushSetupFailure(
+              'خدمات Google Play غير متوفرة',
+            );
+      final push = ChatPushCoordinator(
+        api,
+        native,
+        open: (_) async {},
+        banner: (_) {},
+      );
+      await push.start();
+      expect(api.pushAvailable, true);
+      expect(api.pushStatus, contains('Google Play'));
+      expect(calls, isEmpty);
+      native.initializationError = null;
+      native.allowed = PushPermission.allowed;
+      await push.enable();
+      expect(calls.where((r) => r.path == '/devices'), isNotEmpty);
+      await push.dispose();
+      await native.close();
+    },
+  );
+  test(
+    'a token acquisition failure never reports a registered device and retry remains available',
+    () async {
+      final calls = <RequestOptions>[];
+      final api = await signedApi(calls),
+          native = FakePush()
+            ..allowed = PushPermission.allowed
+            ..tokenError = const PushSetupFailure(
+              'تعذر الاتصال بخدمة الإشعارات',
+            );
+      final push = ChatPushCoordinator(
+        api,
+        native,
+        open: (_) async {},
+        banner: (_) {},
+      );
+      await push.start();
+      expect(calls, isEmpty);
+      expect(api.pushStatus, contains('تعذر'));
+      native.tokenError = null;
+      await push.enable();
+      expect(calls, isNotEmpty);
+      await push.dispose();
+      await native.close();
+    },
+  );
+  test(
+    'refreshing the access session re-registers the same device for the new session',
+    () async {
+      final calls = <RequestOptions>[];
+      final api = await signedApi(calls),
+          native = FakePush()..allowed = PushPermission.allowed;
+      final push = ChatPushCoordinator(
+        api,
+        native,
+        open: (_) async {},
+        banner: (_) {},
+      );
+      await push.start();
+      expect(calls.length, 1);
+      final fresh =
+          'header.${base64Url.encode(utf8.encode(jsonEncode({'tenant_id': tenant, 'session_id': room})))}.signature';
+      await api.accept({...api.session!, 'accessToken': fresh});
+      await push.sync();
+      expect(calls.length, greaterThanOrEqualTo(2));
+      expect(calls.last.headers['Authorization'], 'Bearer $fresh');
+      expect(calls.last.data['token'], native.currentToken);
+      await push.dispose();
+      await native.close();
+    },
+  );
   test(
     'routing accepts only valid chat IDs for the current account and tenant',
     () async {

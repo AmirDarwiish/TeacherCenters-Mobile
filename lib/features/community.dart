@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/widgets.dart';
 import 'teaching.dart';
+import 'push_settings.dart';
 export 'scoped_chat.dart' show ThreadsPage;
 
 class LegacyThreadsPage extends StatefulWidget {
@@ -370,6 +371,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
       flexibleSpace: const BrandHeader(),
       title: const Text('الإشعارات'),
       actions: [
+        IconButton(
+          tooltip: 'إعداد الإشعارات',
+          icon: const Icon(AppIcons.settingsOutlined),
+          onPressed: () => open(context, PushSettingsPage(api: widget.api)),
+        ),
         TextButton(
           onPressed: () => action(context, () async {
             await widget.api.call('POST', '/notifications/read-all');

@@ -6,6 +6,7 @@ import '../core/app_icons.dart';
 import '../core/brand.dart';
 import '../core/widgets.dart';
 import 'community.dart' show LegacyThreadsPage;
+import 'push_settings.dart';
 
 String chatRole(String? role) =>
     const {'Teacher': 'مدرس', 'Student': 'طالب', 'Guardian': 'ولي أمر'}[role] ??
@@ -75,12 +76,10 @@ class _ThreadsPageState extends State<ThreadsPage> {
               widget.api.pushStatus,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            trailing: widget.api.pushAvailable
-                ? TextButton(
-                    onPressed: widget.api.enablePush,
-                    child: const Text('إعداد الإشعارات'),
-                  )
-                : null,
+            trailing: TextButton(
+              onPressed: () => open(context, PushSettingsPage(api: widget.api)),
+              child: const Text('إعداد الإشعارات'),
+            ),
           ),
         ),
         if (!widget.api.guardian)

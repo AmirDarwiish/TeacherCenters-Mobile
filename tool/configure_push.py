@@ -3,6 +3,7 @@ Never put a Firebase service-account private key into this file or the APK.
 """
 import json
 import os
+import re
 from pathlib import Path
 
 source = os.environ.get('FIREBASE_ANDROID_CONFIG', '').strip()
@@ -26,5 +27,6 @@ else:
     }
     if not all(v for k, v in values.items() if k != 'FIREBASE_STORAGE_BUCKET'):
         raise ValueError('Incomplete Firebase client configuration')
+    values['APP_VERSION'] = re.search(r'^version:\s*(\S+)', Path('pubspec.yaml').read_text(), re.M).group(1)
     Path('firebase-build.json').write_text(json.dumps(values))
     print('Firebase Android client configuration prepared; values are not logged.')

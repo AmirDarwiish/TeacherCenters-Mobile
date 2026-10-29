@@ -51,3 +51,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// Used directly by the native notification readiness check.
+dependencies {
+    implementation("com.google.android.gms:play-services-basement:18.11.0")
+}
