@@ -77,6 +77,31 @@ class FakePush implements PushTransport {
 Future<void> settle() => Future<void>.delayed(Duration.zero);
 void main() {
   test(
+    'refreshing the access session re-registers the same device for the new session',
+    () async {
+      final calls = <RequestOptions>[];
+      final api = await signedApi(calls),
+          native = FakePush()..allowed = PushPermission.allowed;
+      final push = ChatPushCoordinator(
+        api,
+        native,
+        open: (_) async {},
+        banner: (_) {},
+      );
+      await push.start();
+      expect(calls.length, 1);
+      final fresh =
+          'header.${base64Url.encode(utf8.encode(jsonEncode({'tenant_id': tenant, 'session_id': room})))}.signature';
+      await api.accept({...api.session!, 'accessToken': fresh});
+      await push.sync();
+      expect(calls.length, greaterThanOrEqualTo(2));
+      expect(calls.last.headers['Authorization'], 'Bearer $fresh');
+      expect(calls.last.data['token'], native.currentToken);
+      await push.dispose();
+      await native.close();
+    },
+  );
+  test(
     'routing accepts only valid chat IDs for the current account and tenant',
     () async {
       final api = await signedApi([]);

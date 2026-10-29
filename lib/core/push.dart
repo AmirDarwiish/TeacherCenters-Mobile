@@ -34,19 +34,22 @@ class ChatPushTarget {
       tenantId == pushTenant(api);
 }
 
-String pushTenant(Api api) {
+Json pushClaims(Api api) {
   try {
     final parts = api.token.split('.');
-    if (parts.length != 3) return '';
-    // Only a routing guard. The API still verifies the JWT and room membership.
-    final claims = obj(
+    if (parts.length != 3) return {};
+    // Only a routing/lifecycle guard. The API still verifies the JWT.
+    return obj(
       jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(parts[1])))),
     );
-    return '${claims['tenant_id'] ?? ''}'.toLowerCase();
   } catch (_) {
-    return '';
+    return {};
   }
 }
+
+String pushTenant(Api api) =>
+    '${pushClaims(api)['tenant_id'] ?? ''}'.toLowerCase();
+String pushSession(Api api) => '${pushClaims(api)['session_id'] ?? ''}';
 
 abstract class PushTransport {
   Future<bool> initialize();
@@ -161,8 +164,9 @@ class ChatPushCoordinator {
   String? registeredToken, registeredIdentity;
   Completer<void>? inFlight;
   bool ready = false, disposed = false, working = false, again = false;
-  String get identity =>
-      api.signedIn ? '${pushTenant(api)}:${api.actorId}:${api.role}' : '';
+  String get identity => api.signedIn
+      ? '${pushTenant(api)}:${api.actorId}:${api.role}:${pushSession(api)}'
+      : '';
   Future<void> start() async {
     api.addListener(authChanged);
     api.enablePush = enable;
