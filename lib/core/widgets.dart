@@ -270,6 +270,7 @@ class _PagedListState extends State<PagedList> {
       final path = widget.path;
       if (event == 'Reconnected' ||
           event == 'ThreadChanged' && path.contains('threads') ||
+          event == 'ChatChanged' && path.startsWith('/chat/') ||
           event == 'NotificationsChanged' && path.contains('notifications')) {
         fetch(reset: true);
       }

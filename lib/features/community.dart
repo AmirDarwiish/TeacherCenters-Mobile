@@ -5,17 +5,22 @@ import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/widgets.dart';
 import 'teaching.dart';
+export 'scoped_chat.dart' show ThreadsPage;
 
-class ThreadsPage extends StatefulWidget {
-  const ThreadsPage({super.key, required this.api, this.embedded = false});
+class LegacyThreadsPage extends StatefulWidget {
+  const LegacyThreadsPage({
+    super.key,
+    required this.api,
+    this.embedded = false,
+  });
   final bool embedded;
   final Api api;
   @override
-  State<ThreadsPage> createState() => _ThreadsPageState();
+  State<LegacyThreadsPage> createState() => _LegacyThreadsPageState();
 }
 
-class _ThreadsPageState extends State<ThreadsPage> {
-  int revision = 0;
+class _LegacyThreadsPageState extends State<LegacyThreadsPage> {
+  final int revision = 0;
   String? status;
   late final String? studentId = widget.api.portalStudentId;
   @override
@@ -78,25 +83,6 @@ class _ThreadsPageState extends State<ThreadsPage> {
       appBar: AppBar(
         flexibleSpace: const BrandHeader(),
         title: const Text('الرسائل'),
-        actions: [
-          if (api.student)
-            IconButton(
-              tooltip: 'محادثة جديدة',
-              icon: const Icon(AppIcons.add),
-              onPressed: () async {
-                final child = api.guardian ? studentId : api.actorId;
-                if (child == null) return;
-                await Navigator.push<void>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        NewConversationPage(api: api, studentId: child),
-                  ),
-                );
-                if (mounted) setState(() => revision++);
-              },
-            ),
-        ],
       ),
       body: list,
     );

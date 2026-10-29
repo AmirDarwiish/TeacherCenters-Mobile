@@ -70,10 +70,12 @@ class LiveUpdates {
           .build();
       hub.off('NotificationsChanged');
       hub.off('ThreadChanged');
+      hub.off('ChatChanged');
       hub.off('AttendanceChanged');
       for (final event in [
         'NotificationsChanged',
         'ThreadChanged',
+        'ChatChanged',
         'AttendanceChanged',
       ]) {
         hub.on(event, (_) => emit(event));
