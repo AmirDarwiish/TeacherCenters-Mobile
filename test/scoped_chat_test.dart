@@ -93,7 +93,7 @@ void main() {
       final requests = <RequestOptions>[];
       final api = await workspaceApi('Guardian', (r) async {
         requests.add(r);
-        if (r.path == '/chat/contacts')
+        if (r.path == '/chat/contacts') {
           return response(200, {
             'items': [
               {
@@ -107,6 +107,7 @@ void main() {
             ],
             'totalCount': 1,
           });
+        }
         if (r.path.endsWith('/messages')) return response(200, {'items': []});
         return response(200, conversation());
       });
@@ -132,7 +133,7 @@ void main() {
         addTearDown(() => t.binding.setSurfaceSize(null));
         RequestOptions? created;
         final api = await workspaceApi('Teacher', (r) async {
-          if (r.path == '/chat/session-options')
+          if (r.path == '/chat/session-options') {
             return response(200, {
               'items': [
                 {
@@ -144,14 +145,16 @@ void main() {
               ],
               'totalCount': 1,
             });
+          }
           if (r.method == 'POST') {
             created = r;
             return response(201, conversation(group: true, manage: true));
           }
-          if (r.path.endsWith('/messages'))
+          if (r.path.endsWith('/messages')) {
             return response(200, {
               'items': [message(1, body: 'أهلاً بكم في جروب الحصة')],
             });
+          }
           return response(200, conversation(group: true, manage: true));
         });
         await t.pumpWidget(host(StartChatPage(api: api), dark: dark));
@@ -214,15 +217,17 @@ void main() {
       final api = await workspaceApi('Teacher', (r) async {
         if (r.method == 'POST') {
           sends.add(r);
-          if (sends.length == 1)
+          if (sends.length == 1) {
             return response(500, {'message': 'تعذر التأكيد'});
+          }
           saved = true;
           return response(201, message(1, body: 'سؤال للمدرس'));
         }
-        if (r.path.endsWith('/messages'))
+        if (r.path.endsWith('/messages')) {
           return response(200, {
             'items': saved ? [message(1, body: 'سؤال للمدرس')] : [],
           });
+        }
         return response(200, conversation());
       });
       await t.pumpWidget(
@@ -259,10 +264,11 @@ void main() {
       bool revoked = false;
       final api = await workspaceApi('Student', (r) async {
         if (revoked) return response(404, {'message': 'غير متاح'});
-        if (r.path.endsWith('/messages'))
+        if (r.path.endsWith('/messages')) {
           return response(200, {
             'items': [message(1, body: 'رسالة خاصة بالحصة')],
           });
+        }
         return response(200, conversation(group: true));
       });
       await t.pumpWidget(
@@ -298,10 +304,11 @@ void main() {
             'code': 'chat-announcements-only',
           });
         }
-        if (r.path.endsWith('/messages'))
+        if (r.path.endsWith('/messages')) {
           return response(200, {
             'items': [message(1)],
           });
+        }
         return response(200, conversation(group: true, send: !announce));
       });
       await t.pumpWidget(
@@ -331,20 +338,23 @@ void main() {
     final api = await workspaceApi('Teacher', (r) async {
       if (r.path.endsWith('/messages')) {
         final after = r.queryParameters['afterId'] as int?;
-        if (after == null)
+        if (after == null) {
           return response(200, {
             'items': [message(1)],
           });
+        }
         cursors.add(after);
-        if (burst && after == 1)
+        if (burst && after == 1) {
           return response(200, {
             'items': [message(2), message(3)],
             'nextAfterId': 3,
           });
-        if (burst && after == 3)
+        }
+        if (burst && after == 3) {
           return response(200, {
             'items': [message(4)],
           });
+        }
         return response(200, {'items': []});
       }
       return response(200, conversation());

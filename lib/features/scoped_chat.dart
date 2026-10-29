@@ -225,8 +225,9 @@ class _StartChatPageState extends State<StartChatPage> {
       final c = obj(
         await widget.api.get('/chat/conversations/${s['conversationId']}'),
       );
-      if (mounted)
+      if (mounted) {
         open(context, ChatConversationPage(api: widget.api, conversation: c));
+      }
     });
     if (mounted) setState(() => opening = null);
   }
@@ -550,8 +551,9 @@ class _ChatConversationPageState extends State<ChatConversationPage>
 
   void restartTimer() {
     timer?.cancel();
-    if (widget.pollInterval > Duration.zero && !denied)
+    if (widget.pollInterval > Duration.zero && !denied) {
       timer = Timer.periodic(widget.pollInterval, (_) => load());
+    }
   }
 
   @override
@@ -604,10 +606,7 @@ class _ChatConversationPageState extends State<ChatConversationPage>
       int? after = messages.isEmpty ? null : messages.keys.reduce(max);
       for (var page = 0; page < 5; page++) {
         final batch = obj(
-          await widget.api.get(
-            '$path/messages',
-            query: {if (after != null) 'afterId': after},
-          ),
+          await widget.api.get('$path/messages', query: {'afterId': ?after}),
         );
         if (!mounted) return;
         setState(() {
@@ -688,11 +687,12 @@ class _ChatConversationPageState extends State<ChatConversationPage>
         await load();
       } else {
         failure(e);
-        if (mounted && !denied)
+        if (mounted && !denied) {
           toast(
             context,
             'تعذر تأكيد الإرسال. رسالتك محفوظة في خانة الكتابة؛ حاول مرة أخرى.',
           );
+        }
       }
     } finally {
       if (mounted) setState(() => sending = false);
@@ -776,7 +776,7 @@ class _ChatConversationPageState extends State<ChatConversationPage>
                     padding: const EdgeInsets.all(16),
                     itemCount: ordered.length + (before != null ? 1 : 0),
                     itemBuilder: (context, i) {
-                      if (i == ordered.length)
+                      if (i == ordered.length) {
                         return TextButton(
                           onPressed: olderBusy ? null : older,
                           child: Text(
@@ -785,6 +785,7 @@ class _ChatConversationPageState extends State<ChatConversationPage>
                                 : 'تحميل الرسائل الأقدم',
                           ),
                         );
+                      }
                       final m = ordered[i],
                           own =
                               '${ordered[i]['senderId']}' == widget.api.actorId;
