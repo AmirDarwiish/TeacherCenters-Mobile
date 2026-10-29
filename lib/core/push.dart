@@ -1,11 +1,37 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'api.dart';
 
 enum PushPermission { allowed, denied, unknown }
+
+class PushSetupFailure implements Exception {
+  const PushSetupFailure(this.message);
+  final String message;
+}
+
+String pushFailureText(Object error) {
+  if (error is PushSetupFailure) return error.message;
+  final detail = error is FirebaseException
+      ? '${error.code} ${error.message}'
+      : '$error';
+  if (detail.contains('MISSING_INSTANCEID_SERVICE')) {
+    return 'خدمات Google Play غير متوفرة أو غير شغالة على الجهاز.';
+  }
+  if (detail.contains('SERVICE_NOT_AVAILABLE') ||
+      detail.contains('network-request-failed')) {
+    return 'تعذر الاتصال بخدمة الإشعارات. تحقق من الإنترنت وخدمات Google Play ثم أعد المحاولة.';
+  }
+  if (detail.contains('FIS_AUTH_ERROR') ||
+      detail.contains('API_KEY_INVALID') ||
+      detail.contains('app-not-authorized')) {
+    return 'إعداد خدمة الإشعارات في التطبيق يحتاج مراجعة. تواصل مع دعم السنتر.';
+  }
+  return 'تعذر تسجيل الجهاز للإشعارات. اضغط لإعادة المحاولة.';
+}
 
 class ChatPushTarget {
   const ChatPushTarget(this.tenantId, this.recipientId, this.conversationId);
@@ -64,6 +90,28 @@ abstract class PushTransport {
 }
 
 class FirebasePushTransport implements PushTransport {
+  static const channel = MethodChannel('rewaq/push_environment');
+  Future<Map<String, dynamic>> environment() async {
+    if (platform != 'android') return {};
+    return Map<String, dynamic>.from(
+      await channel.invokeMapMethod<String, dynamic>('status') ?? {},
+    );
+  }
+
+  Future<void> checkGoogleServices() async {
+    final env = await environment();
+    final code = env['googlePlayStatus'];
+    if (code != null && code != 0) {
+      throw PushSetupFailure(
+        code == 2
+            ? 'حدّث خدمات Google Play على الجهاز ثم أعد المحاولة.'
+            : code == 3
+            ? 'خدمات Google Play مقفولة على الجهاز. فعّلها ثم أعد المحاولة.'
+            : 'خدمات Google Play غير متوفرة أو غير متوافقة على الجهاز. استخدم جهازًا أو إيميليتور يدعم Google Play.',
+      );
+    }
+  }
+
   FirebaseMessaging get messaging => FirebaseMessaging.instance;
   @override
   String get platform =>
@@ -86,19 +134,22 @@ class FirebasePushTransport implements PushTransport {
         ? const String.fromEnvironment('FIREBASE_IOS_APP_ID')
         : const String.fromEnvironment('FIREBASE_APP_ID');
     if ([apiKey, project, sender, appId].any((v) => v.isEmpty)) return false;
-    await Firebase.initializeApp(
-      options: FirebaseOptions(
-        apiKey: apiKey,
-        appId: appId,
-        messagingSenderId: sender,
-        projectId: project,
-        storageBucket:
-            const String.fromEnvironment('FIREBASE_STORAGE_BUCKET').isEmpty
-            ? null
-            : const String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
-        iosBundleId: ios ? 'com.zeiia.teacherCentersMobile' : null,
-      ),
-    );
+    await checkGoogleServices();
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: FirebaseOptions(
+          apiKey: apiKey,
+          appId: appId,
+          messagingSenderId: sender,
+          projectId: project,
+          storageBucket:
+              const String.fromEnvironment('FIREBASE_STORAGE_BUCKET').isEmpty
+              ? null
+              : const String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
+          iosBundleId: ios ? 'com.zeiia.teacherCentersMobile' : null,
+        ),
+      );
+    }
     // Foreground uses an in-app banner, preventing duplicate alerts on iOS.
     await messaging.setForegroundNotificationPresentationOptions(
       alert: false,
@@ -127,6 +178,12 @@ class FirebasePushTransport implements PushTransport {
 
   @override
   Future<String?> token() async {
+    await checkGoogleServices();
+    if ((await environment())['chatChannelEnabled'] == false) {
+      throw const PushSetupFailure(
+        'تنبيهات الرسائل مقفولة من إعدادات الجهاز. فعّل قناة «رسائل رواق» ثم أعد المحاولة.',
+      );
+    }
     if (platform == 'ios' && await messaging.getAPNSToken() == null) {
       return null;
     }
@@ -163,14 +220,24 @@ class ChatPushCoordinator {
   ChatPushTarget? pending;
   String? registeredToken, registeredIdentity;
   Completer<void>? inFlight;
+  Timer? retryTimer;
+  int retryAttempts = 0;
+  bool attached = false, active = true;
   bool ready = false, disposed = false, working = false, again = false;
   String get identity => api.signedIn
       ? '${pushTenant(api)}:${api.actorId}:${api.role}:${pushSession(api)}'
       : '';
   Future<void> start() async {
-    api.addListener(authChanged);
-    api.enablePush = enable;
-    api.beforeLogout = detach;
+    if (!attached) {
+      api.addListener(authChanged);
+      api.enablePush = enable;
+      api.beforeLogout = detach;
+      attached = true;
+    }
+    if (ready) {
+      await sync();
+      return;
+    }
     try {
       ready = await transport.initialize();
       if (disposed) return;
@@ -193,9 +260,26 @@ class ChatPushCoordinator {
       final initial = await transport.initial();
       if (initial != null) receive(initial);
       await sync();
-    } catch (_) {
-      status('تعذر تجهيز إشعارات الجهاز؛ يمكنك إعادة المحاولة');
+    } catch (error) {
+      api.pushAvailable = true;
+      status(pushFailureText(error));
     }
+  }
+
+  void setActive(bool value) {
+    active = value;
+    if (!value) {
+      retryTimer?.cancel();
+    } else if (ready) {
+      unawaited(sync());
+    }
+  }
+
+  void scheduleRetry() {
+    if (disposed || !active || !api.signedIn || retryAttempts >= 4) return;
+    retryTimer?.cancel();
+    final seconds = [3, 10, 30, 60][retryAttempts++];
+    retryTimer = Timer(Duration(seconds: seconds), () => sync());
   }
 
   void status(String text) {
@@ -225,7 +309,10 @@ class ChatPushCoordinator {
   }
 
   Future<void> enable() async {
-    if (!ready || !api.signedIn) return;
+    if (!api.signedIn) return;
+    retryAttempts = 0;
+    if (!ready) await start();
+    if (!ready) return;
     try {
       final permission = await transport.permission(request: true);
       if (permission != PushPermission.allowed) {
@@ -233,8 +320,8 @@ class ChatPushCoordinator {
         return;
       }
       await sync();
-    } catch (_) {
-      status('تعذر تفعيل الإشعارات؛ حاول مرة أخرى');
+    } catch (error) {
+      status(pushFailureText(error));
     }
   }
 
@@ -283,6 +370,7 @@ class ChatPushCoordinator {
         }
         if (token == null) {
           status('في انتظار تسجيل الجهاز للإشعارات');
+          scheduleRetry();
           continue;
         }
         await api.call(
@@ -297,10 +385,13 @@ class ChatPushCoordinator {
         }
         registeredIdentity = expected;
         registeredToken = token;
-        status('إشعارات الشات مفعّلة');
+        retryAttempts = 0;
+        retryTimer?.cancel();
+        status('الجهاز متسجّل لإشعارات الشات');
       } while (again && !disposed);
-    } catch (_) {
-      status('تعذر ربط إشعارات الجهاز؛ اضغط لإعادة المحاولة');
+    } catch (error) {
+      status(pushFailureText(error));
+      scheduleRetry();
     } finally {
       working = false;
       operation.complete();
@@ -308,6 +399,7 @@ class ChatPushCoordinator {
   }
 
   Future<void> detach() async {
+    retryTimer?.cancel();
     pending = null;
     final token = registeredToken;
     registeredToken = null;
@@ -330,6 +422,7 @@ class ChatPushCoordinator {
 
   Future<void> dispose() async {
     disposed = true;
+    retryTimer?.cancel();
     api.removeListener(authChanged);
     api.enablePush = null;
     api.beforeLogout = null;
