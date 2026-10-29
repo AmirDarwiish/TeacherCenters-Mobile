@@ -7,6 +7,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/api.dart';
 import '../core/widgets.dart';
+import '../core/session_schedule.dart';
+import 'session_detail.dart';
+import 'current_session_attendance.dart';
 import 'courses.dart';
 import 'teaching.dart';
 import 'community.dart';
@@ -138,9 +141,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           ? null
           : AppBar(
               flexibleSpace: const BrandHeader(),
-              title: index == 0
-                  ? const SentrakLogo(size: 32)
-                  : Text(titles[index]),
+              toolbarHeight: index == 0 ? 80 : 48,
+              title: index == 0 ? const RewaqLogo() : Text(titles[index]),
               bottom: widget.studentHeader,
               actions: [
                 IconButton(
@@ -175,7 +177,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           ),
         ),
       ),
-      bottomNavigationBar: SentrakNavigationBar(
+      bottomNavigationBar: RewaqNavigationBar(
         selectedIndex: index,
         hasReels: hasReels,
         guardian: api.guardian,
@@ -191,8 +193,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   }
 }
 
-class SentrakNavigationBar extends StatelessWidget {
-  const SentrakNavigationBar({
+class RewaqNavigationBar extends StatelessWidget {
+  const RewaqNavigationBar({
     super.key,
     required this.selectedIndex,
     required this.onSelected,
@@ -233,7 +235,7 @@ class SentrakNavigationBar extends StatelessWidget {
       child: Container(
         margin: const EdgeInsetsDirectional.fromSTEB(8, 8, 8, 8),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
               color: BrandColors.night.withValues(alpha: .04),
@@ -241,7 +243,7 @@ class SentrakNavigationBar extends StatelessWidget {
               offset: const Offset(0, 2),
             ),
             BoxShadow(
-              color: BrandColors.logoBlue.withValues(alpha: .16),
+              color: BrandColors.night.withValues(alpha: .16),
               blurRadius: 40,
               offset: const Offset(0, 18),
             ),
@@ -251,7 +253,7 @@ class SentrakNavigationBar extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(color: b.line),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(28),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -289,20 +291,11 @@ class SentrakNavigationBar extends StatelessWidget {
                                   height: 32,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(12),
-                                    gradient: active
-                                        ? const LinearGradient(
-                                            begin: Alignment.topRight,
-                                            end: Alignment.bottomLeft,
-                                            colors: [
-                                              BrandColors.navStart,
-                                              BrandColors.navEnd,
-                                            ],
-                                          )
-                                        : null,
+                                    color: active ? b.primary : null,
                                     boxShadow: active
                                         ? [
                                             BoxShadow(
-                                              color: BrandColors.logoBlue
+                                              color: BrandColors.night
                                                   .withValues(alpha: .16),
                                               blurRadius: 12,
                                               offset: const Offset(0, 4),
@@ -313,7 +306,7 @@ class SentrakNavigationBar extends StatelessWidget {
                                   child: Icon(
                                     icons[i],
                                     size: 20,
-                                    color: active ? BrandColors.white : b.muted,
+                                    color: active ? b.primaryInk : b.muted,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -327,7 +320,7 @@ class SentrakNavigationBar extends StatelessWidget {
                                       labels[i],
                                       maxLines: 1,
                                       style: TextStyle(
-                                        fontFamily: 'Tajawal',
+                                        fontFamily: 'IBMPlexSansArabic',
                                         fontSize: 12,
                                         color: active ? b.primary : b.muted,
                                         fontWeight: active
@@ -377,6 +370,13 @@ class HomePage extends StatelessWidget {
         );
   @override
   Widget build(BuildContext context) => AsyncPanel(
+    changes: api.live.events.where(
+      (event) => [
+        'AttendanceChanged',
+        'CheckInChanged',
+        'Reconnected',
+      ].contains(event),
+    ),
     load: () async {
       if (!api.student) return api.get('/dashboard/summary');
       final me = obj(await api.get('/portal/me'));
@@ -389,10 +389,49 @@ class HomePage extends StatelessWidget {
               .where((s) => '${s['id']}' == api.portalStudentId)
               .firstOrNull ??
           students.first;
-      return api.get('/portal/students/${student['id']}/overview');
+      final overview = obj(
+        await api.get('/portal/students/${student['id']}/overview'),
+      );
+      final day = cairoDate(DateTime.now());
+      try {
+        final sessions = await loadSessionRange(
+          api,
+          studentId: '${student['id']}',
+          from: cairoMidnightUtc(DateTime(day.year, day.month, day.day - 1)),
+          to: cairoMidnightUtc(DateTime(day.year, day.month, day.day + 2)),
+        );
+        return {
+          ...overview,
+          '_studentId': student['id'],
+          '_sessions': sessions,
+        };
+      } catch (e) {
+        return {
+          ...overview,
+          '_studentId': student['id'],
+          '_sessionsError': '$e',
+        };
+      }
     },
     builder: (data, refresh) {
-      final d = obj(data), next = obj(d['nextSession']);
+      final d = obj(data);
+      final sessions = rows(d['_sessions']);
+      final upcoming = obj(d['nextSession']);
+      if (upcoming.isNotEmpty &&
+          !sessions.any((s) => s['id'] == upcoming['id'])) {
+        sessions.add(upcoming);
+      }
+      final now = scheduleNow(sessions);
+      final visible = orderedSessions(
+        sessions.where(
+          (s) =>
+              sessionRunning(s, now) ||
+              (!sessionInactive(s) && (sessionStart(s)?.isAfter(now) ?? false)),
+        ),
+        now,
+      );
+      final next =
+          visible.firstOrNull ?? (api.student ? <String, dynamic>{} : upcoming);
       final colors = Theme.of(context).colorScheme;
       final name =
           '${api.profile['name'] ?? api.profile['fullName'] ?? (api.student ? 'صديقنا' : 'أستاذنا')}';
@@ -437,11 +476,11 @@ class HomePage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(28),
               gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [BrandColors.logoBlue, BrandColors.logoCyan],
+                colors: [BrandColors.night, BrandColors.navyDoor],
               ),
             ),
             child: Column(
@@ -469,7 +508,7 @@ class HomePage extends StatelessWidget {
                       ? 'فهم أعمق.\nوثقة في اللي جاي.'
                       : 'وقت أكتر للتدريس.\nوتفاصيل تحت السيطرة.',
                   style: const TextStyle(
-                    fontFamily: 'Tajawal',
+                    fontFamily: 'Alexandria',
                     fontSize: 27,
                     color: BrandColors.white,
                     fontWeight: FontWeight.bold,
@@ -507,13 +546,28 @@ class HomePage extends StatelessWidget {
               ],
             ),
           ),
-          if (api.student) ContinueLearning(api: api),
+          if (api.student) ...[
+            if (api.role == 'Student') ...[
+              const SizedBox(height: 12),
+              CurrentSessionAttendance(
+                api: api,
+                studentId: '${d['_studentId']}',
+                onChanged: refresh,
+              ),
+            ],
+            const SizedBox(height: 12),
+            ContinueLearning(api: api),
+          ],
           const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  api.student ? 'موعدك الجاي' : 'الجدول والحصص',
+                  api.student
+                      ? (sessionRunning(next, now)
+                            ? 'حصتك دلوقتي'
+                            : 'موعدك الجاي')
+                      : 'الجدول والحصص',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -536,48 +590,67 @@ class HomePage extends StatelessWidget {
               ),
             ],
           ),
+          if (d['_sessionsError'] != null)
+            Text(
+              'تعذر تحديث الحصة الحالية: ${d['_sessionsError']}',
+              style: TextStyle(color: colors.error),
+            ),
           if (next.isNotEmpty)
             BrandCard(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        color: colors.secondaryContainer,
-                        borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                onTap: () => open(
+                  context,
+                  api.student
+                      ? StudentSessionPage(
+                          api: api,
+                          studentId: '${d['_studentId']}',
+                          session: next,
+                        )
+                      : AttendancePage(api: api, session: next),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          color: colors.secondaryContainer,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          AppIcons.calendarMonthOutlined,
+                          color: colors.onSecondaryContainer,
+                          size: 28,
+                        ),
                       ),
-                      child: Icon(
-                        AppIcons.calendarMonthOutlined,
-                        color: colors.onSecondaryContainer,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${next['topic'] ?? next['groupName'] ?? 'الحصة القادمة'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 17,
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          Text(when(next['startsAtUtc'])),
-                          if (next['groupName'] != null)
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              '${next['groupName']}',
-                              style: Theme.of(context).textTheme.bodySmall,
+                              '${next['topic'] ?? next['groupName'] ?? 'الحصة القادمة'}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
                             ),
-                        ],
+                            const SizedBox(height: 7),
+                            Text(when(next['startsAtUtc'])),
+                            if (next['groupName'] != null)
+                              Text(
+                                '${next['groupName']}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      const Icon(AppIcons.chevronLeft),
+                    ],
+                  ),
                 ),
               ),
             )
@@ -738,7 +811,7 @@ class HomePage extends StatelessWidget {
               child: ListTile(
                 contentPadding: const EdgeInsets.all(18),
                 leading: const Icon(AppIcons.accountBalanceWalletOutlined),
-                title: const Text('المستحقات الحالية'),
+                title: const Text('الفلوس المطلوبة'),
                 subtitle: Text(money(obj(d['balance'])['totalDue'] ?? 0)),
                 trailing: const Icon(AppIcons.chevronLeft),
                 onTap: () => open(context, PaymentsPage(api: api)),
@@ -878,7 +951,7 @@ class AccountPage extends StatelessWidget {
       if (api.student)
         ListTile(
           leading: const Icon(AppIcons.paymentsOutlined),
-          title: const Text('المدفوعات والمستحقات'),
+          title: const Text('الفلوس والمدفوعات'),
           onTap: () => open(context, PaymentsPage(api: api)),
         ),
       if (api.student && !api.guardian)

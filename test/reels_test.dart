@@ -477,7 +477,7 @@ void main() {
           await tester.pumpAndSettle();
         }
         expect(find.byType(AppBar), findsNothing);
-        expect(find.byType(SentrakNavigationBar), findsOneWidget);
+        expect(find.byType(RewaqNavigationBar), findsOneWidget);
         expect(find.byTooltip('رجوع'), findsOneWidget);
         final b = dark ? BrandColors.dark : BrandColors.light;
         expect(
@@ -493,7 +493,7 @@ void main() {
       await tester.tap(find.text('الرئيسية'));
       await tester.pumpAndSettle();
       expect(find.byType(AppBar), findsOneWidget);
-      expect(find.byType(SentrakNavigationBar), findsOneWidget);
+      expect(find.byType(RewaqNavigationBar), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -522,7 +522,7 @@ void main() {
         await tester.pumpWidget(
           host(
             Scaffold(
-              bottomNavigationBar: SentrakNavigationBar(
+              bottomNavigationBar: RewaqNavigationBar(
                 selectedIndex: 2,
                 onSelected: (i) => selected = i,
               ),

@@ -1,4 +1,5 @@
 import '../core/app_icons.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -190,18 +191,18 @@ class _LoginPageState extends State<LoginPage> {
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: BrandColors.night,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(28),
                     ),
                     child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        SentrakLogo(inverse: true),
+                        RewaqLogo(inverse: true, stacked: true, size: 168),
                         SizedBox(height: 16),
                         Text(
-                          'إدارة السنتر كلها من مكان واحد',
+                          'إدارة دروسك كلها من مكان واحد',
                           style: TextStyle(
-                            color: BrandColors.white,
-                            height: 1.5,
+                            color: BrandColors.onNavyMuted,
+                            height: 1.6,
                           ),
                         ),
                       ],
@@ -209,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'خلّينا نبدأ',
+                    'أهلًا بيك في رواق',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -217,7 +218,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    centerName ?? 'حضورك، دروسك، ونجاحك في مكان واحد',
+                    centerName ?? 'دروسك وحضورك ومتابعتك، في مكان واحد',
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),

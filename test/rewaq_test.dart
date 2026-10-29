@@ -67,7 +67,7 @@ void main() {
       expect(find.text('ولي أمر'), findsOneWidget);
       expect(find.text('طالب / ولي أمر'), findsNothing);
       expect(find.text('أكاديمية آفاق'), findsNothing);
-      await screenshot(tester, 'sentrak-login');
+      await screenshot(tester, 'rewaq-login');
       if (portalRole == 'Guardian') {
         await tester.tap(find.text('ولي أمر'));
         await tester.pumpAndSettle();
@@ -137,7 +137,7 @@ void main() {
       expect(find.text('وسيلة الدفع'), findsOneWidget);
       expect(find.textContaining('الدفع الإلكتروني مش متاح'), findsNothing);
       expect(find.byIcon(AppIcons.creditCard), findsOneWidget);
-      if (objectMethods) await screenshot(tester, 'checkout-blue');
+      if (objectMethods) await screenshot(tester, 'checkout-rewaq');
       expect(tester.takeException(), isNull);
     });
   }

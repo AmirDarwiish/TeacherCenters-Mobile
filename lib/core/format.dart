@@ -29,8 +29,20 @@ String arNumber(Object? value) {
 }
 
 String money(Object? value) => '${arNumber(value)} ج.م';
+
+/// API fields ending in Utc can arrive without an offset from SQL DateTime.
+DateTime? apiUtc(Object? value) {
+  final raw = '$value'.trim();
+  if (raw.isEmpty || raw == 'null') return null;
+  final zoned = RegExp(r'(Z|[+-]\d{2}:?\d{2})$', caseSensitive: false);
+  return DateTime.tryParse(zoned.hasMatch(raw) ? raw : '${raw}Z')?.toUtc();
+}
+
+DateTime cairoMidnightUtc(DateTime day) =>
+    tz.TZDateTime(_Cairo.location, day.year, day.month, day.day).toUtc();
+
 String cairoWhen(Object? value) {
-  final parsed = DateTime.tryParse('$value');
+  final parsed = apiUtc(value);
   return parsed == null
       ? '—'
       : arDigits(

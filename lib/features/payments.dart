@@ -42,7 +42,7 @@ Future<String> portalPayer(Api api) async {
 }
 
 String chargeTitle(Json charge) =>
-    '${charge['title'] ?? (charge['period'] == 'course' ? 'اشتراك كورس' : 'مستحقات دراسية')}';
+    '${charge['title'] ?? (charge['period'] == 'course' ? 'اشتراك كورس' : 'فلوس الدروس')}';
 
 class PaymentsPage extends StatefulWidget {
   const PaymentsPage({super.key, required this.api, this.embedded = false});
@@ -174,7 +174,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          'تفاصيل المستحقات',
+                          'تفاصيل الفلوس المطلوبة',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
@@ -215,9 +215,9 @@ class _PaymentsPageState extends State<PaymentsPage> {
                   if (visible.isEmpty)
                     Empty(
                       text: charges.isEmpty
-                          ? 'لا توجد مستحقات مسجلة حالياً.'
+                          ? 'مفيش فلوس مطلوبة دلوقتي.'
                           : filter == 'غير المسددة'
-                          ? 'كل مستحقاتك مسددة. حسابك مفيهوش مبالغ متبقية.'
+                          ? 'كل اللي عليك مدفوع. حسابك مفيهوش مبالغ متبقية.'
                           : 'لا توجد بنود في هذا القسم.',
                     ),
                   for (final c in visible)
@@ -495,7 +495,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     children: [
                       Text(
                         widget.courseId == null
-                            ? 'سداد المستحقات'
+                            ? 'ادفع المطلوب'
                             : label(detail),
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
@@ -820,7 +820,7 @@ class _PaymentStatusPageState extends State<PaymentStatusPage>
                       subtitle: SelectableText(
                         '${p['kioskReference']}',
                         style: const TextStyle(
-                          fontFamily: 'Tajawal',
+                          fontFamily: 'IBMPlexSansArabic',
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),

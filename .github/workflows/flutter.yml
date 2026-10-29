@@ -1,17 +1,23 @@
-name: Flutter checks and Android APK
+name: Rewaq Android APK
 on:
   push:
-    branches: [main, master]
   pull_request:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    env:
+      TENANT_SLUG: ${{ vars.TENANT_SLUG || 'teachercenter-demo' }}
     steps:
       - uses: actions/checkout@v4
+      - name: Verify approved Rewaq identity
+        run: python3 tool/check_identity.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -21,27 +27,63 @@ jobs:
           flutter-version: '3.47.7'
           channel: stable
           cache: true
-      - run: flutter pub get
+      - uses: gradle/actions/setup-gradle@v4
+      - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed lib test
-      - uses: actions/upload-artifact@v4
-        with:
-          name: formatted-mobile-source
-          path: |
-            lib/
-            test/
-            pubspec.lock
-          retention-days: 2
-      - run: flutter analyze
-      - run: flutter test --dart-define=SCREENSHOTS=true
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub --dart-define=SCREENSHOTS=true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: interface-review
           path: docs/screenshots/*.png
           retention-days: 14
-      - run: flutter build apk --release --dart-define=TENANT_SLUG=teachercenter-demo
-      - uses: actions/upload-artifact@v4
+      - name: Build release APK
+        run: flutter build apk --release --no-pub --dart-define="TENANT_SLUG=$TENANT_SLUG"
+      - name: Prepare APK download
+        id: apk
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import re
+          import shutil
+          from pathlib import Path
+
+          version = re.search(r'^version:\s*(\S+)', Path('pubspec.yaml').read_text(), re.M).group(1)
+          if not re.fullmatch(r'[0-9A-Za-z.+-]+', version):
+              raise ValueError('Invalid APK version')
+          filename = f"rewaq-{version}-{os.environ['GITHUB_SHA'][:7]}.apk"
+          output = Path('dist') / filename
+          output.parent.mkdir(exist_ok=True)
+          shutil.copyfile('build/app/outputs/flutter-apk/app-release.apk', output)
+          digest = hashlib.sha256(output.read_bytes()).hexdigest()
+          output.with_suffix('.apk.sha256').write_text(f'{digest}  {filename}\n')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as target:
+              target.write(f'filename={filename}\n')
+          PY
+      - name: Upload APK
+        id: upload
+        uses: actions/upload-artifact@v4
         with:
-          name: teachercenters-preview-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 14
+          name: rewaq-apk-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Show APK download link
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          APK_FILENAME: ${{ steps.apk.outputs.filename }}
+        run: |
+          python3 - <<'PY'
+          import os
+
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('## رواق — نسخة Android للتجربة\n\n')
+              summary.write(f"[تحميل APK]({os.environ['ARTIFACT_URL']})\n\n")
+              summary.write(f"الملف: `{os.environ['APK_FILENAME']}`\n\n")
+              summary.write('فك ضغط ملف التنزيل، ثم ثبّت ملف APK على الموبايل.\n\n')
+              summary.write(f"السنتر: `{os.environ['TENANT_SLUG']}`. توقيع اختبار.\n")
+          PY

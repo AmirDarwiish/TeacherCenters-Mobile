@@ -1,0 +1,101 @@
+{
+  "brand": "رواق / Rewaq",
+  "source_commit": "0a4315d9c99c02a195a65402aa580aa47cc27aba",
+  "assets": {
+    "android/app/src/main/res/mipmap-hdpi/ic_launcher.png": "d1cac0b9885d66a2d3967157090271e96abeecb5",
+    "android/app/src/main/res/mipmap-mdpi/ic_launcher.png": "88e3e94c28375a4222e9a722f9acc70b8063e8f3",
+    "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": "d9cfa3dcd1240af8f6fadc24881115e27220396b",
+    "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": "dd80a36a88502898c6ba5f3b2e048982b1b41d3a",
+    "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": "cfa17485b6e0eabb557a2e22f01a928cba64d8b3",
+    "assets/brand/rewaq-app-icon-1024.png": "92b439085b22eef4dbf078143cbd1662e749d0d5",
+    "assets/brand/rewaq-app-icon-180.png": "00ee513114a5694f06bc4d59f2c924c36eff83a4",
+    "assets/brand/rewaq-app-icon-512.png": "dbd178c23beef98cceae7f670f20fd6247957480",
+    "assets/brand/rewaq-app-icon.svg": "91450c1cf98d832ea45900cc14445535268fa3b7",
+    "assets/brand/rewaq-logo-horizontal-primary-1024.png": "29a90b659da4b90ccf112f5ac4101a83a9577a96",
+    "assets/brand/rewaq-logo-horizontal-primary-2048.png": "cfca4c3201888caa8a18bae993981fac3280d394",
+    "assets/brand/rewaq-logo-horizontal-primary.svg": "5d99cbf7c0b4a7edb38694ed753557ad1f9d153a",
+    "assets/brand/rewaq-logo-horizontal-reverse-1024.png": "e714402b95d8ecf551ed6e6321672ddeb43204e3",
+    "assets/brand/rewaq-logo-horizontal-reverse-2048.png": "28ff470686951f810c7fa99b5f6d75390c02b508",
+    "assets/brand/rewaq-logo-horizontal-reverse.svg": "2c982bace7232a6ebd02ea72b0d08d1f084eba57",
+    "assets/brand/rewaq-logo-stacked-primary-1024.png": "8decd353d5b24a28ceace5f204e69d52642af438",
+    "assets/brand/rewaq-logo-stacked-primary-2048.png": "53f45eda63ac494f44c4e0f40634a9dc94d4e1d1",
+    "assets/brand/rewaq-logo-stacked-primary.svg": "9cade48408c30ad30819e1a86f849e914d3b9b05",
+    "assets/brand/rewaq-logo-stacked-reverse-1024.png": "51a685ade06cffea60524fe361855ec68b9dc63f",
+    "assets/brand/rewaq-logo-stacked-reverse-2048.png": "19babf43589b7579419e38723ce6d379fd53da26",
+    "assets/brand/rewaq-logo-stacked-reverse.svg": "0aed87defc8092ccfc74395450a556ebfff0bd8f",
+    "assets/brand/rewaq-mark-mono-gold-1024.png": "806c434f9f1c13a642d3074ed610cb3f77a93e29",
+    "assets/brand/rewaq-mark-mono-gold-2048.png": "f5e87dbf5f4dd063870444f161d5e726b0a4e11b",
+    "assets/brand/rewaq-mark-mono-gold-512.png": "e25e753d08882961e5ac19d6513d8b862ba5f4af",
+    "assets/brand/rewaq-mark-mono-gold.svg": "0b379001019583fa1e6c89b3e6a00ccb484206a6",
+    "assets/brand/rewaq-mark-mono-navy-1024.png": "34bbde4229ff436e90e350543b7cc9db8863223f",
+    "assets/brand/rewaq-mark-mono-navy-2048.png": "8abc60e85c2843d485faf93f03f587789259fdc5",
+    "assets/brand/rewaq-mark-mono-navy-512.png": "618662ec43fcb7a4d445fec3f2f173eb8b689e65",
+    "assets/brand/rewaq-mark-mono-navy.svg": "50df7a16ee919b9e1e272ac7e3a333759946613d",
+    "assets/brand/rewaq-mark-mono-white-1024.png": "c1f7dd7b00215f2d9623aee8783cdd5c6d1d9e01",
+    "assets/brand/rewaq-mark-mono-white-2048.png": "88a5fb4a5ffd349b5a545fe4b76639a1668b5fd4",
+    "assets/brand/rewaq-mark-mono-white-512.png": "1e2ed831015dbe64042c751272f81adca1d6813c",
+    "assets/brand/rewaq-mark-mono-white.svg": "25aed5334b5d3523e149041c61ff6f5dbed9844d",
+    "assets/brand/rewaq-mark-primary-1024.png": "eb46ea0dfdb9446e32fec4c5f704e7a9788c9171",
+    "assets/brand/rewaq-mark-primary-2048.png": "4e3dc69f1a94538d988be8035c8f75f240c0a8f8",
+    "assets/brand/rewaq-mark-primary-512.png": "298d3c8241248b7ecf00b507c252feb5cf4fa224",
+    "assets/brand/rewaq-mark-primary.svg": "240756ba078b976770fa9a291c4a4a41b71182df",
+    "assets/brand/rewaq-mark-reverse-1024.png": "943c8dcfa498d656649c9ab0e900b1af3da7e10d",
+    "assets/brand/rewaq-mark-reverse-2048.png": "be8fa6d97d81c87f9950b1a13554022aa469d1df",
+    "assets/brand/rewaq-mark-reverse-512.png": "21b0afb98ff97e1be56f0fc4c9119a2a360c6ba7",
+    "assets/brand/rewaq-mark-reverse.svg": "0d5948de27a35623404b20d1b15ddc629af86d94",
+    "assets/brand/rewaq-mark-small-128.png": "ff2285dd91637969f19a1583df87e8ab4444b42e",
+    "assets/brand/rewaq-mark-small-256.png": "5a4f61fa1ca2cc28672a3a0f9a63dbea61586059",
+    "assets/brand/rewaq-mark-small-32.png": "e3e2970f6dffa14757ec082e6eae30e973ac8d4e",
+    "assets/brand/rewaq-mark-small-64.png": "1cb3d9a78fbb55e7a23be31941a6521b803d2ef7",
+    "assets/brand/rewaq-mark-small.svg": "69588be7838a1054a3585bf7a69d19bbe50df7b8",
+    "assets/brand/rewaq-pattern-arches.svg": "ac6ecb0fca74ee1010ebf1b59459789c7a53ae42",
+    "assets/brand/rewaq-social-avatar-1024.png": "80af0d33a267fd0b5b80a9f1d84f6a80dc77b3e1",
+    "assets/brand/rewaq-social-avatar-400.png": "8285e20d0df5191726029f45bd15df2d749d6e66",
+    "assets/brand/rewaq-social-avatar.svg": "622a0a28b93f1203970254323dd6bc77b660a43a",
+    "assets/brand/rewaq-wordmark-primary-1024.png": "d06a8de18d6b8f3b8b2ba1738e571f2471dbb636",
+    "assets/brand/rewaq-wordmark-primary.svg": "b8ec6b34151dad4c545d035492ac530fbaa65c02",
+    "assets/brand/rewaq-wordmark-reverse-1024.png": "d4f486715b1772ed1c624102e1f8a7a47886b950",
+    "assets/brand/rewaq-wordmark-reverse.svg": "3edfcba5df86721ebb0959da1d36e0e01c346207",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json": "d36b1fab2d9dea668a4f83df94d525897d9e68dd",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png": "dfb078a0a52ff60217101f05fb1c762d402f2fd0",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png": "faf2e9d0f160da6e4db7a8ca45659bd5f376354b",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png": "57d255799c81ccbf241c5ac7c80171b554dc4efd",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png": "ffc101e6a9e073114e8b060c6ab4c3230cd0eb73",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png": "20a78cee970eb51fae9e3cc078117a4ed304394d",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png": "677d0bece9e3d98014d58a723e73e098847b4e6c",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png": "9b21b1fa2c09021029c8734160afc8e850c8b78c",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png": "57d255799c81ccbf241c5ac7c80171b554dc4efd",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png": "f5630e03d71953c65e676e606ff4d36d58ce283e",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png": "6caca5f61607d201eef5176d8a650a2917e20021",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png": "6caca5f61607d201eef5176d8a650a2917e20021",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png": "582bbc3a2e6431080003b373dafd4f5b077d1a8d",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png": "05f4ad909be73e887bb5676b49804d1c3c5d108f",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png": "d94269e418e4665625808ce25d6d9f3b6043fb9e",
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png": "8177410bc6385208597a06dd0f849c4573e0542e"
+  },
+  "required": {
+    "lib/core/brand.dart": [
+      "0xff0b2540",
+      "0xffc9a24a"
+    ],
+    "lib/core/design.dart": [
+      "IBMPlexSansArabic",
+      "Alexandria"
+    ],
+    "android/app/src/main/AndroidManifest.xml": [
+      "رواق"
+    ],
+    "ios/Runner/Info.plist": [
+      "رواق"
+    ],
+    "pubspec.yaml": [
+      "assets/brand/",
+      "family: Alexandria",
+      "family: IBMPlexSansArabic"
+    ],
+    "lib/core/brand_logo.dart": [
+      "rewaq-logo-$layout-$variant-1024.png",
+      "label: 'رواق'"
+    ]
+  }
+}

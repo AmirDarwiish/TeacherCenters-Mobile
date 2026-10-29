@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'brand.dart';
 import 'app_icons.dart';
 export 'brand.dart';
@@ -13,10 +14,12 @@ ThemeData appTheme(Brightness brightness) {
     onPrimary: b.primaryInk,
     primaryContainer: b.primaryTint,
     onPrimaryContainer: b.ink,
-    secondary: b.cyanDeep,
-    onSecondary: b.primaryInk,
-    secondaryContainer: b.cyanTint,
-    onSecondaryContainer: b.cyanDeep,
+    secondary: b.accentText,
+    onSecondary: brightness == Brightness.dark
+        ? BrandColors.night
+        : BrandColors.white,
+    secondaryContainer: b.accentTint,
+    onSecondaryContainer: b.accentText,
     tertiary: b.success,
     onTertiary: b.primaryInk,
     tertiaryContainer: b.successTint,
@@ -40,35 +43,35 @@ ThemeData appTheme(Brightness brightness) {
     surfaceContainerHighest: b.skeleton,
   );
   const heading = TextStyle(
-    fontFamily: 'Tajawal',
+    fontFamily: 'Alexandria',
     fontWeight: FontWeight.w700,
     fontSize: 24,
     height: 1.25,
   );
   const section = TextStyle(
-    fontFamily: 'Tajawal',
+    fontFamily: 'Alexandria',
     fontWeight: FontWeight.w600,
     fontSize: 18,
     height: 1.25,
   );
   const body = TextStyle(
-    fontFamily: 'Tajawal',
+    fontFamily: 'IBMPlexSansArabic',
     fontFeatures: [FontFeature.tabularFigures()],
     fontWeight: FontWeight.w400,
     fontSize: 16,
-    height: 1.5,
+    height: 1.6,
   );
   const small = TextStyle(
-    fontFamily: 'Tajawal',
+    fontFamily: 'IBMPlexSansArabic',
     fontWeight: FontWeight.w500,
     fontSize: 14,
-    height: 1.5,
+    height: 1.6,
   );
   const hint = TextStyle(
-    fontFamily: 'Tajawal',
+    fontFamily: 'IBMPlexSansArabic',
     fontWeight: FontWeight.w500,
     fontSize: 12,
-    height: 1.5,
+    height: 1.6,
   );
   final text = TextTheme(
     displayLarge: heading,
@@ -118,7 +121,7 @@ ThemeData appTheme(Brightness brightness) {
       drawerButtonIconBuilder: (_) => const Icon(AppIcons.menu),
       endDrawerButtonIconBuilder: (_) => const Icon(AppIcons.menu),
     ),
-    fontFamily: 'Tajawal',
+    fontFamily: 'IBMPlexSansArabic',
     textTheme: text,
     scaffoldBackgroundColor: b.bg,
     canvasColor: b.surface,
@@ -158,7 +161,7 @@ ThemeData appTheme(Brightness brightness) {
       border: border,
       enabledBorder: border,
       focusedBorder: border.copyWith(
-        borderSide: BorderSide(color: b.primary, width: 2),
+        borderSide: BorderSide(color: b.focus, width: 2),
       ),
       errorBorder: border.copyWith(borderSide: BorderSide(color: b.danger)),
       focusedErrorBorder: border.copyWith(
@@ -195,7 +198,7 @@ ThemeData appTheme(Brightness brightness) {
         foregroundColor: WidgetStatePropertyAll(b.ink),
         side: WidgetStateProperty.resolveWith(
           (s) => BorderSide(
-            color: s.contains(WidgetState.pressed) ? b.cyan : b.line,
+            color: s.contains(WidgetState.pressed) ? b.accent : b.line,
           ),
         ),
       ),
@@ -235,7 +238,7 @@ ThemeData appTheme(Brightness brightness) {
     dialogTheme: DialogThemeData(
       backgroundColor: b.surface,
       barrierColor: b.overlay,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
     ),
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: b.surface,
