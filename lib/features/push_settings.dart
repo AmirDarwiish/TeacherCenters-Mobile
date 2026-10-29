@@ -18,11 +18,12 @@ class _PushSettingsPageState extends State<PushSettingsPage> {
     try {
       await widget.api.enablePush?.call();
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           busy = false;
           server = load();
         });
+      }
     }
   }
 
