@@ -514,8 +514,9 @@ Future<String?> requestReason(
         ),
         FilledButton(
           onPressed: () {
-            if (form.currentState!.validate())
+            if (form.currentState!.validate()) {
               Navigator.pop(c, controller.text.trim());
+            }
           },
           child: const Text('تأكيد'),
         ),

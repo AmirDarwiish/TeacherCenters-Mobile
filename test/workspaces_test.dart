@@ -52,10 +52,12 @@ void main() {
         addTearDown(() => tester.binding.setSurfaceSize(null));
         final store = MemoryStore();
         final api = await workspaceApi('Guardian', (r) async {
-          if (r.path == '/portal/me')
+          if (r.path == '/portal/me') {
             return response(200, {'students': children});
-          if (r.path.endsWith('/overview'))
+          }
+          if (r.path.endsWith('/overview')) {
             return response(200, overview(r.path.contains('/a/') ? 'a' : 'b'));
+          }
           return response(200, []);
         }, storage: store);
         await tester.pumpWidget(
@@ -144,10 +146,11 @@ void main() {
   ) async {
     RequestOptions? create;
     final api = await workspaceApi('Guardian', (r) async {
-      if (r.path.endsWith('/teachers'))
+      if (r.path.endsWith('/teachers')) {
         return response(200, [
           {'id': 'teacher-1', 'name': 'أستاذ أحمد'},
         ]);
+      }
       if (r.method == 'POST' && r.path == '/portal/threads') {
         create = r;
         return response(201, {

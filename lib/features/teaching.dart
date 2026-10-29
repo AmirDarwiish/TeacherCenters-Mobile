@@ -494,8 +494,9 @@ class _AttendancePageState extends State<AttendancePage> {
                               context,
                               'إغلاق الحصة؟ لم تُسجّل حالة ${arNumber(pending)} طالب. سيُحتسب غيابهم أو عذرهم المعتمد وتوضع إشعارات الغياب في قائمة الإرسال.',
                             ) ||
-                            !context.mounted)
+                            !context.mounted) {
                           return;
+                        }
                         setState(() => closing = true);
                         await action(context, () async {
                           await widget.api.call(
@@ -503,12 +504,13 @@ class _AttendancePageState extends State<AttendancePage> {
                             '/sessions/${widget.session['id']}/close',
                             data: {'notifyAbsent': true},
                           );
-                          if (mounted)
+                          if (mounted) {
                             setState(() {
                               sessionClosed = true;
                               all = true;
                               revision++;
                             });
+                          }
                         }, success: 'تم إغلاق الحصة');
                         if (mounted) setState(() => closing = false);
                       },

@@ -132,10 +132,11 @@ class _NewConversationPageState extends State<NewConversationPage> {
         '/portal/students/${widget.studentId}/teachers',
       );
     } on ApiFailure catch (e) {
-      if (e.status == 404)
+      if (e.status == 404) {
         throw ApiFailure(
           'بدء محادثة جديدة غير متاح حالياً. تواصل مع إدارة السنتر.',
         );
+      }
       rethrow;
     }
   }

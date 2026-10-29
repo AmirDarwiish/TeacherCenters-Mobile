@@ -299,8 +299,9 @@ class _ExcuseEditorState extends State<ExcuseEditor> {
       error = null;
     });
     try {
-      if (!widget.api.guardian)
+      if (!widget.api.guardian) {
         throw ApiFailure('هذا الإجراء متاح لولي الأمر فقط.');
+      }
       final date = DateTime.tryParse(
         '${widget.existing?['dateUtc'] ?? widget.session?['startsAtUtc']}',
       );
