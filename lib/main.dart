@@ -63,8 +63,9 @@ class _TeacherCentersAppState extends State<TeacherCentersApp>
   void showPush(ChatPushTarget target) {
     if (!mounted ||
         !target.matches(widget.api) ||
-        widget.api.visibleChatId == target.conversationId)
+        widget.api.visibleChatId == target.conversationId) {
       return;
+    }
     messengerKey.currentState?.showSnackBar(
       SnackBar(
         content: const Text('عندك رسالة جديدة على رواق'),
@@ -87,8 +88,9 @@ class _TeacherCentersAppState extends State<TeacherCentersApp>
         !ready ||
         openingPush ||
         target == null ||
-        navigatorKey.currentState == null)
+        navigatorKey.currentState == null) {
       return;
+    }
     pendingPush = null;
     if (!target.matches(widget.api)) return;
     openingPush = true;
