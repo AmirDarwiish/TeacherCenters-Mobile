@@ -89,6 +89,10 @@ class FirebasePushTransport implements PushTransport {
         appId: appId,
         messagingSenderId: sender,
         projectId: project,
+        storageBucket:
+            const String.fromEnvironment('FIREBASE_STORAGE_BUCKET').isEmpty
+            ? null
+            : const String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
         iosBundleId: ios ? 'com.zeiia.teacherCentersMobile' : null,
       ),
     );
@@ -155,6 +159,7 @@ class ChatPushCoordinator {
   final List<StreamSubscription<dynamic>> subscriptions = [];
   ChatPushTarget? pending;
   String? registeredToken, registeredIdentity;
+  Completer<void>? inFlight;
   bool ready = false, disposed = false, working = false, again = false;
   String get identity =>
       api.signedIn ? '${pushTenant(api)}:${api.actorId}:${api.role}' : '';
@@ -233,8 +238,11 @@ class ChatPushCoordinator {
     if (disposed || !ready) return;
     if (working) {
       again = true;
+      await inFlight?.future;
       return;
     }
+    final operation = Completer<void>();
+    inFlight = operation;
     working = true;
     try {
       do {
@@ -291,6 +299,7 @@ class ChatPushCoordinator {
       status('تعذر ربط إشعارات الجهاز؛ اضغط لإعادة المحاولة');
     } finally {
       working = false;
+      operation.complete();
     }
   }
 

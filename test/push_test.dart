@@ -133,7 +133,7 @@ void main() {
       expect(calls.single.data['token'], native.currentToken);
       native.currentToken = 'rotated-device-token-for-testing';
       native.tokens.add(native.currentToken);
-      await settle();
+      await push.sync();
       expect(calls.last.data['token'], native.currentToken);
       await push.dispose();
       await native.close();

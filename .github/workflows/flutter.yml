@@ -32,16 +32,7 @@ jobs:
         env:
           FIREBASE_ANDROID_CONFIG: ${{ secrets.FIREBASE_ANDROID_CONFIG }}
         run: python3 tool/configure_push.py
-      - run: flutter pub get
-      - run: dart format lib test
-      - uses: actions/upload-artifact@v4
-        with:
-          name: push-resolved-source
-          path: |
-            lib/
-            test/
-            pubspec.lock
-          retention-days: 2
+      - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --no-pub
       - run: flutter test --no-pub --dart-define=SCREENSHOTS=true
