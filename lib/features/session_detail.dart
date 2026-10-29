@@ -1,3 +1,4 @@
+import 'excuses.dart';
 import '../core/brand.dart';
 import '../core/app_icons.dart';
 import 'package:flutter/material.dart';
@@ -80,6 +81,18 @@ class StudentSessionPage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
+            if (api.guardian && !cancelled && status != 'Postponed')
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: OutlinedButton.icon(
+                  icon: const Icon(AppIcons.eventBusyOutlined),
+                  label: const Text('تقديم عذر لهذه الحصة'),
+                  onPressed: () => open(
+                    context,
+                    ExcuseEditor(api: api, studentId: studentId, session: s),
+                  ),
+                ),
+              ),
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(

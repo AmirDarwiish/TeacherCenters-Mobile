@@ -268,7 +268,20 @@ class AttendancePage extends StatefulWidget {
   State<AttendancePage> createState() => _AttendancePageState();
 }
 
+String attendanceState(dynamic value) =>
+    const {
+      'Present': 'حاضر',
+      'Late': 'متأخر',
+      'Absent': 'غائب',
+      'Excused': 'بعذر',
+    }[value] ??
+    'لم يُسجّل';
+
 class _AttendancePageState extends State<AttendancePage> {
+  final Set<String> saving = {};
+  bool all = false, closing = false;
+  String search = '';
+  int revision = 0;
   @override
   void initState() {
     super.initState();
@@ -281,149 +294,234 @@ class _AttendancePageState extends State<AttendancePage> {
     super.dispose();
   }
 
-  final Set<String> saving = {};
-  bool all = false;
+  Future<void> record(Json student, Json? record, String status) async {
+    final sid = '${student['id']}';
+    if (saving.contains(sid) || closing) return;
+    final reason = await requestReason(
+      context,
+      record == null
+          ? 'تأكيد تسجيل ${attendanceState(status)}'
+          : 'سبب تصحيح الحضور',
+      initial: record == null && status != 'Excused'
+          ? 'تسجيل يدوي بواسطة المدرس'
+          : null,
+    );
+    if (reason == null || !mounted) return;
+    setState(() => saving.add(sid));
+    await action(context, () async {
+      await widget.api.call(
+        record == null ? 'POST' : 'PUT',
+        record == null
+            ? '/sessions/${widget.session['id']}/attendance/manual'
+            : '/attendance/${record['id']}',
+        data: {
+          if (record == null) 'studentId': sid,
+          'status': status,
+          'reason': reason,
+        },
+      );
+      if (mounted) setState(() => revision++);
+    }, success: 'تم حفظ ${label(student)}: ${attendanceState(status)}');
+    if (mounted) setState(() => saving.remove(sid));
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final id = widget.session['id'];
-    return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: const BrandHeader(),
-        title: const Text('كشف الحضور'),
-        actions: [
-          IconButton(
-            tooltip: 'تبديل الكشف',
-            onPressed: () => setState(() => all = !all),
-            icon: Icon(all ? AppIcons.pendingActions : AppIcons.listAlt),
-          ),
-        ],
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('كشف الحضور')),
+    body: AsyncPanel(
+      key: ValueKey(revision),
+      changes: widget.api.live.events.where(
+        (e) => e == 'AttendanceChanged' || e == 'Reconnected',
       ),
-      body: AsyncPanel(
-        key: ValueKey(all),
-        changes: widget.api.live.events.where(
-          (e) => e == 'AttendanceChanged' || e == 'Reconnected',
-        ),
-        load: () =>
-            widget.api.get('/sessions/$id/attendance${all ? '' : '/pending'}'),
-        builder: (data, refresh) {
-          final d = obj(data);
-          final students = all
-              ? rows(
-                  data is List
-                      ? data
-                      : d['items'] ?? d['students'] ?? d['records'],
-                )
-              : rows(d['students']);
-          final canRecord =
-              (d['canRecordAttendance'] ??
-                  widget.session['canRecordAttendance']) ==
-              true;
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              Text(
-                '${widget.session['topic'] ?? 'الحصة'}',
-                style: Theme.of(context).textTheme.titleLarge,
+      load: () =>
+          widget.api.get('/sessions/${widget.session['id']}/attendance'),
+      builder: (data, refresh) {
+        final d = obj(data), timing = obj(d['timing']);
+        final records = rows(d['records']);
+        final roster = rows(d['roster']);
+        final byStudent = {for (final r in records) '${r['studentId']}': r};
+        final canRecord = timing['canRecordAttendance'] == true;
+        final started = DateTime.tryParse(
+          '${timing['startsAtUtc'] ?? widget.session['startsAtUtc']}',
+        );
+        final now =
+            DateTime.tryParse('${timing['serverNowUtc']}') ??
+            DateTime.now().toUtc();
+        final closed =
+            sessionClosed ||
+            timing['effectiveStatus'] == 'Closed' ||
+            widget.session['status'] == 'Closed';
+        final pending =
+            d['pendingCount'] as num? ?? rows(d['pendingStudents']).length;
+        final visible = roster
+            .where(
+              (student) =>
+                  (all || !byStudent.containsKey('${student['id']}')) &&
+                  (label(student).contains(search) ||
+                      '${student['code'] ?? ''}'.contains(search)),
+            )
+            .toList();
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            Text(
+              '${widget.session['groupName'] ?? widget.session['topic'] ?? 'الحصة'}',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            Text(when(widget.session['startsAtUtc'])),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Chip(label: Text('المسجلون ${arNumber(d['expected'])}')),
+                Chip(label: Text('حاضر ${arNumber(d['present'])}')),
+                Chip(label: Text('غائب ${arNumber(d['absent'])}')),
+                Chip(label: Text('لم يُسجّل ${arNumber(pending)}')),
+              ],
+            ),
+            TextField(
+              decoration: const InputDecoration(
+                hintText: 'ابحث باسم الطالب أو الكود',
+                prefixIcon: Icon(AppIcons.searchRounded),
               ),
-              Text(when(widget.session['startsAtUtc'])),
-              const SizedBox(height: 16),
-              if (!canRecord)
-                const BrandCard(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'تسجيل الحضور متاح فقط خلال نافذة الحصة التي يحددها السنتر.',
-                    ),
-                  ),
+              onChanged: (v) => setState(() => search = v.trim()),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('لم يُسجّل'),
+                  selected: !all,
+                  onSelected: (_) => setState(() => all = false),
                 ),
-              if (students.isEmpty)
-                const Empty(text: 'لا يوجد طلاب في هذا الكشف'),
-              ...students.map((s) {
-                final sid = '${s['studentId'] ?? s['id']}';
-                return BrandCard(
-                  child: ListTile(
-                    title: Text(
-                      '${s['fullName'] ?? s['studentName'] ?? label(s)}',
-                    ),
-                    subtitle: Text('${s['status'] ?? s['code'] ?? ''}'),
-                    trailing: all
-                        ? null
-                        : PopupMenuButton<String>(
-                            enabled: canRecord && !saving.contains(sid),
-                            onSelected: (status) async {
-                              String? reason;
-                              if (status == 'Excused') {
-                                reason = await askText(context, 'سبب العذر');
-                              }
-                              if (status == 'Excused' &&
-                                  (reason == null || reason.trim().isEmpty)) {
-                                return;
-                              }
-                              setState(() => saving.add(sid));
-                              if (!context.mounted) return;
-                              await action(context, () async {
-                                await widget.api.call(
-                                  'POST',
-                                  '/sessions/$id/attendance/manual',
-                                  data: {
-                                    'studentId': sid,
-                                    'status': status,
-                                    'reason': ?reason,
-                                  },
-                                );
-                                refresh();
-                              });
-                              if (mounted) setState(() => saving.remove(sid));
-                            },
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(
-                                value: 'Present',
-                                child: Text('حاضر'),
+                ChoiceChip(
+                  label: const Text('كشف الكل'),
+                  selected: all,
+                  onSelected: (_) => setState(() => all = true),
+                ),
+              ],
+            ),
+            if (!canRecord)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'تسجيل حالة جديدة متاح خلال نافذة الحصة. تصحيح سجل موجود يخضع لصلاحيتك ومدة التعديل التي يحددها السنتر.',
+                ),
+              ),
+            if (visible.isEmpty)
+              Empty(
+                text: search.isNotEmpty
+                    ? 'لا توجد نتائج بهذا الاسم أو الكود'
+                    : all
+                    ? 'لا يوجد طلاب في هذا الكشف'
+                    : 'تم تسجيل حالة جميع الطلاب في الكشف',
+              ),
+            for (final student in visible)
+              Builder(
+                builder: (context) {
+                  final r = byStudent['${student['id']}'];
+                  final disabled =
+                      closing || saving.contains('${student['id']}');
+                  return BrandCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      label(student),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${student['code'] ?? ''} · ${attendanceState(r?['status'])}',
+                                    ),
+                                  ],
+                                ),
                               ),
-                              PopupMenuItem(
-                                value: 'Late',
-                                child: Text('متأخر'),
-                              ),
-                              PopupMenuItem(
-                                value: 'Absent',
-                                child: Text('غائب'),
-                              ),
-                              PopupMenuItem(
-                                value: 'Excused',
-                                child: Text('بعذر'),
+                              PopupMenuButton<String>(
+                                tooltip: r == null
+                                    ? 'اختيار حالة الحضور'
+                                    : 'تصحيح الحالة',
+                                enabled: !disabled && (r != null || canRecord),
+                                onSelected: (v) => record(student, r, v),
+                                itemBuilder: (_) =>
+                                    ['Present', 'Late', 'Absent', 'Excused']
+                                        .map(
+                                          (v) => PopupMenuItem(
+                                            value: v,
+                                            child: Text(attendanceState(v)),
+                                          ),
+                                        )
+                                        .toList(),
                               ),
                             ],
                           ),
-                  ),
-                );
-              }),
-              if (!all)
-                OutlinedButton(
-                  onPressed: () async {
-                    if (await confirm(
-                          context,
-                          'إغلاق الحصة وتسجيل غياب الطلاب المتبقين؟',
-                        ) &&
-                        context.mounted) {
-                      await action(context, () async {
-                        await widget.api.call(
-                          'POST',
-                          '/sessions/$id/close',
-                          data: {'notifyAbsent': true},
-                        );
-                        refresh();
-                      }, success: 'تم إغلاق الحصة');
-                    }
-                  },
-                  child: const Text('إغلاق الحصة'),
+                          if (r == null)
+                            Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: TextButton.icon(
+                                onPressed: disabled || !canRecord
+                                    ? null
+                                    : () => record(student, null, 'Present'),
+                                icon: const Icon(AppIcons.checkCircle),
+                                label: const Text('تسجيل حاضر'),
+                              ),
+                            ),
+                          if (saving.contains('${student['id']}'))
+                            const LinearProgressIndicator(),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            if (!closed && started != null && !now.isBefore(started))
+              OutlinedButton(
+                onPressed: closing || saving.isNotEmpty
+                    ? null
+                    : () async {
+                        if (!await confirm(
+                              context,
+                              'إغلاق الحصة؟ لم تُسجّل حالة ${arNumber(pending)} طالب. سيُحتسب غيابهم أو عذرهم المعتمد وتوضع إشعارات الغياب في قائمة الإرسال.',
+                            ) ||
+                            !context.mounted)
+                          return;
+                        setState(() => closing = true);
+                        await action(context, () async {
+                          await widget.api.call(
+                            'POST',
+                            '/sessions/${widget.session['id']}/close',
+                            data: {'notifyAbsent': true},
+                          );
+                          if (mounted)
+                            setState(() {
+                              sessionClosed = true;
+                              all = true;
+                              revision++;
+                            });
+                        }, success: 'تم إغلاق الحصة');
+                        if (mounted) setState(() => closing = false);
+                      },
+                child: Text(
+                  closing ? 'جارٍ الإغلاق…' : 'إغلاق الحصة واحتساب المتبقي',
                 ),
-            ],
-          );
-        },
-      ),
-    );
-  }
+              ),
+          ],
+        );
+      },
+    ),
+  );
+  bool sessionClosed = false;
 }
 
 Future<String?> askText(

@@ -1,6 +1,7 @@
 import '../core/brand.dart';
 import '../core/brand_logo.dart';
 import '../core/app_icons.dart';
+
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -12,11 +13,22 @@ import 'community.dart';
 import 'payments.dart';
 import 'quiz.dart';
 import 'reels.dart';
+import 'family_workspace.dart';
+import 'teacher_workspace.dart';
+import 'excuses.dart';
 
 class Shell extends StatefulWidget {
-  const Shell({super.key, required this.api, required this.onTheme});
+  const Shell({
+    super.key,
+    required this.api,
+    required this.onTheme,
+    this.studentId,
+    this.studentHeader,
+  });
   final Api api;
   final VoidCallback onTheme;
+  final String? studentId;
+  final PreferredSizeWidget? studentHeader;
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -31,6 +43,13 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.api.live.start();
+  }
+
+  @override
+  void didUpdateWidget(covariant Shell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Keep the tab, but dispose all child-scoped futures and form selections.
+    if (oldWidget.studentId != widget.studentId) visited.clear();
   }
 
   @override
@@ -64,13 +83,17 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final api = widget.api;
-    final hasReels = api.student;
+    final hasReels = api.student && !api.guardian;
     final fullScreenReels = hasReels && index == 2;
     final titles = [
       'الرئيسية',
-      'الكورسات',
+      api.guardian ? 'المتابعة' : 'الكورسات',
       hasReels ? 'ريلز' : 'الحصص',
-      hasReels ? 'الحصص' : 'الرسائل',
+      api.guardian
+          ? 'المدفوعات'
+          : hasReels
+          ? 'الحصص'
+          : 'الرسائل',
       'المزيد',
     ];
     Widget page(int tab) {
@@ -86,6 +109,14 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       return visited.putIfAbsent(
         tab,
         () => switch (tab) {
+          0 when api.guardian => FamilyHomePage(
+            api: api,
+            studentId: widget.studentId!,
+            onCourses: () => setState(() => index = 1),
+            onSessions: () => setState(() => index = 2),
+            onPayments: () => setState(() => index = 3),
+          ),
+          0 when api.role == 'Teacher' => TeacherHomePage(api: api),
           0 => HomePage(
             api: api,
             onCourses: () => setState(() => index = 1),
@@ -94,6 +125,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           1 => CoursesPage(api: api),
           2 => SessionsPage(api: api),
           3 when hasReels => SessionsPage(api: api),
+          3 when api.guardian => PaymentsPage(api: api, embedded: true),
           3 => ThreadsPage(api: api, embedded: true),
           _ => AccountPage(api: api, onTheme: widget.onTheme),
         },
@@ -109,13 +141,13 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
               title: index == 0
                   ? const SentrakLogo(size: 32)
                   : Text(titles[index]),
+              bottom: widget.studentHeader,
               actions: [
-                if (!api.guardian)
-                  IconButton(
-                    tooltip: 'الرسائل',
-                    onPressed: () => openOverlay(ThreadsPage(api: api)),
-                    icon: const Icon(AppIcons.chatBubbleOutlineRounded),
-                  ),
+                IconButton(
+                  tooltip: 'الرسائل',
+                  onPressed: () => openOverlay(ThreadsPage(api: api)),
+                  icon: const Icon(AppIcons.chatBubbleOutlineRounded),
+                ),
                 IconButton(
                   tooltip: 'الإشعارات',
                   onPressed: () => openOverlay(NotificationsPage(api: api)),
@@ -133,6 +165,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           children: List.generate(
             5,
             (i) => TickerMode(
+              key: ValueKey('${widget.studentId}:$i'),
               enabled: i == index,
               child:
                   hasReels && i == 2 && (index == 2 || visited.containsKey(2))
@@ -145,6 +178,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       bottomNavigationBar: SentrakNavigationBar(
         selectedIndex: index,
         hasReels: hasReels,
+        guardian: api.guardian,
         onSelected: (i) => setState(() {
           index = i;
           // Mark the feed visited while keeping its active property dynamic.
@@ -164,25 +198,32 @@ class SentrakNavigationBar extends StatelessWidget {
     required this.onSelected,
     this.hasReels = true,
     this.immersive = false,
+    this.guardian = false,
   });
   final int selectedIndex;
   final ValueChanged<int> onSelected;
-  final bool hasReels, immersive;
+  final bool hasReels, immersive, guardian;
   @override
   Widget build(BuildContext context) {
     final b = context.brand;
     final labels = [
       'الرئيسية',
-      'الكورسات',
+      guardian ? 'المتابعة' : 'الكورسات',
       hasReels ? 'ريلز' : 'الحصص',
-      hasReels ? 'الحصص' : 'الرسائل',
+      guardian
+          ? 'المدفوعات'
+          : hasReels
+          ? 'الحصص'
+          : 'الرسائل',
       'المزيد',
     ];
     final icons = [
       AppIcons.homeOutlined,
       AppIcons.autoStoriesOutlined,
       hasReels ? AppIcons.playCircle : AppIcons.calendarMonthOutlined,
-      hasReels
+      guardian
+          ? AppIcons.paymentsOutlined
+          : hasReels
           ? AppIcons.calendarMonthOutlined
           : AppIcons.chatBubbleOutlineRounded,
       AppIcons.personOutlineRounded,
@@ -803,12 +844,37 @@ class AccountPage extends StatelessWidget {
         title: const Text('تغيير المظهر'),
         onTap: onTheme,
       ),
-      if (!api.guardian)
+      ListTile(
+        leading: const Icon(AppIcons.chatBubbleOutlineRounded),
+        title: const Text('الرسائل'),
+        onTap: () => open(context, ThreadsPage(api: api)),
+      ),
+      if (api.guardian)
         ListTile(
-          leading: const Icon(AppIcons.chatBubbleOutlineRounded),
-          title: const Text('الرسائل'),
-          onTap: () => open(context, ThreadsPage(api: api)),
+          leading: const Icon(AppIcons.eventBusyOutlined),
+          title: const Text('أعذار الغياب'),
+          onTap: () => open(
+            context,
+            ExcusesPage(api: api, studentId: api.portalStudentId),
+          ),
         ),
+      if (api.role == 'Teacher') ...[
+        ListTile(
+          leading: const Icon(AppIcons.calendarMonthOutlined),
+          title: const Text('جدولي الأسبوعي'),
+          onTap: () => open(context, TeacherSchedulePage(api: api)),
+        ),
+        ListTile(
+          leading: const Icon(AppIcons.pendingActions),
+          title: const Text('مراجعة أعذار الغياب'),
+          onTap: () => open(context, ExcusesPage(api: api)),
+        ),
+        ListTile(
+          leading: const Icon(AppIcons.paymentsOutlined),
+          title: const Text('تسوياتي المالية'),
+          onTap: () => open(context, TeacherSettlementsPage(api: api)),
+        ),
+      ],
       if (api.student)
         ListTile(
           leading: const Icon(AppIcons.paymentsOutlined),

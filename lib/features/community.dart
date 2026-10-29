@@ -6,36 +6,246 @@ import '../core/api.dart';
 import '../core/widgets.dart';
 import 'teaching.dart';
 
-class ThreadsPage extends StatelessWidget {
+class ThreadsPage extends StatefulWidget {
   const ThreadsPage({super.key, required this.api, this.embedded = false});
   final bool embedded;
   final Api api;
   @override
+  State<ThreadsPage> createState() => _ThreadsPageState();
+}
+
+class _ThreadsPageState extends State<ThreadsPage> {
+  int revision = 0;
+  String? status;
+  late final String? studentId = widget.api.portalStudentId;
+  @override
   Widget build(BuildContext context) {
-    final list = PagedList(
-      api: api,
-      path: api.student ? '/portal/threads' : '/threads',
-      item: (t) => BrandCard(
-        child: ListTile(
-          leading: const CircleAvatar(child: Icon(AppIcons.chatBubbleOutline)),
-          title: Text(label(t)),
-          subtitle: Text(
-            '${api.student ? t['teacherName'] : t['studentName']} · ${t['status']}',
+    final api = widget.api;
+    final list = Column(
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Row(
+            children: [
+              for (final value in [null, 'Open', 'Closed'])
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: ChoiceChip(
+                    label: Text(
+                      value == null
+                          ? 'الكل'
+                          : value == 'Open'
+                          ? 'مفتوحة'
+                          : 'مغلقة',
+                    ),
+                    selected: status == value,
+                    onSelected: (_) => setState(() => status = value),
+                  ),
+                ),
+            ],
           ),
-          trailing: const Icon(AppIcons.chevronLeft),
-          onTap: () => open(context, ConversationPage(api: api, thread: t)),
         ),
-      ),
+        Expanded(
+          child: PagedList(
+            key: ValueKey('$revision-$status'),
+            api: api,
+            path: api.student ? '/portal/threads' : '/threads',
+            query: {
+              if (api.guardian && studentId != null) 'studentId': studentId,
+              if (status != null) 'status': status,
+            },
+            item: (t) => BrandCard(
+              child: ListTile(
+                leading: const CircleAvatar(
+                  child: Icon(AppIcons.chatBubbleOutline),
+                ),
+                title: Text(label(t)),
+                subtitle: Text(
+                  '${api.student ? t['teacherName'] : t['studentName']} · ${t['status'] == 'Closed' ? 'مغلقة' : 'مفتوحة'}',
+                ),
+                trailing: const Icon(AppIcons.chevronLeft),
+                onTap: () =>
+                    open(context, ConversationPage(api: api, thread: t)),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
-    if (embedded) return list;
+    if (widget.embedded) return list;
     return Scaffold(
       appBar: AppBar(
         flexibleSpace: const BrandHeader(),
         title: const Text('الرسائل'),
+        actions: [
+          if (api.student)
+            IconButton(
+              tooltip: 'محادثة جديدة',
+              icon: const Icon(AppIcons.add),
+              onPressed: () async {
+                final child = api.guardian ? studentId : api.actorId;
+                if (child == null) return;
+                await Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        NewConversationPage(api: api, studentId: child),
+                  ),
+                );
+                if (mounted) setState(() => revision++);
+              },
+            ),
+        ],
       ),
       body: list,
     );
   }
+}
+
+class NewConversationPage extends StatefulWidget {
+  const NewConversationPage({
+    super.key,
+    required this.api,
+    required this.studentId,
+  });
+  final Api api;
+  final String studentId;
+  @override
+  State<NewConversationPage> createState() => _NewConversationPageState();
+}
+
+class _NewConversationPageState extends State<NewConversationPage> {
+  final form = GlobalKey<FormState>();
+  final subject = TextEditingController();
+  String? teacherId, error;
+  bool busy = false;
+  @override
+  void dispose() {
+    subject.dispose();
+    super.dispose();
+  }
+
+  Future<dynamic> teachers() async {
+    try {
+      return await widget.api.get(
+        '/portal/students/${widget.studentId}/teachers',
+      );
+    } on ApiFailure catch (e) {
+      if (e.status == 404)
+        throw ApiFailure(
+          'بدء محادثة جديدة غير متاح حالياً. تواصل مع إدارة السنتر.',
+        );
+      rethrow;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: !busy,
+    child: Scaffold(
+      appBar: AppBar(title: const Text('محادثة جديدة')),
+      body: AsyncPanel(
+        load: teachers,
+        builder: (data, refresh) {
+          final choices = rows(data);
+          return Form(
+            key: form,
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                const Text(
+                  'تواصل مع مدرس من مجموعات الطالب النشطة. المحادثة تخص الطالب المختار.',
+                ),
+                const SizedBox(height: 16),
+                if (choices.isEmpty)
+                  const Empty(
+                    text: 'لا يوجد مدرس مرتبط بمجموعة نشطة لهذا الطالب حالياً.',
+                  )
+                else ...[
+                  for (final teacher in choices)
+                    BrandCard(
+                      child: ListTile(
+                        leading: const Icon(AppIcons.schoolOutlined),
+                        title: Text(label(teacher)),
+                        trailing: Icon(
+                          teacherId == '${teacher['id']}'
+                              ? AppIcons.radioButtonChecked
+                              : AppIcons.radioButtonOff,
+                        ),
+                        onTap: busy
+                            ? null
+                            : () => setState(
+                                () => teacherId = '${teacher['id']}',
+                              ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: subject,
+                    enabled: !busy,
+                    maxLength: 200,
+                    decoration: const InputDecoration(
+                      labelText: 'موضوع المحادثة',
+                    ),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'اكتب موضوع المحادثة'
+                        : null,
+                  ),
+                  if (error != null)
+                    Text(
+                      error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  FilledButton(
+                    onPressed: busy || teacherId == null
+                        ? null
+                        : () async {
+                            if (!form.currentState!.validate()) return;
+                            setState(() {
+                              busy = true;
+                              error = null;
+                            });
+                            try {
+                              final thread = obj(
+                                await widget.api.call(
+                                  'POST',
+                                  '/portal/threads',
+                                  data: {
+                                    'studentId': widget.studentId,
+                                    'teacherId': teacherId,
+                                    'subject': subject.text.trim(),
+                                  },
+                                ),
+                              );
+                              if (!context.mounted) return;
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (_) => ConversationPage(
+                                    api: widget.api,
+                                    thread: thread,
+                                  ),
+                                ),
+                              );
+                            } catch (e) {
+                              if (mounted) setState(() => error = '$e');
+                            } finally {
+                              if (mounted) setState(() => busy = false);
+                            }
+                          },
+                    child: Text(busy ? 'جارٍ الإنشاء…' : 'بدء المحادثة'),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+  );
 }
 
 class ConversationPage extends StatefulWidget {

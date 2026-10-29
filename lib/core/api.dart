@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'live.dart';
 
 import 'package:dio/dio.dart';
@@ -66,6 +67,13 @@ class Api extends ChangeNotifier {
   String slug = const String.fromEnvironment('TENANT_SLUG');
   Future<void>? _refreshing;
   int _generation = 0;
+  Future<void> _storageTail = Future<void>.value();
+  Future<void> _storeInOrder(Future<void> Function() work) {
+    final next = _storageTail.then((_) => work());
+    _storageTail = next.catchError((Object _) {});
+    return next;
+  }
+
   bool get signedIn => session != null;
   Json get profile => obj(session?['profile']);
   String get role => '${profile['role'] ?? ''}';
@@ -89,6 +97,7 @@ class Api extends ChangeNotifier {
       }
       slug = saved['slug'];
       session = obj(saved['session']);
+      portalStudentId = saved['portalStudentId'] as String?;
       await refresh();
     } on ApiFailure catch (e) {
       if (e.status == 401 || e.status == 403) {
@@ -107,9 +116,31 @@ class Api extends ChangeNotifier {
         !['Student', 'Guardian', 'Teacher', 'Owner'].contains(p['role'])) {
       throw ApiFailure('نوع الحساب غير مدعوم.');
     }
-    await store.write(jsonEncode({'slug': slug, 'session': data}));
-    session = data;
-    notifyListeners();
+    final epoch = _generation;
+    await _storeInOrder(() async {
+      if (epoch != _generation) return;
+      await store.write(
+        jsonEncode({
+          'slug': slug,
+          'session': data,
+          'portalStudentId': portalStudentId,
+        }),
+      );
+      if (epoch == _generation) session = data;
+    });
+    if (epoch == _generation) notifyListeners();
+  }
+
+  /// Persist only a child returned by /portal/me. The server still authorizes every request.
+  Future<void> selectPortalStudent(String id) async {
+    final epoch = _generation;
+    await _storeInOrder(() async {
+      if (epoch != _generation || !signedIn) return;
+      await store.write(
+        jsonEncode({'slug': slug, 'session': session, 'portalStudentId': id}),
+      );
+      if (epoch == _generation && signedIn) portalStudentId = id;
+    });
   }
 
   Future<void> clear() async {
@@ -118,7 +149,7 @@ class Api extends ChangeNotifier {
     session = null;
     portalStudentId = null;
     notifyListeners();
-    await store.clear();
+    await _storeInOrder(store.clear);
   }
 
   Future<void> logout() async {

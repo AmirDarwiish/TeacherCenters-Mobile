@@ -1,7 +1,10 @@
 import 'brand.dart';
 import 'app_icons.dart';
+
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import 'format.dart';
 export 'format.dart';
 
@@ -477,3 +480,49 @@ const fieldNames = {
   'courseTitle': 'الكورس',
   'studentFullName': 'الطالب',
 };
+
+/// Audit reasons are required by the attendance and finance contracts.
+Future<String?> requestReason(
+  BuildContext context,
+  String title, {
+  String? initial,
+}) async {
+  final controller = TextEditingController(text: initial);
+  final form = GlobalKey<FormState>();
+  final result = await showDialog<String>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text(title),
+      content: Form(
+        key: form,
+        child: TextFormField(
+          controller: controller,
+          autofocus: true,
+          minLines: 2,
+          maxLines: 4,
+          maxLength: 500,
+          decoration: const InputDecoration(labelText: 'السبب'),
+          validator: (v) => (v?.trim().length ?? 0) < 5
+              ? 'اكتب سببًا من ٥ أحرف على الأقل'
+              : null,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(c),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (form.currentState!.validate())
+              Navigator.pop(c, controller.text.trim());
+          },
+          child: const Text('تأكيد'),
+        ),
+      ],
+    ),
+  );
+  // Let the dialog's reverse transition finish before disposing its editor.
+  Future<void>.delayed(const Duration(milliseconds: 300), controller.dispose);
+  return result;
+}
