@@ -28,6 +28,10 @@ jobs:
           channel: stable
           cache: true
       - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare Firebase client options
+        env:
+          FIREBASE_ANDROID_CONFIG: ${{ secrets.FIREBASE_ANDROID_CONFIG }}
+        run: python3 tool/configure_push.py
       - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --no-pub
@@ -39,7 +43,7 @@ jobs:
           path: docs/screenshots/*.png
           retention-days: 14
       - name: Build release APK
-        run: flutter build apk --release --no-pub --dart-define="TENANT_SLUG=$TENANT_SLUG"
+        run: flutter build apk --release --no-pub --dart-define="TENANT_SLUG=$TENANT_SLUG" --dart-define-from-file=firebase-build.json
       - name: Prepare APK download
         id: apk
         shell: bash
