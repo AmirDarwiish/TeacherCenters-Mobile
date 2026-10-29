@@ -587,8 +587,9 @@ class _ChatConversationPageState extends State<ChatConversationPage>
   void dispose() {
     timer?.cancel();
     subscription?.cancel();
-    if (widget.api.visibleChatId == '${room['id']}')
+    if (widget.api.visibleChatId == '${room['id']}') {
       widget.api.visibleChatId = null;
+    }
     widget.api.live.watchThread(null);
     WidgetsBinding.instance.removeObserver(this);
     input.dispose();

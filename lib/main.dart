@@ -115,8 +115,9 @@ class _TeacherCentersAppState extends State<TeacherCentersApp>
       }
     } finally {
       openingPush = false;
-      if (pendingPush != null)
+      if (pendingPush != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) => drainPush());
+      }
     }
   }
 

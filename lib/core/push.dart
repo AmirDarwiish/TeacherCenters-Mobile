@@ -18,8 +18,9 @@ class ChatPushTarget {
         recipient = '${data['recipientId'] ?? ''}',
         room = '${data['conversationId'] ?? ''}';
     if (data['type'] != 'chat.message' ||
-        ![tenant, recipient, room].every(guid.hasMatch))
+        ![tenant, recipient, room].every(guid.hasMatch)) {
       return null;
+    }
     return ChatPushTarget(
       tenant.toLowerCase(),
       recipient.toLowerCase(),
@@ -71,8 +72,9 @@ class FirebasePushTransport implements PushTransport {
           TargetPlatform.android,
           TargetPlatform.iOS,
         ].contains(defaultTargetPlatform) ||
-        !const bool.fromEnvironment('PUSH_ENABLED'))
+        !const bool.fromEnvironment('PUSH_ENABLED')) {
       return false;
+    }
     final ios = defaultTargetPlatform == TargetPlatform.iOS;
     const apiKey = String.fromEnvironment('FIREBASE_API_KEY');
     const project = String.fromEnvironment('FIREBASE_PROJECT_ID');
@@ -118,8 +120,9 @@ class FirebasePushTransport implements PushTransport {
 
   @override
   Future<String?> token() async {
-    if (platform == 'ios' && await messaging.getAPNSToken() == null)
+    if (platform == 'ios' && await messaging.getAPNSToken() == null) {
       return null;
+    }
     return messaging.getToken();
   }
 
@@ -306,8 +309,9 @@ class ChatPushCoordinator {
       }
     }
     try {
-      if (ready)
+      if (ready) {
         await transport.deleteToken().timeout(const Duration(seconds: 3));
+      }
     } catch (_) {}
   }
 
