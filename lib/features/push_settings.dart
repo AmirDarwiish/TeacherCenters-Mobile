@@ -27,12 +27,15 @@ class _PushSettingsPageState extends State<PushSettingsPage> {
   }
 
   String serverText(Json value) {
-    if (value['serverEnabled'] != true)
+    if (value['serverEnabled'] != true) {
       return 'إرسال الإشعارات غير مفعّل من السنتر.';
-    if (value['providerConfigured'] != true)
+    }
+    if (value['providerConfigured'] != true) {
       return 'إعداد خدمة الإشعارات في السنتر غير مكتمل.';
-    if ((value['activeDevices'] as num? ?? 0) == 0)
+    }
+    if ((value['activeDevices'] as num? ?? 0) == 0) {
       return 'خدمة السنتر جاهزة، لكن مفيش أجهزة متسجلة للحساب. فعّل الإشعارات وأعد المحاولة.';
+    }
     return 'خدمة السنتر جاهزة، وفيه أجهزة متسجلة للحساب.';
   }
 
@@ -90,12 +93,14 @@ class _PushSettingsPageState extends State<PushSettingsPage> {
                   FutureBuilder<Json>(
                     future: server,
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState != ConnectionState.done)
+                      if (snapshot.connectionState != ConnectionState.done) {
                         return const LinearProgressIndicator();
-                      if (snapshot.hasError)
+                      }
+                      if (snapshot.hasError) {
                         return const Text(
                           'تعذر التحقق من حالة السنتر. قد يحتاج تحديث خدمة الإشعارات أو إعادة الاتصال.',
                         );
+                      }
                       return Text(serverText(snapshot.data ?? {}));
                     },
                   ),
