@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/api.dart';
+import 'core/push.dart';
+import 'features/scoped_chat.dart';
 import 'core/app_viewport.dart';
 import 'core/design.dart';
 import 'core/brand_logo.dart';
@@ -21,7 +23,13 @@ class TeacherCentersApp extends StatefulWidget {
   State<TeacherCentersApp> createState() => _TeacherCentersAppState();
 }
 
-class _TeacherCentersAppState extends State<TeacherCentersApp> {
+class _TeacherCentersAppState extends State<TeacherCentersApp>
+    with WidgetsBindingObserver {
+  final navigatorKey = GlobalKey<NavigatorState>();
+  final messengerKey = GlobalKey<ScaffoldMessengerState>();
+  late final ChatPushCoordinator push;
+  ChatPushTarget? pendingPush;
+  bool openingPush = false;
   ThemeMode mode = ThemeMode.system;
   bool ready = false;
   Object? startupError;
@@ -29,15 +37,86 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     widget.api.addListener(changed);
+    push = ChatPushCoordinator(
+      widget.api,
+      FirebasePushTransport(),
+      open: queuePush,
+      banner: showPush,
+    );
+    push.start();
     restore();
   }
 
   void changed() {
     if (mounted) {
       setState(() {
-        if (!widget.api.signedIn) sessionEpoch++;
+        if (!widget.api.signedIn) {
+          sessionEpoch++;
+          pendingPush = null;
+        }
       });
+    }
+  }
+
+  void showPush(ChatPushTarget target) {
+    if (!mounted ||
+        !target.matches(widget.api) ||
+        widget.api.visibleChatId == target.conversationId)
+      return;
+    messengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: const Text('عندك رسالة جديدة على رواق'),
+        action: SnackBarAction(
+          label: 'فتح',
+          onPressed: () => queuePush(target),
+        ),
+      ),
+    );
+  }
+
+  Future<void> queuePush(ChatPushTarget target) async {
+    pendingPush = target;
+    WidgetsBinding.instance.addPostFrameCallback((_) => drainPush());
+  }
+
+  Future<void> drainPush() async {
+    final target = pendingPush;
+    if (!mounted ||
+        !ready ||
+        openingPush ||
+        target == null ||
+        navigatorKey.currentState == null)
+      return;
+    pendingPush = null;
+    if (!target.matches(widget.api)) return;
+    openingPush = true;
+    try {
+      final room = obj(
+        await widget.api.get('/chat/conversations/${target.conversationId}'),
+      );
+      if (!mounted || !target.matches(widget.api)) return;
+      navigatorKey.currentState?.push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              ChatConversationPage(api: widget.api, conversation: room),
+        ),
+      );
+    } catch (_) {
+      if (mounted && target.matches(widget.api)) {
+        messengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'المحادثة غير متاحة حاليًا. راجع تسجيل الطالب أو حاول من الرسائل.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      openingPush = false;
+      if (pendingPush != null)
+        WidgetsBinding.instance.addPostFrameCallback((_) => drainPush());
     }
   }
 
@@ -48,19 +127,31 @@ class _TeacherCentersAppState extends State<TeacherCentersApp> {
     } catch (e) {
       startupError = e;
     } finally {
-      if (mounted) setState(() => ready = true);
+      if (mounted) {
+        setState(() => ready = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) => drainPush());
+      }
     }
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) push.sync();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.api.removeListener(changed);
+    push.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
+    navigatorKey: navigatorKey,
+    scaffoldMessengerKey: messengerKey,
     title: 'رواق',
     locale: const Locale('ar', 'EG'),
     supportedLocales: const [Locale('ar', 'EG'), Locale('en')],

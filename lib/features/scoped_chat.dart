@@ -67,6 +67,22 @@ class _ThreadsPageState extends State<ThreadsPage> {
             ],
           ),
         ),
+        AnimatedBuilder(
+          animation: widget.api,
+          builder: (context, _) => ListTile(
+            dense: true,
+            title: Text(
+              widget.api.pushStatus,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            trailing: widget.api.pushAvailable
+                ? TextButton(
+                    onPressed: widget.api.enablePush,
+                    child: const Text('إعداد الإشعارات'),
+                  )
+                : null,
+          ),
+        ),
         if (!widget.api.guardian)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -541,6 +557,7 @@ class _ChatConversationPageState extends State<ChatConversationPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.api.visibleChatId = '${room['id']}';
     widget.api.live.watchThread('${room['id']}');
     subscription = widget.api.live.events
         .where((e) => e == 'ChatChanged' || e == 'Reconnected')
@@ -570,6 +587,8 @@ class _ChatConversationPageState extends State<ChatConversationPage>
   void dispose() {
     timer?.cancel();
     subscription?.cancel();
+    if (widget.api.visibleChatId == '${room['id']}')
+      widget.api.visibleChatId = null;
     widget.api.live.watchThread(null);
     WidgetsBinding.instance.removeObserver(this);
     input.dispose();

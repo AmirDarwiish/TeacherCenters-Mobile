@@ -60,6 +60,11 @@ class Api extends ChangeNotifier {
             ),
           ),
       store = storage ?? SecureSessionStore();
+  Future<void> Function()? enablePush, beforeLogout;
+  String pushStatus = 'إشعارات الجهاز غير مفعّلة في هذه النسخة';
+  bool pushAvailable = false;
+  String? visibleChatId;
+  void notifyPushChanged() => notifyListeners();
   late final LiveUpdates live = LiveUpdates(this);
   final Dio http;
   final SessionStore store;
@@ -154,6 +159,7 @@ class Api extends ChangeNotifier {
 
   Future<void> logout() async {
     try {
+      await beforeLogout?.call();
       await call(
         'POST',
         '/auth/logout',
