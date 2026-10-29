@@ -449,6 +449,11 @@ class _AttendancePageState extends State<AttendancePage> {
                                 ),
                               ),
                               PopupMenuButton<String>(
+                                icon: Icon(
+                                  r == null
+                                      ? AppIcons.menu
+                                      : AppIcons.editOutlined,
+                                ),
                                 tooltip: r == null
                                     ? 'اختيار حالة الحضور'
                                     : 'تصحيح الحالة',

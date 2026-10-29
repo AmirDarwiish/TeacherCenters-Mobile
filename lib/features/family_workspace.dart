@@ -107,13 +107,15 @@ class FamilyHomePage extends StatelessWidget {
                   ],
                 );
               }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: metrics[0]),
-                  const SizedBox(width: 12),
-                  Expanded(child: metrics[1]),
-                ],
+              return IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: metrics[0]),
+                    const SizedBox(width: 12),
+                    Expanded(child: metrics[1]),
+                  ],
+                ),
               );
             },
           ),

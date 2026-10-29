@@ -205,6 +205,8 @@ void main() {
   testWidgets(
     'attendance posts required reason and updates counts, correction uses record id',
     (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       bool recorded = false;
       RequestOptions? write;
       final api = await workspaceApi('Teacher', (r) async {
@@ -297,6 +299,8 @@ void main() {
   testWidgets('teacher home surfaces today attendance before content', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final api = await workspaceApi(
       'Teacher',
       (_) async => response(200, [
@@ -318,4 +322,31 @@ void main() {
     await screenshot(tester, 'teacher-workspace');
     expect(tester.takeException(), isNull);
   });
+  for (final dark in [false, true]) {
+    testWidgets('child picker layout is readable at phone width (dark $dark)', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        host(
+          Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: ChildPicker(students: children, selectedId: 'a'),
+            ),
+          ),
+          dark: dark,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('أحمد محمد'), findsOneWidget);
+      expect(find.text('مريم محمد'), findsOneWidget);
+      await screenshot(
+        tester,
+        dark ? 'child-picker-dark' : 'child-picker-light',
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
