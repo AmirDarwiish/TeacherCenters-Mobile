@@ -177,6 +177,7 @@ class _NewConversationPageState extends State<NewConversationPage> {
                     maxLength: 200,
                     decoration: const InputDecoration(
                       labelText: 'موضوع المحادثة',
+                      hintText: 'مثال: مراجعة الفصل الأول',
                     ),
                     validator: (v) => v == null || v.trim().isEmpty
                         ? 'اكتب موضوع المحادثة'
@@ -521,7 +522,10 @@ class _AssignmentPageState extends State<AssignmentPage> {
                       submission?['status'] != 'Graded',
                   minLines: 6,
                   maxLines: 12,
-                  decoration: const InputDecoration(labelText: 'حل الواجب'),
+                  decoration: const InputDecoration(
+                    labelText: 'حل الواجب',
+                    hintText: 'اكتب إجابتك هنا',
+                  ),
                 ),
                 const SizedBox(height: 16),
                 FilledButton(

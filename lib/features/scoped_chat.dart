@@ -431,7 +431,10 @@ class _SessionChatEditorState extends State<SessionChatEditor> {
               controller: title,
               enabled: !busy,
               maxLength: 150,
-              decoration: const InputDecoration(labelText: 'اسم الجروب'),
+              decoration: const InputDecoration(
+                labelText: 'اسم الجروب',
+                hintText: 'اكتب الاسم',
+              ),
               validator: (v) => (v?.trim().length ?? 0) < 3
                   ? 'اكتب اسمًا من ٣ أحرف على الأقل'
                   : null,

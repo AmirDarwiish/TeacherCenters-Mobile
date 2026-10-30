@@ -266,7 +266,10 @@ class _ExcuseEditorState extends State<ExcuseEditor> {
               maxLength: 500,
               minLines: 3,
               maxLines: 6,
-              decoration: const InputDecoration(labelText: 'سبب الغياب'),
+              decoration: const InputDecoration(
+                labelText: 'سبب الغياب',
+                hintText: 'اكتب السبب باختصار',
+              ),
               validator: (v) => (v?.trim().length ?? 0) < 5
                   ? 'اكتب سببًا من ٥ أحرف على الأقل'
                   : null,

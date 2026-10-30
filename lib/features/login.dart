@@ -267,6 +267,7 @@ class _LoginPageState extends State<LoginPage> {
                     autofillHints: const [AutofillHints.telephoneNumber],
                     decoration: const InputDecoration(
                       labelText: 'رقم الموبايل',
+                      hintText: '01xxxxxxxxx',
                       counterText: '',
                       prefixIcon: Icon(AppIcons.phoneOutlined),
                     ),
@@ -282,6 +283,7 @@ class _LoginPageState extends State<LoginPage> {
                       autofillHints: const [AutofillHints.password],
                       decoration: const InputDecoration(
                         labelText: 'كلمة المرور',
+                        hintText: 'اكتب كلمة المرور',
                         prefixIcon: Icon(AppIcons.lockOutline),
                       ),
                       validator: (v) =>
@@ -354,7 +356,7 @@ class _LoginPageState extends State<LoginPage> {
                     FilledButton(
                       onPressed: busy ? null : submit,
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.symmetric(vertical: 2),
                         child: busy
                             ? const SizedBox(
                                 height: 20,

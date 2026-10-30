@@ -717,7 +717,10 @@ class _NewLessonPageState extends State<NewLessonPage> {
         TextField(
           maxLength: 150,
           controller: title,
-          decoration: const InputDecoration(labelText: 'العنوان'),
+          decoration: const InputDecoration(
+            labelText: 'العنوان',
+            hintText: 'اكتب عنوانًا واضحًا',
+          ),
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
@@ -740,12 +743,18 @@ class _NewLessonPageState extends State<NewLessonPage> {
             controller: body,
             minLines: 3,
             maxLines: 8,
-            decoration: const InputDecoration(labelText: 'المحتوى والوصف'),
+            decoration: const InputDecoration(
+              labelText: 'المحتوى والوصف',
+              hintText: 'اكتب هنا…',
+            ),
           ),
         if (type == 'Video')
           TextField(
             controller: url,
-            decoration: const InputDecoration(labelText: 'رابط MP4 أو HLS'),
+            decoration: const InputDecoration(
+              labelText: 'رابط MP4 أو HLS',
+              hintText: 'https://',
+            ),
           ),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
@@ -760,6 +769,7 @@ class _NewLessonPageState extends State<NewLessonPage> {
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
               labelText: 'مدة الفيديو بالثواني',
+              hintText: 'مثال: 900',
               helperText: 'تُستخدم لحساب إكمال الدرس بدقة',
             ),
           ),

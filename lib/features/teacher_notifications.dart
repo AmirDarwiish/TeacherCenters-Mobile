@@ -250,7 +250,10 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
               icon: const Icon(AppIcons.arrowDownward),
               initialValue: groupId,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'المجموعة'),
+              decoration: const InputDecoration(
+                labelText: 'المجموعة',
+                hintText: 'اكتب هنا…',
+              ),
               items: groups
                   .map(
                     (g) => DropdownMenuItem(
@@ -266,6 +269,7 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
               controller: search,
               decoration: InputDecoration(
                 labelText: 'ابحث باسم الطالب أو الكود',
+                hintText: 'اكتب الاسم',
                 suffixIcon: IconButton(
                   onPressed: () => loadStudents(),
                   icon: const Icon(AppIcons.searchRounded),
@@ -313,7 +317,10 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
           DropdownButtonFormField<String>(
             icon: const Icon(AppIcons.arrowDownward),
             initialValue: audience,
-            decoration: const InputDecoration(labelText: 'يوصل لمين؟'),
+            decoration: const InputDecoration(
+              labelText: 'يوصل لمين؟',
+              hintText: 'اكتب هنا…',
+            ),
             items: const [
               DropdownMenuItem(
                 value: 'Both',
@@ -349,7 +356,10 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
             maxLength: 1500,
             minLines: 4,
             maxLines: 7,
-            decoration: const InputDecoration(labelText: 'نص الرسالة'),
+            decoration: const InputDecoration(
+              labelText: 'نص الرسالة',
+              hintText: 'اكتب هنا…',
+            ),
           ),
           if (imageBytes != null) ...[
             ClipRRect(

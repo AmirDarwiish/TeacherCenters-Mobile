@@ -609,13 +609,19 @@ class _NewSessionPageState extends State<NewSessionPage> {
       children: [
         TextField(
           controller: topic,
-          decoration: const InputDecoration(labelText: 'موضوع الحصة'),
+          decoration: const InputDecoration(
+            labelText: 'موضوع الحصة',
+            hintText: 'مثال: مراجعة الفصل الأول',
+          ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: minutes,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'المدة بالدقائق'),
+          decoration: const InputDecoration(
+            labelText: 'المدة بالدقائق',
+            hintText: 'مثال: 60',
+          ),
         ),
         ListTile(
           title: Text(

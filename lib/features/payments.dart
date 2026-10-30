@@ -582,6 +582,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     enabled: !busy,
                     decoration: const InputDecoration(
                       labelText: 'كود خصم — اختياري',
+                      hintText: 'مثال: RAMADAN10',
                     ),
                     onChanged: (_) => key = _key(),
                   ),

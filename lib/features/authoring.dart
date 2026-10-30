@@ -285,7 +285,10 @@ class _NewQuizPageState extends State<NewQuizPage> {
             children: [
               TextField(
                 controller: title,
-                decoration: const InputDecoration(labelText: 'عنوان الامتحان'),
+                decoration: const InputDecoration(
+                  labelText: 'عنوان الامتحان',
+                  hintText: 'اكتب عنوانًا واضحًا',
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -296,6 +299,7 @@ class _NewQuizPageState extends State<NewQuizPage> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'المدة بالدقائق',
+                        hintText: 'مثال: 60',
                       ),
                     ),
                   ),
@@ -306,6 +310,7 @@ class _NewQuizPageState extends State<NewQuizPage> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'عدد المحاولات',
+                        hintText: 'مثال: 3',
                       ),
                     ),
                   ),

@@ -137,6 +137,7 @@ class _LessonDiscussionState extends State<LessonDiscussion> {
                         maxLength: 170,
                         decoration: const InputDecoration(
                           labelText: 'عنوان السؤال',
+                          hintText: 'اكتب عنوانًا واضحًا',
                         ),
                         validator: (v) => v?.trim().isNotEmpty == true
                             ? null
@@ -455,7 +456,10 @@ class _LessonQuestionPageState extends State<LessonQuestionPage> {
               maxLength: 5000,
               minLines: 2,
               maxLines: 5,
-              decoration: const InputDecoration(labelText: 'أضف ردك'),
+              decoration: const InputDecoration(
+                labelText: 'أضف ردك',
+                hintText: 'اكتب هنا…',
+              ),
             ),
             FilledButton(
               onPressed: busy

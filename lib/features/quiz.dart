@@ -339,7 +339,10 @@ class _QuestionEditorState extends State<QuestionEditor> {
                 controller: text,
                 enabled: widget.enabled,
                 maxLines: type == 'ShortAnswer' ? 2 : 5,
-                decoration: const InputDecoration(labelText: 'إجابتك'),
+                decoration: const InputDecoration(
+                  labelText: 'إجابتك',
+                  hintText: 'اكتب إجابتك هنا',
+                ),
               ),
               TextButton(
                 onPressed: widget.enabled

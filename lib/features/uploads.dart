@@ -236,6 +236,7 @@ class _UploadPageState extends State<UploadPage> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'مدة الفيديو بالثواني',
+                hintText: 'مثال: 900',
               ),
             ),
           const SizedBox(height: 20),

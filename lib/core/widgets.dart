@@ -506,7 +506,10 @@ Future<String?> requestReason(
           minLines: 2,
           maxLines: 4,
           maxLength: 500,
-          decoration: const InputDecoration(labelText: 'السبب'),
+          decoration: const InputDecoration(
+            labelText: 'السبب',
+            hintText: 'اكتب السبب باختصار',
+          ),
           validator: (v) => (v?.trim().length ?? 0) < 5
               ? 'اكتب سببًا من ٥ أحرف على الأقل'
               : null,
