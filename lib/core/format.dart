@@ -49,3 +49,11 @@ String cairoWhen(Object? value) {
           DateFormat('EEE d MMM · h:mm a', 'ar_EG').format(cairoDate(parsed)),
         );
 }
+
+/// Correct Arabic plural for payment items: بند، بندين، ٣ بنود، ١١ بند.
+String itemsCount(int n) => switch (n) {
+  1 => 'بند واحد',
+  2 => 'بندين',
+  >= 3 && <= 10 => '${arDigits(n)} بنود',
+  _ => '${arDigits(n)} بند',
+};

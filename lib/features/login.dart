@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../core/api.dart';
 import '../core/brand.dart';
 import '../core/brand_logo.dart';
+import '../core/motion.dart';
 import '../core/otp_field.dart';
 
 class LoginPage extends StatefulWidget {
@@ -187,16 +188,11 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: BrandColors.night,
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    child: const Column(
+                  const PremiumHero(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        RewaqLogo(inverse: true, stacked: true, size: 168),
+                        RewaqLogo(inverse: true, stacked: true, size: 120),
                         SizedBox(height: 16),
                         Text(
                           'إدارة دروسك كلها من مكان واحد',
@@ -221,7 +217,7 @@ class _LoginPageState extends State<LoginPage> {
                     centerName ?? 'دروسك وحضورك ومتابعتك، في مكان واحد',
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   SegmentedButton<String>(
                     segments: const [
                       ButtonSegment(

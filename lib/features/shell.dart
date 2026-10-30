@@ -473,16 +473,7 @@ class HomePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 22),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: const LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [BrandColors.night, BrandColors.navyDoor],
-              ),
-            ),
+          PremiumHero(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -500,7 +491,7 @@ class HomePage extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 Text(
                   api.guardian
                       ? 'معاه في كل خطوة'
@@ -509,25 +500,13 @@ class HomePage extends StatelessWidget {
                       : 'وقت أكتر للتدريس.\nوتفاصيل تحت السيطرة.',
                   style: const TextStyle(
                     fontFamily: 'Alexandria',
-                    fontSize: 27,
+                    fontSize: 22,
                     color: BrandColors.white,
                     fontWeight: FontWeight.bold,
                     height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  api.guardian
-                      ? 'تابع التعلم والحضور والنتائج من مكان واحد.'
-                      : api.student
-                      ? 'شرحك وتدريبك ومواعيدك، مترتبين على راحتك.'
-                      : 'تابع طلابك، جهّز محتواك، ونظّم يومك.',
-                  style: const TextStyle(
-                    color: BrandColors.whiteMuted,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
                     backgroundColor: BrandColors.primaryTintFixed,

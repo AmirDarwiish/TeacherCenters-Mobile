@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 import 'brand.dart';
@@ -95,13 +96,11 @@ ThemeData appTheme(Brightness brightness) {
     borderSide: BorderSide(color: b.line),
   );
   final button = ButtonStyle(
-    minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
+    minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
     padding: const WidgetStatePropertyAll(
       EdgeInsets.symmetric(horizontal: 20, vertical: 12),
     ),
-    shape: WidgetStatePropertyAll(
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    ),
+    shape: const WidgetStatePropertyAll(StadiumBorder()),
     textStyle: const WidgetStatePropertyAll(small),
     animationDuration: const Duration(milliseconds: 150),
     mouseCursor: WidgetStateProperty.resolveWith(
@@ -122,6 +121,12 @@ ThemeData appTheme(Brightness brightness) {
       endDrawerButtonIconBuilder: (_) => const Icon(AppIcons.menu),
     ),
     fontFamily: 'IBMPlexSansArabic',
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
     textTheme: text,
     scaffoldBackgroundColor: b.bg,
     canvasColor: b.surface,
