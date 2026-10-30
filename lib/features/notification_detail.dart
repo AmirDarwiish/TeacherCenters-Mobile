@@ -23,30 +23,34 @@ class NotificationDetailPage extends StatelessWidget {
     final child = '${n['studentId'] ?? ''}';
     if (api.guardian && child.isNotEmpty) {
       final me = obj(await api.get('/portal/me'));
-      if (!rows(me['students']).any((s) => '${s['id']}' == child))
+      if (!rows(me['students']).any((s) => '${s['id']}' == child)) {
         throw ApiFailure('الطالب غير مرتبط بحسابك حاليًا.');
+      }
       await api.selectPortalStudent(child);
     }
     if (!context.mounted) return;
     switch (parts[1]) {
       case 'chat':
         final room = obj(await api.get('/chat/conversations/$resource'));
-        if (context.mounted)
+        if (context.mounted) {
           open(context, ChatConversationPage(api: api, conversation: room));
+        }
       case 'courses':
         open(context, CoursePage(api: api, id: resource));
       case 'sessions':
         final student = api.guardian ? child : api.actorId;
-        if (student.isEmpty)
+        if (student.isEmpty) {
           throw ApiFailure('اختار الطالب من الصفحة الرئيسية أولًا.');
+        }
         final session = obj(
           await api.get('/portal/students/$student/sessions/$resource'),
         );
-        if (context.mounted)
+        if (context.mounted) {
           open(
             context,
             StudentSessionPage(api: api, studentId: student, session: session),
           );
+        }
       case 'assignments':
         final assignment = obj(await api.get('/notifications/$id/assignment'));
         if (!context.mounted) return;

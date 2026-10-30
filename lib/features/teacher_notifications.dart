@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/brand.dart';
-import '../core/widgets.dart';
 import 'scoped_chat.dart' show messageKey;
 
 class TeacherNotificationsPage extends StatefulWidget {
@@ -43,17 +42,19 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
   Future<void> load() async {
     try {
       final data = rows(await widget.api.get('/teacher-notifications/groups'));
-      if (mounted)
+      if (mounted) {
         setState(() {
           groups = data;
           loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           error = '$e';
           loading = false;
         });
+      }
     }
   }
 
@@ -69,12 +70,13 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
           query: {'search': search.text.trim(), 'page': next, 'pageSize': 30},
         ),
       );
-      if (mounted)
+      if (mounted) {
         setState(() {
           students = rows(data);
           page = next;
           pages = (data['totalPages'] as num? ?? 1).toInt();
         });
+      }
     } catch (e) {
       if (mounted) setState(() => error = '$e');
     } finally {
@@ -317,12 +319,19 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
               DropdownMenuItem(value: 'Students', child: Text('الطلاب فقط')),
               DropdownMenuItem(
                 value: 'Guardians',
-                child: Text('أولياء الأمور فقط'),
+                child: Text('أولياء الأمور فقط — خاص'),
               ),
             ],
             onChanged: (v) => setState(() => audience = v!),
           ),
           const SizedBox(height: 16),
+          if (audience == 'Guardians')
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'الإشعار خاص بولي الأمر. الطالب مش هيوصله تنبيه ومش هيظهر في سجل إشعاراته.',
+              ),
+            ),
           TextField(
             controller: title,
             maxLength: 100,
