@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/api.dart';
 import 'core/push.dart';
 import 'features/scoped_chat.dart';
+import 'features/notification_detail.dart';
 import 'core/app_viewport.dart';
 import 'core/design.dart';
 import 'core/brand_logo.dart';
@@ -63,12 +64,17 @@ class _TeacherCentersAppState extends State<TeacherCentersApp>
   void showPush(ChatPushTarget target) {
     if (!mounted ||
         !target.matches(widget.api) ||
-        widget.api.visibleChatId == target.conversationId) {
+        target.notificationId == null &&
+            widget.api.visibleChatId == target.conversationId) {
       return;
     }
     messengerKey.currentState?.showSnackBar(
       SnackBar(
-        content: const Text('عندك رسالة جديدة على رواق'),
+        content: Text(
+          target.notificationId == null
+              ? 'عندك رسالة جديدة على رواق'
+              : 'عندك إشعار جديد من رواق',
+        ),
         action: SnackBarAction(
           label: 'فتح',
           onPressed: () => queuePush(target),
@@ -95,6 +101,22 @@ class _TeacherCentersAppState extends State<TeacherCentersApp>
     if (!target.matches(widget.api)) return;
     openingPush = true;
     try {
+      if (target.notificationId != null) {
+        await widget.api.call(
+          'POST',
+          '/notifications/${target.notificationId}/read',
+        );
+        if (!mounted || !target.matches(widget.api)) return;
+        navigatorKey.currentState?.push(
+          MaterialPageRoute<void>(
+            builder: (_) => NotificationDetailPage(
+              api: widget.api,
+              id: target.notificationId!,
+            ),
+          ),
+        );
+        return;
+      }
       final room = obj(
         await widget.api.get('/chat/conversations/${target.conversationId}'),
       );

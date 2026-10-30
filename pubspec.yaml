@@ -1,7 +1,7 @@
 name: teacher_centers_mobile
 description: Rewaq — lessons, groups, attendance and payments.
 publish_to: none
-version: 1.7.1+10
+version: 1.8.0+11
 environment:
   sdk: '>=3.8.0 <4.0.0'
 dependencies:
