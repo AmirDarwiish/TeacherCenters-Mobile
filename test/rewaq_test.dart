@@ -183,11 +183,11 @@ void main() {
       await api.accept(session('token', 'refresh'));
       await tester.pumpWidget(host(PaymentsPage(api: api)));
       await tester.pumpAndSettle();
-      expect(find.text('2 بنود محددة'), findsOneWidget);
+      expect(find.text('المحدد: بندين'), findsOneWidget);
       await screenshot(tester, 'dues');
       await tester.tap(find.byType(Checkbox).first);
       await tester.pumpAndSettle();
-      expect(find.text('1 بنود محددة'), findsOneWidget);
+      expect(find.text('المحدد: بند واحد'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

@@ -6,7 +6,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'format.dart';
+import 'motion.dart';
 export 'format.dart';
+export 'motion.dart';
 
 import 'api.dart';
 
@@ -138,19 +140,21 @@ class BrandLoading extends StatelessWidget {
     child: SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: ExcludeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final height in [40.0, 120.0, 120.0, 80.0])
-              Container(
-                height: height,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: context.brand.skeleton,
-                  borderRadius: BorderRadius.circular(20),
+        child: Shimmer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final height in [40.0, 120.0, 120.0, 80.0])
+                Container(
+                  height: height,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: context.brand.skeleton,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     ),

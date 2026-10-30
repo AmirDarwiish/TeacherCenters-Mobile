@@ -134,8 +134,8 @@ class _PaymentsPageState extends State<PaymentsPage> {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        Text(
-                          money(balance['totalDue']),
+                        CountUpMoney(
+                          balance['totalDue'],
                           style: TextStyle(
                             color: colors.onPrimary,
                             fontSize: 34,
@@ -149,7 +149,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${unpaid.length} بنود متبقية',
+                          'المتبقي: ${itemsCount(unpaid.length)}',
                           style: TextStyle(
                             color: colors.onPrimary.withValues(alpha: .8),
                           ),
@@ -296,7 +296,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('${selected!.length} بنود محددة'),
+                            Text('المحدد: ${itemsCount(selected!.length)}'),
                             Text(
                               money(amount),
                               style: Theme.of(context).textTheme.titleLarge

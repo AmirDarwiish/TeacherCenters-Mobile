@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'motion.dart';
 
 /// Rewaq identity tokens. Navy leads; gold is reserved for emphasis.
 class BrandColors extends ThemeExtension<BrandColors> {
@@ -179,43 +180,45 @@ class _BrandCardState extends State<BrandCard> {
   @override
   Widget build(BuildContext context) {
     final b = context.brand;
-    return Listener(
-      onPointerDown: (_) => setState(() => pressed = true),
-      onPointerUp: (_) => setState(() => pressed = false),
-      onPointerCancel: (_) => setState(() => pressed = false),
-      child: AnimatedContainer(
-        duration: BrandMotion.duration(context, 150),
-        curve: BrandMotion.curve,
-        transform: Matrix4.translationValues(0, pressed ? -4 : 0, 0),
-        margin: widget.margin ?? const EdgeInsets.only(bottom: 12),
-        decoration: ShapeDecoration(
-          color: widget.color ?? b.surface,
-          shape:
-              widget.shape ??
-              RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: pressed ? b.accent : b.line),
-              ),
-          shadows: [
-            BoxShadow(
-              color: BrandColors.night.withValues(alpha: .04),
-              blurRadius: pressed ? 4 : 2,
-              offset: Offset(0, pressed ? 2 : 1),
-            ),
-            BoxShadow(
-              color: (pressed ? BrandColors.night : BrandColors.night)
-                  .withValues(alpha: pressed ? .16 : .06),
-              blurRadius: pressed ? 40 : 24,
-              offset: Offset(0, pressed ? 18 : 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          clipBehavior: widget.clipBehavior ?? Clip.antiAlias,
-          child: Material(
+    return Reveal(
+      child: Listener(
+        onPointerDown: (_) => setState(() => pressed = true),
+        onPointerUp: (_) => setState(() => pressed = false),
+        onPointerCancel: (_) => setState(() => pressed = false),
+        child: AnimatedContainer(
+          duration: BrandMotion.duration(context, 150),
+          curve: BrandMotion.curve,
+          transform: Matrix4.translationValues(0, pressed ? -4 : 0, 0),
+          margin: widget.margin ?? const EdgeInsets.only(bottom: 12),
+          decoration: ShapeDecoration(
             color: widget.color ?? b.surface,
-            child: widget.child,
+            shape:
+                widget.shape ??
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(color: pressed ? b.accent : b.line),
+                ),
+            shadows: [
+              BoxShadow(
+                color: BrandColors.night.withValues(alpha: .04),
+                blurRadius: pressed ? 4 : 2,
+                offset: Offset(0, pressed ? 2 : 1),
+              ),
+              BoxShadow(
+                color: (pressed ? BrandColors.night : BrandColors.night)
+                    .withValues(alpha: pressed ? .16 : .06),
+                blurRadius: pressed ? 40 : 24,
+                offset: Offset(0, pressed ? 18 : 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            clipBehavior: widget.clipBehavior ?? Clip.antiAlias,
+            child: Material(
+              color: widget.color ?? b.surface,
+              child: widget.child,
+            ),
           ),
         ),
       ),
