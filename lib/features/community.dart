@@ -6,6 +6,8 @@ import '../core/api.dart';
 import '../core/widgets.dart';
 import 'teaching.dart';
 import 'push_settings.dart';
+import 'teacher_notifications.dart';
+import 'notification_detail.dart';
 export 'scoped_chat.dart' show ThreadsPage;
 
 class LegacyThreadsPage extends StatefulWidget {
@@ -371,6 +373,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
       flexibleSpace: const BrandHeader(),
       title: const Text('الإشعارات'),
       actions: [
+        if (widget.api.role == 'Teacher')
+          IconButton(
+            tooltip: 'إرسال إشعار',
+            icon: const Icon(AppIcons.notificationsActiveOutlined),
+            onPressed: () =>
+                open(context, TeacherNotificationsPage(api: widget.api)),
+          ),
         IconButton(
           tooltip: 'إعداد الإشعارات',
           icon: const Icon(AppIcons.settingsOutlined),
@@ -398,11 +407,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
           ),
           title: Text(label(n)),
           subtitle: Text(
-            '${n['message'] ?? n['body'] ?? ''}\n${when(n['occurredAtUtc'] ?? n['createdAtUtc'])}',
+            '${n['message'] ?? n['body'] ?? ''}\n${when(n['createdAt'] ?? n['occurredAtUtc'] ?? n['createdAtUtc'])}',
           ),
           onTap: () => action(context, () async {
             await widget.api.call('POST', '/notifications/${n['id']}/read');
-            setState(() => revision++);
+            if (!context.mounted) return;
+            await Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    NotificationDetailPage(api: widget.api, id: '${n['id']}'),
+              ),
+            );
+            if (mounted) setState(() => revision++);
           }),
         ),
       ),

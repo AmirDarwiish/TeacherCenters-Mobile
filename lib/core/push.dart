@@ -34,7 +34,13 @@ String pushFailureText(Object error) {
 }
 
 class ChatPushTarget {
-  const ChatPushTarget(this.tenantId, this.recipientId, this.conversationId);
+  const ChatPushTarget(
+    this.tenantId,
+    this.recipientId,
+    this.conversationId, {
+    this.notificationId,
+  });
+  final String? notificationId;
   final String tenantId, recipientId, conversationId;
   static ChatPushTarget? parse(Map<String, dynamic> data) {
     final guid = RegExp(
@@ -43,6 +49,16 @@ class ChatPushTarget {
     final tenant = '${data['tenantId'] ?? ''}',
         recipient = '${data['recipientId'] ?? ''}',
         room = '${data['conversationId'] ?? ''}';
+    if (data['type'] == 'notification') {
+      final notice = '${data['notificationId'] ?? ''}';
+      if (![tenant, recipient, notice].every(guid.hasMatch)) return null;
+      return ChatPushTarget(
+        tenant.toLowerCase(),
+        recipient.toLowerCase(),
+        '',
+        notificationId: notice.toLowerCase(),
+      );
+    }
     if (data['type'] != 'chat.message' ||
         ![tenant, recipient, room].every(guid.hasMatch)) {
       return null;
@@ -251,7 +267,8 @@ class ChatPushCoordinator {
         transport.foreground.listen((data) {
           final target = ChatPushTarget.parse(data);
           if (target != null && target.matches(api)) {
-            api.live.emit('ChatChanged');
+            api.live.emit('NotificationsChanged');
+            if (target.notificationId == null) api.live.emit('ChatChanged');
             banner(target);
           }
         }),

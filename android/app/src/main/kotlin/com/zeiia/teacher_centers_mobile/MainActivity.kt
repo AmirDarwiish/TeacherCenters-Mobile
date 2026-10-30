@@ -32,6 +32,10 @@ class MainActivity : FlutterActivity() {
             channel.description = "رسائل المحادثات وجروبات الحصص"
             channel.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+            val updates = NotificationChannel("rewaq_updates", "تحديثات رواق", NotificationManager.IMPORTANCE_HIGH)
+            updates.description = "الكورسات والواجبات والحصص وإعلانات المدرس"
+            updates.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+            getSystemService(NotificationManager::class.java).createNotificationChannel(updates)
         }
     }
 }

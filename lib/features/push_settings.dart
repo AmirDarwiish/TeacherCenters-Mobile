@@ -119,7 +119,7 @@ class _PushSettingsPageState extends State<PushSettingsPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            'رواق ${const String.fromEnvironment('APP_VERSION', defaultValue: '1.7.1+10')}',
+            'رواق ${const String.fromEnvironment('APP_VERSION', defaultValue: '1.8.0+11')}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
