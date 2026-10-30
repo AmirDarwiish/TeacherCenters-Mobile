@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/brand.dart';
+import '../core/app_icons.dart';
 import 'scoped_chat.dart' show messageKey;
 
 class TeacherNotificationsPage extends StatefulWidget {
@@ -246,6 +247,7 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
           const SizedBox(height: 16),
           if (mode == 'Group')
             DropdownButtonFormField<String>(
+              icon: const Icon(AppIcons.arrowDownward),
               initialValue: groupId,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'المجموعة'),
@@ -266,7 +268,7 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
                 labelText: 'ابحث باسم الطالب أو الكود',
                 suffixIcon: IconButton(
                   onPressed: () => loadStudents(),
-                  icon: const Icon(Icons.search),
+                  icon: const Icon(AppIcons.searchRounded),
                 ),
               ),
               onSubmitted: (_) => loadStudents(),
@@ -309,6 +311,7 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
           if (loading) const LinearProgressIndicator(),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
+            icon: const Icon(AppIcons.arrowDownward),
             initialValue: audience,
             decoration: const InputDecoration(labelText: 'يوصل لمين؟'),
             items: const [
@@ -363,7 +366,7 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
           ],
           OutlinedButton.icon(
             onPressed: pickImage,
-            icon: const Icon(Icons.add_photo_alternate_outlined),
+            icon: const Icon(AppIcons.imageOutlined),
             label: const Text('إضافة صورة اختيارية'),
           ),
           const Text(
@@ -380,7 +383,7 @@ class _TeacherNotificationsPageState extends State<TeacherNotificationsPage> {
           const SizedBox(height: 20),
           FilledButton.icon(
             onPressed: busy || loading ? null : preview,
-            icon: const Icon(Icons.visibility_outlined),
+            icon: const Icon(AppIcons.notificationsActiveOutlined),
             label: Text(busy ? 'جاري التجهيز…' : 'معاينة وإرسال'),
           ),
           const SizedBox(height: 24),

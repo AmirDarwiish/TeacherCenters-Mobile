@@ -376,7 +376,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         if (widget.api.role == 'Teacher')
           IconButton(
             tooltip: 'إرسال إشعار',
-            icon: const Icon(Icons.campaign_outlined),
+            icon: const Icon(AppIcons.notificationsActiveOutlined),
             onPressed: () =>
                 open(context, TeacherNotificationsPage(api: widget.api)),
           ),
